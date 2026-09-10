@@ -168,9 +168,9 @@ create policy "org members can view movements"
 -- The ledger function: the only supported way to change stock
 ------------------------------------------------------------------------------
 
--- Verbatim from the live database. SECURITY DEFINER (bypasses the SELECT-only
--- RLS on inventory_movements / inventory_levels); no `set search_path` pin, and
--- the table references inside are unqualified — matching what is live.
+-- Verbatim from the live database as it stood before 0004. SECURITY DEFINER
+-- (bypasses the SELECT-only RLS on inventory_movements / inventory_levels); no
+-- `set search_path` pin, table references unqualified. 0004 hardens this.
 create or replace function public.record_inventory_movement(
   p_organisation_id uuid,
   p_location_id uuid,

@@ -25,3 +25,20 @@ export function formatDate(value: string | Date): string {
 export function formatDateTime(value: string | Date): string {
   return `${DATE_TIME.format(new Date(value))} UTC`;
 }
+
+/** Whole days from today until `value` (UTC-based); negative when already past. */
+export function daysUntil(value: string | Date): number {
+  const target = new Date(value);
+  const now = new Date();
+  const targetUtc = Date.UTC(
+    target.getUTCFullYear(),
+    target.getUTCMonth(),
+    target.getUTCDate()
+  );
+  const todayUtc = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate()
+  );
+  return Math.round((targetUtc - todayUtc) / 86_400_000);
+}

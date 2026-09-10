@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { recordMovement } from "@/app/movements/actions";
 import {
@@ -15,7 +15,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -44,12 +50,25 @@ export function MovementForm({
     undefined
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const [movementType, setMovementType] = useState("PURCHASE_RECEIVED");
+  const [handledState, setHandledState] = useState<typeof state>(undefined);
+
+  // Reset the controlled movement type once per successful submit (render-phase
+  // "adjust state when something changes" pattern — no effect).
+  if (state !== handledState) {
+    setHandledState(state);
+    if (state && "ok" in state) {
+      setMovementType("PURCHASE_RECEIVED");
+    }
+  }
 
   useEffect(() => {
     if (state && "ok" in state) {
       formRef.current?.reset();
     }
   }, [state]);
+
+  const isReceipt = movementType === "PURCHASE_RECEIVED";
 
   const locationItems: Record<string, string> = Object.fromEntries(
     locations.map((l) => [l.id, l.name])
@@ -110,7 +129,10 @@ export function MovementForm({
               <FieldLabel htmlFor="movementType">Movement type</FieldLabel>
               <Select
                 name="movementType"
-                defaultValue="PURCHASE_RECEIVED"
+                value={movementType}
+                onValueChange={(value) =>
+                  setMovementType(typeof value === "string" ? value : "")
+                }
                 items={MOVEMENT_TYPE_ITEMS}
               >
                 <SelectTrigger id="movementType" className="w-full">
@@ -138,6 +160,30 @@ export function MovementForm({
                 required
               />
             </Field>
+
+            {isReceipt ? (
+              <>
+                <Field>
+                  <FieldLabel htmlFor="batchNumber">
+                    Batch number (optional)
+                  </FieldLabel>
+                  <Input
+                    id="batchNumber"
+                    name="batchNumber"
+                    placeholder="e.g. LOT-2026-014"
+                  />
+                  <FieldDescription>
+                    Records a batch in inventory_batches for expiry tracking.
+                  </FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="expiryDate">
+                    Expiry date (optional)
+                  </FieldLabel>
+                  <Input id="expiryDate" name="expiryDate" type="date" />
+                </Field>
+              </>
+            ) : null}
 
             {state && "error" in state ? (
               <FieldError>{state.error}</FieldError>

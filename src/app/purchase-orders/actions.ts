@@ -103,6 +103,39 @@ export async function createPurchaseOrder(
   return { ok: true };
 }
 
+type ReceiveBatch = {
+  purchase_order_item_id: string;
+  batch_number: string;
+  expiry_date: string | null;
+};
+
+function parseReceiveBatches(raw: string): ReceiveBatch[] | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(parsed)) {
+    return null;
+  }
+
+  return parsed
+    .map((entry) => {
+      const record = (entry ?? {}) as Record<string, unknown>;
+      return {
+        purchase_order_item_id: String(record.purchase_order_item_id ?? ""),
+        batch_number: String(record.batch_number ?? "").trim(),
+        expiry_date: record.expiry_date ? String(record.expiry_date) : null,
+      };
+    })
+    .filter(
+      (entry) =>
+        entry.purchase_order_item_id.length > 0 &&
+        (entry.batch_number.length > 0 || entry.expiry_date != null)
+    );
+}
+
 export async function receivePurchaseOrder(
   _prevState: PurchaseOrderFormState,
   formData: FormData
@@ -110,6 +143,16 @@ export async function receivePurchaseOrder(
   const purchaseOrderId = String(formData.get("purchaseOrderId") ?? "");
   if (!purchaseOrderId) {
     return { error: "Missing purchase order." };
+  }
+
+  const batches = parseReceiveBatches(String(formData.get("batches") ?? "[]"));
+  if (batches === null) {
+    return { error: "Invalid batch data." };
+  }
+  if (batches.some((b) => b.expiry_date && !b.batch_number)) {
+    return {
+      error: "Enter a batch number for any line that has an expiry date.",
+    };
   }
 
   const supabase = await createClient();
@@ -122,10 +165,13 @@ export async function receivePurchaseOrder(
   // receive_purchase_order records one PURCHASE_RECEIVED movement per line item
   // (reference_type 'purchase_order', reference_id = the PO id) and flips the
   // PO to 'received', all in a single transaction. It raises if the PO is not
-  // still 'draft', so a double-click cannot receive the stock twice.
+  // still 'draft', so a double-click cannot receive the stock twice. Any
+  // p_batches entry with a batch_number is passed through to
+  // record_inventory_movement, which creates the inventory_batches row.
   const { error } = await supabase.rpc("receive_purchase_order", {
     p_organisation_id: organisationId,
     p_purchase_order_id: purchaseOrderId,
+    p_batches: batches,
   });
 
   if (error) {

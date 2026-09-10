@@ -6,7 +6,7 @@ import {
   type LocationOption,
   type VariantOption,
 } from "@/components/purchase-orders/purchase-order-form";
-import { ReceiveButton } from "@/components/purchase-orders/receive-button";
+import { ReceiveForm } from "@/components/purchase-orders/receive-form";
 import type { PurchaseOrderStatus } from "@/app/purchase-orders/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
@@ -32,12 +32,22 @@ type PurchaseOrderRow = {
   created_at: string;
   locations: { name: string } | null;
   purchase_order_items: {
+    id: string;
     quantity_ordered: number;
     product_variants:
       | { name: string; sku: string; products: { name: string } | null }
       | null;
   }[];
 };
+
+function itemLabel(
+  variant: { name: string; products: { name: string } | null } | null
+): string {
+  if (!variant) return "Unknown variant";
+  return variant.products?.name
+    ? `${variant.products.name} — ${variant.name}`
+    : variant.name;
+}
 
 function variantLabel(name: string, sku: string, productName?: string) {
   const base = productName ? `${productName} — ${name}` : name;
@@ -69,6 +79,7 @@ export default async function PurchaseOrdersPage() {
         `id, supplier_name, status, received_at, created_at,
          locations(name),
          purchase_order_items(
+           id,
            quantity_ordered,
            product_variants(name, sku, products(name))
          )`
@@ -134,16 +145,13 @@ export default async function PurchaseOrdersPage() {
                 </div>
 
                 <ul className="divide-y divide-border border-y border-border">
-                  {po.purchase_order_items.map((item, i) => (
+                  {po.purchase_order_items.map((item) => (
                     <li
-                      key={i}
+                      key={item.id}
                       className="flex items-center justify-between gap-4 py-1.5 text-sm"
                     >
                       <span className="min-w-0 truncate">
-                        {item.product_variants?.products?.name
-                          ? `${item.product_variants.products.name} — `
-                          : ""}
-                        {item.product_variants?.name ?? "Unknown variant"}
+                        {itemLabel(item.product_variants)}
                       </span>
                       <span className="tabular-nums text-muted-foreground">
                         {item.quantity_ordered}
@@ -153,7 +161,13 @@ export default async function PurchaseOrdersPage() {
                 </ul>
 
                 {po.status === "draft" ? (
-                  <ReceiveButton purchaseOrderId={po.id} />
+                  <ReceiveForm
+                    purchaseOrderId={po.id}
+                    items={po.purchase_order_items.map((item) => ({
+                      id: item.id,
+                      label: itemLabel(item.product_variants),
+                    }))}
+                  />
                 ) : (
                   <span className="text-muted-foreground text-xs">
                     Received

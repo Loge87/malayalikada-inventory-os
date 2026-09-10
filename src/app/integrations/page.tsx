@@ -22,7 +22,7 @@ type EventRow = {
   source_system: string;
   event_type: string;
   external_reference: string | null;
-  processing_status: "pending" | "processed" | "failed";
+  processing_status: "pending" | "processed" | "failed" | "duplicate";
   retry_count: number;
   last_error: string | null;
   received_at: string;
@@ -32,6 +32,7 @@ type EventRow = {
 const STATUS_STYLES: Record<EventRow["processing_status"], string> = {
   processed: "bg-muted text-foreground",
   pending: "bg-muted text-muted-foreground",
+  duplicate: "bg-muted text-muted-foreground",
   failed: "bg-destructive/10 text-destructive",
 };
 

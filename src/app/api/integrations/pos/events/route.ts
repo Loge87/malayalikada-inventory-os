@@ -109,16 +109,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  async function processed(body: Record<string, unknown>) {
+  async function complete(
+    outcome: "processed" | "duplicate",
+    body: Record<string, unknown>
+  ) {
     await supabase
       .from("integration_events")
       .update({
-        processing_status: "processed",
+        processing_status: outcome,
         processed_at: new Date().toISOString(),
       })
       .eq("id", eventId);
     return NextResponse.json(
-      { integration_event_id: eventId, status: "processed", ...body },
+      { integration_event_id: eventId, status: outcome, ...body },
       { status: 200 }
     );
   }
@@ -189,7 +192,7 @@ export async function POST(request: NextRequest) {
   const isCompletedSale =
     event.event_type === "SALE" && event.transaction_status === "COMPLETED";
   if (!isCompletedSale) {
-    return processed({
+    return complete("processed", {
       stock_movement: "skipped",
       reason:
         event.event_type === "SALE"
@@ -223,9 +226,20 @@ export async function POST(request: NextRequest) {
     return fail(500, rpcError.message);
   }
 
-  return processed({
-    stock_movement: movementId ? "recorded" : "duplicate_ignored",
-    movement_id: movementId ?? null,
+  // record_inventory_movement returns NULL when this external_reference was
+  // already applied (EXISTS check or the unique index) — an idempotent no-op,
+  // logged distinctly from a fresh deduction.
+  if (!movementId) {
+    return complete("duplicate", {
+      stock_movement: "duplicate_ignored",
+      movement_id: null,
+      external_reference: event.external_reference,
+    });
+  }
+
+  return complete("processed", {
+    stock_movement: "recorded",
+    movement_id: movementId,
     location_id: mapping.location_id,
     product_variant_id: productVariantId,
   });

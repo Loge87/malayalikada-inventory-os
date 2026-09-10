@@ -2,6 +2,11 @@
 
 These rules are non-negotiable. Follow them in every change, no matter how small the task looks.
 
+> **Full product context:** [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) — the original product
+> master prompt: vision, users, complete data model, dashboard questions, development phases, and
+> scope (MVP / V2 / V3). This file is the non-negotiable engineering *rules*; the spec is the *why*
+> and the *what*.
+
 ## Core architecture
 - Multi-tenant from day one. Every table that holds business data has an `organisation_id` column and RLS scoped to it.
 - Organisation → locations → products → product_variants → inventory_levels.

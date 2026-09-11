@@ -11,7 +11,7 @@ import {
   type Currency,
   type ProductFormState,
   type VariantUnit,
-} from "@/app/products/constants";
+} from "@/app/(app)/products/constants";
 
 export async function createProduct(
   _prevState: ProductFormState,

@@ -8,7 +8,7 @@ import {
   MOVEMENT_TYPES,
   type MovementFormState,
   type MovementType,
-} from "@/app/movements/constants";
+} from "@/app/(app)/movements/constants";
 
 export async function recordMovement(
   _prevState: MovementFormState,

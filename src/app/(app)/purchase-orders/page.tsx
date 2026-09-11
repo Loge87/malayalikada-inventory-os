@@ -7,7 +7,7 @@ import {
   type VariantOption,
 } from "@/components/purchase-orders/purchase-order-form";
 import { ReceiveForm } from "@/components/purchase-orders/receive-form";
-import type { PurchaseOrderStatus } from "@/app/purchase-orders/constants";
+import type { PurchaseOrderStatus } from "@/app/(app)/purchase-orders/constants";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
   Card,

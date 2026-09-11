@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 
-import { receivePurchaseOrder } from "@/app/purchase-orders/actions";
+import { receivePurchaseOrder } from "@/app/(app)/purchase-orders/actions";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";

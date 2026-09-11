@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganisationId } from "@/lib/organisation";
-import type { PurchaseOrderFormState } from "@/app/purchase-orders/constants";
+import type { PurchaseOrderFormState } from "@/app/(app)/purchase-orders/constants";
 
 type ParsedLineItem = {
   product_variant_id: string;

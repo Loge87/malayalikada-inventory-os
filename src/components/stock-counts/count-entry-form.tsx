@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 
-import { saveStockCount } from "@/app/stock-counts/actions";
+import { saveStockCount } from "@/app/(app)/stock-counts/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,

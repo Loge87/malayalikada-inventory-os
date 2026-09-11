@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 
-import { createVariant } from "@/app/products/actions";
-import { VARIANT_UNITS } from "@/app/products/constants";
+import { createVariant } from "@/app/(app)/products/actions";
+import { VARIANT_UNITS } from "@/app/(app)/products/constants";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";

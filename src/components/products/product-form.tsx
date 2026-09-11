@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 
-import { createProduct } from "@/app/products/actions";
+import { createProduct } from "@/app/(app)/products/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,

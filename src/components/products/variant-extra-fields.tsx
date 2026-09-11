@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { CURRENCIES, DEFAULT_CURRENCY } from "@/app/products/constants";
+import { CURRENCIES, DEFAULT_CURRENCY } from "@/app/(app)/products/constants";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {

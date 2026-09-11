@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 
-import { startStockCount } from "@/app/stock-counts/actions";
+import { startStockCount } from "@/app/(app)/stock-counts/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,

@@ -8,7 +8,7 @@ import {
   LOCATION_TYPES,
   type LocationFormState,
   type LocationType,
-} from "@/app/locations/constants";
+} from "@/app/(app)/locations/constants";
 
 export async function createLocation(
   _prevState: LocationFormState,

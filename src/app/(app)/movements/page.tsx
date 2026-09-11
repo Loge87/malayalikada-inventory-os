@@ -6,7 +6,7 @@ import {
   type LocationOption,
   type VariantOption,
 } from "@/components/movements/movement-form";
-import { MOVEMENT_TYPE_LABELS, type MovementType } from "@/app/movements/constants";
+import { MOVEMENT_TYPE_LABELS, type MovementType } from "@/app/(app)/movements/constants";
 import { formatDateTime } from "@/lib/format";
 import {
   Card,

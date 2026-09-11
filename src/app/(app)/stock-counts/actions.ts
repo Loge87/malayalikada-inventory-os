@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganisationId } from "@/lib/organisation";
-import type { StockCountFormState } from "@/app/stock-counts/constants";
+import type { StockCountFormState } from "@/app/(app)/stock-counts/constants";
 
 export async function startStockCount(
   _prevState: StockCountFormState,

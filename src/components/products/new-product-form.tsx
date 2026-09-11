@@ -2,8 +2,8 @@
 
 import { useActionState } from "react";
 
-import { createProductWithVariant } from "@/app/products/actions";
-import { VARIANT_UNITS } from "@/app/products/constants";
+import { createProductWithVariant } from "@/app/(app)/products/actions";
+import { VARIANT_UNITS } from "@/app/(app)/products/constants";
 import { Button } from "@/components/ui/button";
 import {
   Card,

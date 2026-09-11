@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
-import { createPurchaseOrder } from "@/app/purchase-orders/actions";
+import { createPurchaseOrder } from "@/app/(app)/purchase-orders/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,

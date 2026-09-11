@@ -10,7 +10,7 @@ import {
   CountEntryForm,
   type CountItem,
 } from "@/components/stock-counts/count-entry-form";
-import type { StockCountStatus } from "@/app/stock-counts/constants";
+import type { StockCountStatus } from "@/app/(app)/stock-counts/constants";
 import {
   Card,
   CardContent,

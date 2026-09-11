@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 
-import { createLocation } from "@/app/locations/actions";
+import { createLocation } from "@/app/(app)/locations/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,

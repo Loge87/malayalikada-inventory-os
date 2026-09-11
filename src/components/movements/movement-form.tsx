@@ -2,11 +2,11 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 
-import { recordMovement } from "@/app/movements/actions";
+import { recordMovement } from "@/app/(app)/movements/actions";
 import {
   MOVEMENT_TYPES,
   MOVEMENT_TYPE_LABELS,
-} from "@/app/movements/constants";
+} from "@/app/(app)/movements/constants";
 import { Button } from "@/components/ui/button";
 import {
   Card,

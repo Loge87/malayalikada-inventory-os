@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganisationId } from "@/lib/organisation";
-import type { TransferFormState } from "@/app/transfers/constants";
+import type { TransferFormState } from "@/app/(app)/transfers/constants";
 
 export async function createTransfer(
   _prevState: TransferFormState,

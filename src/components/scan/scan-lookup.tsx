@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { BarcodeInput } from "@/components/barcode/barcode-input";
 import { CameraScanButton } from "@/components/barcode/camera-scan-button";
 import type { ScanSource } from "@/components/barcode/types";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -186,10 +188,21 @@ function LookupResult({ lookup }: { lookup: Lookup }) {
   }
   if (lookup.state === "not_found") {
     return (
-      <p className="text-sm text-destructive">
-        No product variant with barcode{" "}
-        <span className="font-mono">{lookup.barcode}</span>.
-      </p>
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border p-4 text-center">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-sm font-medium">No product found</p>
+          <p className="font-mono text-base">{lookup.barcode}</p>
+          <p className="text-muted-foreground text-xs">
+            This barcode isn&apos;t linked to any product variant yet.
+          </p>
+        </div>
+        <Link
+          href={`/products/new?barcode=${encodeURIComponent(lookup.barcode)}`}
+          className={buttonVariants({ size: "sm" })}
+        >
+          Create new product
+        </Link>
+      </div>
     );
   }
   if (lookup.state === "ambiguous") {

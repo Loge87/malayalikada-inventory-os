@@ -42,3 +42,15 @@ export function daysUntil(value: string | Date): number {
   );
   return Math.round((targetUtc - todayUtc) / 86_400_000);
 }
+
+/** Formats a price with its currency; falls back to "<currency> <amount>" for
+ *  a currency code Intl doesn't recognize instead of throwing. */
+export function formatMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en", { style: "currency", currency }).format(
+      amount
+    );
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}

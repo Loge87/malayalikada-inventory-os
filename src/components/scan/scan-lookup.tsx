@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
+import { formatMoney } from "@/lib/format";
 import { BarcodeInput } from "@/components/barcode/barcode-input";
 import { CameraScanButton } from "@/components/barcode/camera-scan-button";
 import type { ScanSource } from "@/components/barcode/types";
@@ -177,16 +178,6 @@ const SOURCE_LABEL: Record<ScanSource, string> = {
   camera: "camera",
 };
 
-function formatMoney(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en", {
-      style: "currency",
-      currency,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
-  }
-}
 
 function LookupResult({ lookup }: { lookup: Lookup }) {
   if (lookup.state === "idle") {

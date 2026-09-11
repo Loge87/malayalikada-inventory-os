@@ -1,9 +1,14 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { ProductForm } from "@/components/products/product-form";
-import { VariantForm } from "@/components/products/variant-form";
+import { PRODUCT_IMAGE_BUCKET } from "@/app/(app)/products/constants";
+import {
+  ProductsTable,
+  type EditableProduct,
+} from "@/components/products/products-table";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,20 +17,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-type Variant = {
+type VariantRow = {
   id: string;
   name: string;
   sku: string;
   barcode: string | null;
   unit: string;
+  currency: string;
+  pack_price: number | null;
+  units_per_pack: number;
+  unit_price: number | null;
+  inventory_levels: { on_hand: number }[];
 };
 
-type Product = {
+type ProductRow = {
   id: string;
   name: string;
   category: string;
-  product_variants: Variant[];
+  brand: string | null;
+  image_url: string | null;
+  product_variants: VariantRow[];
 };
+
+const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour — regenerated on every page load
 
 export default async function ProductsPage() {
   const supabase = await createClient();
@@ -43,10 +57,15 @@ export default async function ProductsPage() {
     supabase
       .from("products")
       .select(
-        "id, name, category, product_variants(id, name, sku, barcode, unit)"
+        `id, name, category, brand, image_url,
+         product_variants(
+           id, name, sku, barcode, unit,
+           currency, pack_price, units_per_pack, unit_price,
+           inventory_levels(on_hand)
+         )`
       )
       .order("name")
-      .returns<Product[]>(),
+      .returns<ProductRow[]>(),
     supabase.from("locations").select("id, name").order("name"),
   ]);
 
@@ -55,57 +74,79 @@ export default async function ProductsPage() {
     throw firstError;
   }
 
-  const products = productsRes.data;
+  const productRows = productsRes.data ?? [];
   const locations: LocationOption[] = locationsRes.data ?? [];
 
+  // Private bucket — resolve every product's stored path to a short-lived
+  // signed URL in one call. Products without an image, or whose signing fails
+  // for any reason, just fall back to the placeholder icon in the table.
+  const imagePaths = [
+    ...new Set(
+      productRows
+        .map((p) => p.image_url)
+        .filter((path): path is string => Boolean(path))
+    ),
+  ];
+  const signedUrlByPath = new Map<string, string>();
+  if (imagePaths.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from(PRODUCT_IMAGE_BUCKET)
+      .createSignedUrls(imagePaths, SIGNED_URL_TTL_SECONDS);
+    for (const entry of signedUrls ?? []) {
+      if (entry.signedUrl && !entry.error) {
+        signedUrlByPath.set(entry.path ?? "", entry.signedUrl);
+      }
+    }
+  }
+
+  const products: EditableProduct[] = productRows.map((product) => ({
+    id: product.id,
+    name: product.name,
+    category: product.category,
+    brand: product.brand,
+    imageUrl: product.image_url
+      ? (signedUrlByPath.get(product.image_url) ?? null)
+      : null,
+    variants: product.product_variants.map((variant) => ({
+      id: variant.id,
+      name: variant.name,
+      sku: variant.sku,
+      barcode: variant.barcode,
+      unit: variant.unit,
+      currency: variant.currency,
+      packPrice: variant.pack_price,
+      unitsPerPack: variant.units_per_pack,
+      unitPrice: variant.unit_price,
+      onHand: variant.inventory_levels.reduce((sum, l) => sum + l.on_hand, 0),
+    })),
+  }));
+
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 md:p-10">
-      <ProductForm />
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6 md:p-10">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-xl font-medium">Products</h1>
+          <p className="text-muted-foreground text-sm">
+            {products.length > 0
+              ? `${products.length} product${products.length === 1 ? "" : "s"}`
+              : "No products yet"}
+          </p>
+        </div>
+        <Link href="/products/new" className={buttonVariants({ size: "sm" })}>
+          Add product
+        </Link>
+      </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Products</CardTitle>
+          <CardTitle>Catalog</CardTitle>
           <CardDescription>
-            {products && products.length > 0
-              ? `${products.length} product${products.length === 1 ? "" : "s"}`
-              : "None yet"}
+            Click Edit to change details, pricing, image, or variants.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-6">
-          {products && products.length > 0 ? (
-            products.map((product) => (
-              <div key={product.id} className="flex flex-col gap-2">
-                <div className="flex items-baseline justify-between">
-                  <span className="font-medium">{product.name}</span>
-                  <span className="text-muted-foreground">
-                    {product.category}
-                  </span>
-                </div>
-
-                {product.product_variants.length > 0 ? (
-                  <ul className="divide-y divide-border rounded-lg ring-1 ring-foreground/10">
-                    {product.product_variants.map((variant) => (
-                      <li key={variant.id} className="flex flex-col gap-0.5 p-2.5">
-                        <div className="flex items-center justify-between">
-                          <span>{variant.name}</span>
-                          <span className="text-muted-foreground">
-                            {variant.unit}
-                          </span>
-                        </div>
-                        <div className="text-muted-foreground text-xs">
-                          SKU {variant.sku}
-                          {variant.barcode ? ` · ${variant.barcode}` : ""}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-muted-foreground text-sm">No variants yet</p>
-                )}
-
-                <VariantForm productId={product.id} locations={locations} />
-              </div>
-            ))
+        <CardContent>
+          {products.length > 0 ? (
+            <ProductsTable products={products} locations={locations} />
           ) : (
             <p className="text-muted-foreground">No products yet</p>
           )}

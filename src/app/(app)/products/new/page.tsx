@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { NewProductForm } from "@/components/products/new-product-form";
+import { AddProductFlow } from "@/components/products/add-product-flow";
 
 export default async function NewProductPage({
   searchParams,
@@ -33,26 +33,22 @@ export default async function NewProductPage({
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col gap-6 p-6 md:p-10">
       <div>
-        <h1 className="font-heading text-xl font-medium">New product</h1>
-        <p className="text-muted-foreground text-sm">
-          {barcode ? (
-            <>
-              For scanned barcode{" "}
-              <span className="font-mono text-foreground">{barcode}</span>
-            </>
-          ) : (
-            "Add a product and its first variant"
-          )}
-        </p>
+        <h1 className="font-heading text-xl font-medium">Add product</h1>
+        {barcode ? (
+          <p className="text-muted-foreground text-sm">
+            For scanned barcode{" "}
+            <span className="font-mono text-foreground">{barcode}</span>
+          </p>
+        ) : null}
       </div>
 
-      <NewProductForm barcode={barcode} locations={locations ?? []} />
+      <AddProductFlow initialBarcode={barcode} locations={locations ?? []} />
 
       <Link
-        href="/scan"
+        href={barcode ? "/scan" : "/products"}
         className="text-muted-foreground text-center text-sm underline"
       >
-        Back to scan
+        {barcode ? "Back to scan" : "Back to products"}
       </Link>
     </div>
   );

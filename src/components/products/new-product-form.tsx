@@ -39,9 +39,18 @@ const UNIT_ITEMS: Record<string, string> = Object.fromEntries(
 export function NewProductForm({
   barcode,
   locations,
+  returnTo = "/products",
+  onBack,
 }: {
   barcode: string;
   locations: LocationOption[];
+  /** Where to land after a successful create — "/scan" for the scan-originated
+   *  flow (so the barcode can be re-scanned), otherwise "/products". */
+  returnTo?: "/scan" | "/products";
+  /** Shown as a "Back" action when this form is one step of a larger flow
+   *  (the /products "Add product" chooser) rather than the sole content of
+   *  the page. */
+  onBack?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(
     createProductWithVariant,
@@ -59,9 +68,13 @@ export function NewProductForm({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* On success the action redirects to /scan, so no reset handling. */}
+        {/* On success the action redirects, so no reset handling. */}
         <form action={formAction}>
+          <input type="hidden" name="returnTo" value={returnTo} />
           <FieldGroup>
+            <span className="text-xs font-medium text-muted-foreground">
+              Product
+            </span>
             <Field>
               <FieldLabel htmlFor="productName">Product name</FieldLabel>
               <Input
@@ -71,15 +84,25 @@ export function NewProductForm({
                 required
               />
             </Field>
-            <Field>
-              <FieldLabel htmlFor="category">Category</FieldLabel>
-              <Input
-                id="category"
-                name="category"
-                placeholder="Grains"
-                required
-              />
+            <Field orientation="responsive">
+              <Field>
+                <FieldLabel htmlFor="category">Category</FieldLabel>
+                <Input
+                  id="category"
+                  name="category"
+                  placeholder="Grains"
+                  required
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="brand">Brand</FieldLabel>
+                <Input id="brand" name="brand" placeholder="Optional" />
+              </Field>
             </Field>
+
+            <span className="text-xs font-medium text-muted-foreground">
+              First variant
+            </span>
             <Field>
               <FieldLabel htmlFor="variantName">Variant</FieldLabel>
               <Input
@@ -130,9 +153,25 @@ export function NewProductForm({
               <FieldError>{state.error}</FieldError>
             ) : null}
 
-            <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? "Creating…" : "Create product"}
-            </Button>
+            <div className="flex gap-2">
+              {onBack ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onBack}
+                  disabled={pending}
+                >
+                  Back
+                </Button>
+              ) : null}
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={pending}
+              >
+                {pending ? "Creating…" : "Create product"}
+              </Button>
+            </div>
           </FieldGroup>
         </form>
       </CardContent>

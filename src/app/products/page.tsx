@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProductForm } from "@/components/products/product-form";
 import { VariantForm } from "@/components/products/variant-form";
+import type { LocationOption } from "@/components/products/variant-extra-fields";
 import {
   Card,
   CardContent,
@@ -37,16 +38,25 @@ export default async function ProductsPage() {
     redirect("/login");
   }
 
-  // RLS scopes both products and their variants to the caller's organisation.
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("id, name, category, product_variants(id, name, sku, barcode, unit)")
-    .order("name")
-    .returns<Product[]>();
+  // RLS scopes reads to the caller's organisation.
+  const [productsRes, locationsRes] = await Promise.all([
+    supabase
+      .from("products")
+      .select(
+        "id, name, category, product_variants(id, name, sku, barcode, unit)"
+      )
+      .order("name")
+      .returns<Product[]>(),
+    supabase.from("locations").select("id, name").order("name"),
+  ]);
 
-  if (error) {
-    throw error;
+  const firstError = productsRes.error || locationsRes.error;
+  if (firstError) {
+    throw firstError;
   }
+
+  const products = productsRes.data;
+  const locations: LocationOption[] = locationsRes.data ?? [];
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 md:p-10">
@@ -93,7 +103,7 @@ export default async function ProductsPage() {
                   <p className="text-muted-foreground text-sm">No variants yet</p>
                 )}
 
-                <VariantForm productId={product.id} />
+                <VariantForm productId={product.id} locations={locations} />
               </div>
             ))
           ) : (

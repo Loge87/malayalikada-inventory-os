@@ -21,6 +21,15 @@ export default async function NewProductPage({
 
   const barcode = ((await searchParams).barcode ?? "").trim();
 
+  const { data: locations, error } = await supabase
+    .from("locations")
+    .select("id, name")
+    .order("name");
+
+  if (error) {
+    throw error;
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col gap-6 p-6 md:p-10">
       <div>
@@ -37,7 +46,7 @@ export default async function NewProductPage({
         </p>
       </div>
 
-      <NewProductForm barcode={barcode} />
+      <NewProductForm barcode={barcode} locations={locations ?? []} />
 
       <Link
         href="/scan"

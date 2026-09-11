@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { createVariant } from "@/app/products/actions";
 import { VARIANT_UNITS } from "@/app/products/constants";
@@ -14,14 +14,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  VariantExtraFields,
+  type LocationOption,
+} from "@/components/products/variant-extra-fields";
 
 const UNIT_ITEMS: Record<string, string> = Object.fromEntries(
   VARIANT_UNITS.map((unit) => [unit, unit])
 );
 
-export function VariantForm({ productId }: { productId: string }) {
+export function VariantForm({
+  productId,
+  locations,
+}: {
+  productId: string;
+  locations: LocationOption[];
+}) {
   const [state, formAction, pending] = useActionState(createVariant, undefined);
   const formRef = useRef<HTMLFormElement>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const [handledState, setHandledState] = useState<typeof state>(undefined);
+
+  // Remount VariantExtraFields (clearing its controlled pricing state) once per
+  // successful submit — the render-phase "adjust state when something changes"
+  // pattern, no effect.
+  if (state !== handledState) {
+    setHandledState(state);
+    if (state && "ok" in state) {
+      setResetKey((key) => key + 1);
+    }
+  }
 
   useEffect(() => {
     if (state && "ok" in state) {
@@ -85,6 +107,12 @@ export function VariantForm({ productId }: { productId: string }) {
             </Select>
           </Field>
         </Field>
+
+        <VariantExtraFields
+          key={resetKey}
+          idPrefix={`variant-${productId}`}
+          locations={locations}
+        />
 
         {state && "error" in state ? (
           <FieldError>{state.error}</FieldError>

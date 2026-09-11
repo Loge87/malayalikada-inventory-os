@@ -27,12 +27,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  VariantExtraFields,
+  type LocationOption,
+} from "@/components/products/variant-extra-fields";
 
 const UNIT_ITEMS: Record<string, string> = Object.fromEntries(
   VARIANT_UNITS.map((unit) => [unit, unit])
 );
 
-export function NewProductForm({ barcode }: { barcode: string }) {
+export function NewProductForm({
+  barcode,
+  locations,
+}: {
+  barcode: string;
+  locations: LocationOption[];
+}) {
   const [state, formAction, pending] = useActionState(
     createProductWithVariant,
     undefined
@@ -113,6 +123,8 @@ export function NewProductForm({ barcode }: { barcode: string }) {
                 </SelectContent>
               </Select>
             </Field>
+
+            <VariantExtraFields idPrefix="new-product" locations={locations} />
 
             {state && "error" in state ? (
               <FieldError>{state.error}</FieldError>

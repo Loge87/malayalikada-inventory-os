@@ -22,6 +22,10 @@ type Variant = {
   sku: string;
   barcode: string | null;
   unit: string;
+  currency: string;
+  pack_price: number | null;
+  units_per_pack: number;
+  unit_price: number | null;
   products: { name: string; category: string | null } | null;
   inventory_levels: { on_hand: number; locations: { name: string } | null }[];
 };
@@ -58,7 +62,7 @@ export function ScanLookup() {
     const { data, error } = await supabase
       .from("product_variants")
       .select(
-        "id, name, sku, barcode, unit, products(name, category), inventory_levels(on_hand, locations(name))"
+        "id, name, sku, barcode, unit, currency, pack_price, units_per_pack, unit_price, products(name, category), inventory_levels(on_hand, locations(name))"
       )
       .eq("barcode", barcode)
       .limit(2)
@@ -173,6 +177,17 @@ const SOURCE_LABEL: Record<ScanSource, string> = {
   camera: "camera",
 };
 
+function formatMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en", {
+      style: "currency",
+      currency,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
 function LookupResult({ lookup }: { lookup: Lookup }) {
   if (lookup.state === "idle") {
     return (
@@ -233,6 +248,25 @@ function LookupResult({ lookup }: { lookup: Lookup }) {
         </span>
         <span className="shrink-0 tabular-nums">{total} on hand</span>
       </div>
+
+      {variant.pack_price != null || variant.unit_price != null ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
+          {variant.pack_price != null ? (
+            <span>
+              {formatMoney(variant.pack_price, variant.currency)} / pack
+              {variant.units_per_pack !== 1
+                ? ` (${variant.units_per_pack} ${variant.unit})`
+                : ""}
+            </span>
+          ) : null}
+          {variant.unit_price != null ? (
+            <span className="text-muted-foreground">
+              {formatMoney(variant.unit_price, variant.currency)} /{" "}
+              {variant.unit}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       {variant.inventory_levels.length > 0 ? (
         <ul className="divide-y divide-border border-t border-border">

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 
 import { Button } from "@/components/ui/button";
 import type { ScanSource } from "@/components/barcode/types";
 
 type Phase =
-  | { kind: "starting" }
+  | { kind: "idle" }
+  | { kind: "requesting" }
   | { kind: "scanning" }
   | { kind: "error"; message: string };
 
@@ -17,13 +19,13 @@ function errorMessage(error: unknown): string {
   if (typeof DOMException !== "undefined" && error instanceof DOMException) {
     switch (error.name) {
       case "NotAllowedError":
-        return "Camera access was denied. Allow it in your browser settings, then try again.";
+      case "SecurityError":
+        return "Camera access was denied. Allow the camera for this site, then try again.";
       case "NotFoundError":
-        return "No camera was found on this device.";
+      case "OverconstrainedError":
+        return "No usable camera was found on this device.";
       case "NotReadableError":
         return "The camera is already in use by another app.";
-      case "SecurityError":
-        return "The camera needs a secure (https) connection.";
     }
   }
   return "Could not start the camera.";
@@ -37,59 +39,86 @@ export function CameraScanButton({
   onScan: (barcode: string, source: ScanSource) => void;
   disabled?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const [phase, setPhase] = useState<Phase>({ kind: "starting" });
+  const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const controlsRef = useRef<{ stop: () => void } | null>(null);
+  const firedRef = useRef(false);
 
-  useEffect(() => {
-    if (!open) return;
+  const open = phase.kind !== "idle";
 
-    // On mobile the BarcodeInput may hold focus and the on-screen keyboard —
-    // drop it before showing the camera.
+  const releaseCamera = useCallback(() => {
+    controlsRef.current?.stop();
+    controlsRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+  }, []);
+
+  const close = useCallback(() => {
+    releaseCamera();
+    setPhase({ kind: "idle" });
+  }, [releaseCamera]);
+
+  // Acquire the stream synchronously in the tap handler — the browser only
+  // treats getUserMedia as user-initiated when it is called before any `await`
+  // in the gesture (iOS Safari enforces this strictly).
+  async function start() {
+    if (open) return;
+    firedRef.current = false;
     (document.activeElement as HTMLElement | null)?.blur();
+    setPhase({ kind: "requesting" });
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+      });
+    } catch (error) {
+      setPhase({ kind: "error", message: errorMessage(error) });
+      return;
+    }
+    streamRef.current = stream;
+    setPhase({ kind: "scanning" });
+  }
+
+  // Run the decoder once the <video> is mounted and the stream is ready.
+  useEffect(() => {
+    if (phase.kind !== "scanning" || !videoRef.current || !streamRef.current) {
+      return;
+    }
 
     let cancelled = false;
-    let controls: { stop: () => void } | null = null;
-    let fired = false;
+    const reader = new BrowserMultiFormatReader();
 
-    void (async () => {
-      try {
-        // Dynamic import: the decoder is browser-only and heavy, so it stays
-        // out of the server render and off the critical path.
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        if (cancelled || !videoRef.current) return;
-
-        const reader = new BrowserMultiFormatReader();
-        const activeControls = await reader.decodeFromConstraints(
-          { video: { facingMode: { ideal: "environment" } } },
-          videoRef.current,
-          (result) => {
-            if (!result || fired || cancelled) return;
-            fired = true;
-            activeControls.stop();
-            onScan(result.getText(), "camera");
-            setOpen(false);
-          }
-        );
-
-        controls = activeControls;
-        if (cancelled) {
-          activeControls.stop();
-          return;
-        }
-        setPhase({ kind: "scanning" });
-      } catch (error) {
+    reader
+      .decodeFromStream(streamRef.current, videoRef.current, (result) => {
+        if (!result || firedRef.current || cancelled) return;
+        firedRef.current = true;
+        onScan(result.getText(), "camera");
+        close();
+      })
+      .then((controls) => {
+        if (cancelled) controls.stop();
+        else controlsRef.current = controls;
+      })
+      .catch((error) => {
         if (!cancelled) {
           setPhase({ kind: "error", message: errorMessage(error) });
         }
-      }
-    })();
+      });
 
     return () => {
       cancelled = true;
-      controls?.stop();
     };
-  }, [open, onScan]);
+  }, [phase.kind, onScan, close]);
+
+  // Always release the camera on unmount.
+  useEffect(() => {
+    return () => {
+      controlsRef.current?.stop();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
 
   if (!open) {
     return (
@@ -98,10 +127,7 @@ export function CameraScanButton({
         variant="outline"
         size="sm"
         disabled={disabled}
-        onClick={() => {
-          setPhase({ kind: "starting" });
-          setOpen(true);
-        }}
+        onClick={start}
       >
         Scan with camera
       </Button>
@@ -115,14 +141,15 @@ export function CameraScanButton({
         className="aspect-video w-full rounded-md bg-black object-cover"
         playsInline
         muted
+        autoPlay
       />
       {phase.kind === "error" ? (
         <p className="text-sm text-destructive">{phase.message}</p>
       ) : (
         <p className="text-muted-foreground text-xs">
-          {phase.kind === "scanning"
-            ? "Point the camera at a barcode."
-            : "Starting camera…"}
+          {phase.kind === "requesting"
+            ? "Requesting camera…"
+            : "Point the camera at a barcode."}
         </p>
       )}
       <Button
@@ -130,7 +157,7 @@ export function CameraScanButton({
         variant="ghost"
         size="sm"
         className="w-fit"
-        onClick={() => setOpen(false)}
+        onClick={close}
       >
         Cancel
       </Button>

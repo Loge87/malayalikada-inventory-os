@@ -1,12 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
-import {
-  BarcodeInput,
-  type ScanSource,
-} from "@/components/barcode/barcode-input";
+import { BarcodeInput } from "@/components/barcode/barcode-input";
+import { CameraScanButton } from "@/components/barcode/camera-scan-button";
+import type { ScanSource } from "@/components/barcode/types";
 import {
   Card,
   CardContent,
@@ -47,7 +46,10 @@ export function ScanLookup() {
   const [lookup, setLookup] = useState<Lookup>({ state: "idle" });
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  async function handleScan(barcode: string, source: ScanSource) {
+  const handleScan = useCallback(async function handleScan(
+    barcode: string,
+    source: ScanSource
+  ) {
     const id = ++requestId.current;
     setLookup({ state: "loading", barcode });
 
@@ -93,7 +95,8 @@ export function ScanLookup() {
 
     setLookup(next);
     setHistory((current) => [entry, ...current].slice(0, 8));
-  }
+  },
+  [supabase]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,11 +105,12 @@ export function ScanLookup() {
           <CardTitle>Scan a barcode</CardTitle>
           <CardDescription>
             The field is always focused — scan with a hardware reader, or type a
-            barcode and press Enter.
+            barcode and press Enter. On a phone, use the camera.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <BarcodeInput onScan={handleScan} />
+          <CameraScanButton onScan={handleScan} />
           <LookupResult lookup={lookup} />
         </CardContent>
       </Card>
@@ -131,7 +135,7 @@ export function ScanLookup() {
                       {h.barcode}
                     </span>
                     <span className="text-muted-foreground text-xs">
-                      {h.source === "manual" ? "typed" : "scanned"} · {h.label}
+                      {SOURCE_LABEL[h.source]} · {h.label}
                     </span>
                   </span>
                   <span
@@ -160,6 +164,12 @@ function variantLabel(variant: Variant): string {
     ? `${variant.products.name} — ${variant.name}`
     : variant.name;
 }
+
+const SOURCE_LABEL: Record<ScanSource, string> = {
+  scan: "scanned",
+  manual: "typed",
+  camera: "camera",
+};
 
 function LookupResult({ lookup }: { lookup: Lookup }) {
   if (lookup.state === "idle") {
@@ -205,7 +215,7 @@ function LookupResult({ lookup }: { lookup: Lookup }) {
           <span className="text-muted-foreground text-xs">
             {variant.sku} · {variant.unit}
             {variant.products?.category ? ` · ${variant.products.category}` : ""}
-            {source === "manual" ? " · typed" : ""}
+            {source !== "scan" ? ` · ${SOURCE_LABEL[source]}` : ""}
           </span>
         </span>
         <span className="shrink-0 tabular-nums">{total} on hand</span>

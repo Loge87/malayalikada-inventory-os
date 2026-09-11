@@ -5,8 +5,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import type { ScanSource } from "@/components/barcode/types";
 
-export type ScanSource = "scan" | "manual";
+export type { ScanSource };
 
 // A hardware scanner types a whole barcode in a few milliseconds per character
 // and finishes with Enter. A person is an order of magnitude slower, so an

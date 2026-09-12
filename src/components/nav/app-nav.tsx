@@ -43,8 +43,8 @@ const NAV_LINKS: NavLink[] = [
 ];
 
 // The app is used on phones for scanning, so the bottom bar keeps the busiest
-// four one tap away; everything else (still in the sidebar on desktop) lives
-// behind "More" on mobile.
+// four one tap away, as plain nav destinations; everything else (still in the
+// sidebar on desktop) lives behind the single "menu" button on mobile.
 const MOBILE_PRIMARY_HREFS = ["/dashboard", "/scan", "/products", "/movements"];
 
 function isActivePath(pathname: string, href: string): boolean {
@@ -82,9 +82,50 @@ function NavRow({
   );
 }
 
-export function AppNav({ userEmail }: { userEmail: string }) {
+function roleLabel(role: string | null): string {
+  if (!role) return "—";
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+/** Email + role + sign-out, grouped together as one block — used at the
+ *  bottom of the desktop sidebar and the bottom of the mobile menu panel. */
+function ProfileSection({
+  userEmail,
+  role,
+}: {
+  userEmail: string;
+  role: string | null;
+}) {
+  return (
+    <div className="flex flex-col gap-2 border-t border-border p-3">
+      <div className="min-w-0">
+        <p className="truncate text-sm">{userEmail}</p>
+        <p className="text-muted-foreground text-xs">{roleLabel(role)}</p>
+      </div>
+      <form action={signOut}>
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2"
+        >
+          <LogOut className="size-4" />
+          Sign out
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+export function AppNav({
+  userEmail,
+  role,
+}: {
+  userEmail: string;
+  role: string | null;
+}) {
   const pathname = usePathname();
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const primaryLinks = NAV_LINKS.filter((link) =>
     MOBILE_PRIMARY_HREFS.includes(link.href)
@@ -101,7 +142,6 @@ export function AppNav({ userEmail }: { userEmail: string }) {
           <span className="font-heading text-sm font-semibold">
             Malayalikada
           </span>
-          <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 px-2">
           {NAV_LINKS.map((link) => (
@@ -112,29 +152,17 @@ export function AppNav({ userEmail }: { userEmail: string }) {
             />
           ))}
         </nav>
-        <div className="border-t border-border p-2">
-          <form action={signOut}>
-            <Button
-              type="submit"
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-2"
-            >
-              <LogOut className="size-4" />
-              Sign out
-            </Button>
-          </form>
-        </div>
+        <ProfileSection userEmail={userEmail} role={role} />
       </aside>
 
-      {/* Mobile top bar */}
+      {/* Mobile top bar — app name only; the single menu trigger lives here. */}
       <header className="flex items-center justify-between border-b border-border p-3 md:hidden">
         <span className="font-heading text-sm font-semibold">
           Malayalikada
         </span>
         <button
           type="button"
-          onClick={() => setMoreOpen(true)}
+          onClick={() => setMenuOpen(true)}
           aria-label="Open menu"
           className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
         >
@@ -142,8 +170,8 @@ export function AppNav({ userEmail }: { userEmail: string }) {
         </button>
       </header>
 
-      {/* Mobile bottom tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
+      {/* Mobile bottom tab bar — plain destinations, no second menu trigger. */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
         {primaryLinks.map((link) => {
           const active = isActivePath(pathname, link.href);
           const Icon = link.icon;
@@ -162,24 +190,16 @@ export function AppNav({ userEmail }: { userEmail: string }) {
             </Link>
           );
         })}
-        <button
-          type="button"
-          onClick={() => setMoreOpen(true)}
-          className="flex flex-col items-center gap-0.5 py-2 text-[11px] text-muted-foreground"
-        >
-          <Menu className="size-5" />
-          More
-        </button>
       </nav>
 
-      {/* Mobile "more" panel */}
-      {moreOpen ? (
+      {/* Mobile menu panel — the sole overflow/menu surface on mobile. */}
+      {menuOpen ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-background md:hidden">
           <div className="flex items-center justify-between border-b border-border p-3">
             <span className="font-heading text-sm font-semibold">Menu</span>
             <button
               type="button"
-              onClick={() => setMoreOpen(false)}
+              onClick={() => setMenuOpen(false)}
               aria-label="Close menu"
               className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
             >
@@ -192,27 +212,12 @@ export function AppNav({ userEmail }: { userEmail: string }) {
                 key={link.href}
                 link={link}
                 active={isActivePath(pathname, link.href)}
-                onClick={() => setMoreOpen(false)}
+                onClick={() => setMenuOpen(false)}
                 className="px-3 py-2"
               />
             ))}
           </nav>
-          <div className="border-t border-border p-3">
-            <p className="truncate pb-2 text-xs text-muted-foreground">
-              {userEmail}
-            </p>
-            <form action={signOut}>
-              <Button
-                type="submit"
-                variant="outline"
-                size="sm"
-                className="w-full justify-start gap-2"
-              >
-                <LogOut className="size-4" />
-                Sign out
-              </Button>
-            </form>
-          </div>
+          <ProfileSection userEmail={userEmail} role={role} />
         </div>
       ) : null}
     </>

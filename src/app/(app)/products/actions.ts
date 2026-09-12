@@ -394,3 +394,44 @@ export async function createProductWithVariant(
   revalidatePath("/scan");
   redirect(returnTo);
 }
+
+export type DeleteProductState =
+  | { error: string }
+  | { ok: true; result: "deleted" | "deactivated" }
+  | undefined;
+
+/**
+ * Deletes a product, or deactivates it if it can't be safely removed.
+ * delete_product() checks every variant of the product for inventory_movements
+ * or purchase_order_items referencing it: if any exist, it sets
+ * products.is_active = false instead (movements are permanent audit history —
+ * see the inventory rule in CLAUDE.md); otherwise it removes the product
+ * (cascading to its variants).
+ */
+export async function deleteProduct(
+  _prevState: DeleteProductState,
+  formData: FormData
+): Promise<DeleteProductState> {
+  const productId = String(formData.get("productId") ?? "");
+  if (!productId) {
+    return { error: "Missing product." };
+  }
+
+  const supabase = await createClient();
+  const organisationId = await getCurrentOrganisationId(supabase);
+  if (!organisationId) {
+    return { error: "Could not determine your organisation." };
+  }
+
+  const { data, error } = await supabase.rpc("delete_product", {
+    p_organisation_id: organisationId,
+    p_product_id: productId,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/products");
+  return { ok: true, result: data as "deleted" | "deactivated" };
+}

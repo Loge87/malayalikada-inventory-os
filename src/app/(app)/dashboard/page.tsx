@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { daysUntil, formatDate, formatDateTime } from "@/lib/format";
+import { LOW_STOCK_THRESHOLD, getStockStatus } from "@/lib/stock-status";
+import { StockStatusPill } from "@/components/inventory/stock-status-pill";
 import {
   Card,
   CardContent,
@@ -10,7 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const LOW_STOCK_THRESHOLD = 10;
 const EXPIRY_WINDOW_DAYS = 30;
 
 type VariantRef = {
@@ -192,14 +193,11 @@ export default async function DashboardPage() {
                         <span className="min-w-0 truncate">
                           {variant.label}
                         </span>
-                        <span
-                          className={
-                            variant.onHand < LOW_STOCK_THRESHOLD
-                              ? "tabular-nums text-destructive"
-                              : "tabular-nums text-muted-foreground"
-                          }
-                        >
-                          {variant.onHand}
+                        <span className="flex shrink-0 items-center gap-2">
+                          <span className="font-medium tabular-nums">
+                            {variant.onHand}
+                          </span>
+                          <StockStatusPill status={getStockStatus(variant.onHand)} />
                         </span>
                       </li>
                     ))}
@@ -239,14 +237,9 @@ export default async function DashboardPage() {
                       {row.location}
                     </span>
                   </span>
-                  <span
-                    className={
-                      row.onHand <= 0
-                        ? "font-medium tabular-nums text-destructive"
-                        : "font-medium tabular-nums"
-                    }
-                  >
-                    {row.onHand}
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="font-medium tabular-nums">{row.onHand}</span>
+                    <StockStatusPill status={getStockStatus(row.onHand)} />
                   </span>
                 </li>
               ))}

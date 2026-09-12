@@ -2,12 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { AddProductFlow } from "@/components/products/add-product-flow";
+import { NewProductForm } from "@/components/products/new-product-form";
 
 export default async function NewProductPage({
   searchParams,
 }: {
-  searchParams: Promise<{ barcode?: string }>;
+  searchParams: Promise<{ barcode?: string; returnTo?: string }>;
 }) {
   const supabase = await createClient();
 
@@ -19,7 +19,12 @@ export default async function NewProductPage({
     redirect("/login");
   }
 
-  const barcode = ((await searchParams).barcode ?? "").trim();
+  const params = await searchParams;
+  const barcode = (params.barcode ?? "").trim();
+  // Explicit, not inferred from whether a barcode is present — a barcode can
+  // arrive either from /scan's not-found screen (should return to /scan) or
+  // from /products' own "Scan barcode" menu item (should return to /products).
+  const returnTo = params.returnTo === "/scan" ? "/scan" : "/products";
 
   const { data: locations, error } = await supabase
     .from("locations")
@@ -42,13 +47,17 @@ export default async function NewProductPage({
         ) : null}
       </div>
 
-      <AddProductFlow initialBarcode={barcode} locations={locations ?? []} />
+      <NewProductForm
+        barcode={barcode}
+        locations={locations ?? []}
+        returnTo={returnTo}
+      />
 
       <Link
-        href={barcode ? "/scan" : "/products"}
+        href={returnTo}
         className="text-muted-foreground text-center text-sm underline"
       >
-        {barcode ? "Back to scan" : "Back to products"}
+        {returnTo === "/scan" ? "Back to scan" : "Back to products"}
       </Link>
     </div>
   );

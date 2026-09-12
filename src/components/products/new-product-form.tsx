@@ -40,17 +40,12 @@ export function NewProductForm({
   barcode,
   locations,
   returnTo = "/products",
-  onBack,
 }: {
   barcode: string;
   locations: LocationOption[];
   /** Where to land after a successful create — "/scan" for the scan-originated
    *  flow (so the barcode can be re-scanned), otherwise "/products". */
   returnTo?: "/scan" | "/products";
-  /** Shown as a "Back" action when this form is one step of a larger flow
-   *  (the /products "Add product" chooser) rather than the sole content of
-   *  the page. */
-  onBack?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(
     createProductWithVariant,
@@ -153,25 +148,9 @@ export function NewProductForm({
               <FieldError>{state.error}</FieldError>
             ) : null}
 
-            <div className="flex gap-2">
-              {onBack ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onBack}
-                  disabled={pending}
-                >
-                  Back
-                </Button>
-              ) : null}
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={pending}
-              >
-                {pending ? "Creating…" : "Create product"}
-              </Button>
-            </div>
+            <Button type="submit" className="w-full" disabled={pending}>
+              {pending ? "Creating…" : "Create product"}
+            </Button>
           </FieldGroup>
         </form>
       </CardContent>

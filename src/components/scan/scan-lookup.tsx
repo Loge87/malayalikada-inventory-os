@@ -203,7 +203,7 @@ function LookupResult({ lookup }: { lookup: Lookup }) {
           </p>
         </div>
         <Link
-          href={`/products/new?barcode=${encodeURIComponent(lookup.barcode)}`}
+          href={`/products/new?barcode=${encodeURIComponent(lookup.barcode)}&returnTo=%2Fscan`}
           className={buttonVariants({ size: "sm" })}
         >
           Create new product

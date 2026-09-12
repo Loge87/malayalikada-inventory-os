@@ -21,9 +21,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     redirect("/login");
   }
 
+  // Non-fatal: the nav should still render even if this lookup has an issue —
+  // it just shows no role rather than breaking every authenticated page.
+  const { data: roleRow } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .single();
+
   return (
     <div className="flex min-h-full flex-col md:flex-row">
-      <AppNav userEmail={user.email ?? ""} />
+      <AppNav userEmail={user.email ?? ""} role={roleRow?.role ?? null} />
       <main className="flex-1 pb-16 md:pb-0">{children}</main>
     </div>
   );

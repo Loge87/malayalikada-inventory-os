@@ -1,9 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Image as ImageIcon } from "lucide-react";
 
 import { formatMoney } from "@/lib/format";
+import { getStockStatus } from "@/lib/stock-status";
+import { useIsDesktop } from "@/lib/use-media-query";
+import { StockStatusPill } from "@/components/inventory/stock-status-pill";
 import { ProductEditDrawer } from "@/components/products/product-edit-drawer";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import { cn } from "@/lib/utils";
@@ -27,6 +31,7 @@ export type EditableProduct = {
   category: string;
   brand: string | null;
   imageUrl: string | null;
+  isActive: boolean;
   variants: EditableVariant[];
 };
 
@@ -46,12 +51,12 @@ function priceCell(variant: EditableVariant | null) {
   return (
     <span className="flex flex-col text-right">
       {variant.unitPrice != null ? (
-        <span>
+        <span className="font-semibold tabular-nums">
           {formatMoney(variant.unitPrice, variant.currency)}/{variant.unit}
         </span>
       ) : null}
       {variant.packPrice != null ? (
-        <span className="text-muted-foreground text-xs">
+        <span className="text-muted-foreground text-xs tabular-nums">
           {formatMoney(variant.packPrice, variant.currency)}/pack
         </span>
       ) : null}
@@ -100,6 +105,8 @@ export function ProductsTable({
   products: EditableProduct[];
   locations: LocationOption[];
 }) {
+  const router = useRouter();
+  const isDesktop = useIsDesktop();
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [editingProductId, setEditingProductId] = useState<string | null>(
@@ -112,6 +119,17 @@ export function ProductsTable({
     } else {
       setSortKey(key);
       setSortDir("asc");
+    }
+  }
+
+  function openEdit(productId: string) {
+    // Same md (768px) breakpoint the nav uses to switch sidebar <-> hamburger:
+    // desktop gets the side panel, mobile gets a dedicated full page (no
+    // meaningful "side" on a narrow screen).
+    if (isDesktop) {
+      setEditingProductId(productId);
+    } else {
+      router.push(`/products/${productId}/edit`);
     }
   }
 
@@ -149,7 +167,7 @@ export function ProductsTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="w-12 py-2 font-medium" aria-hidden />
+              <th className="w-10 py-2 font-medium" aria-hidden />
               <SortHeader
                 label="Product"
                 sortKey="name"
@@ -157,18 +175,11 @@ export function ProductsTable({
                 dir={sortDir}
                 onSort={toggleSort}
               />
-              <SortHeader
-                label="SKU"
-                sortKey="sku"
-                activeKey={sortKey}
-                dir={sortDir}
-                onSort={toggleSort}
-              />
               <th className="py-2 font-medium text-muted-foreground">
-                Barcode
+                SKU / barcode
               </th>
               <SortHeader
-                label="On hand"
+                label="Stock"
                 sortKey="stock"
                 activeKey={sortKey}
                 dir={sortDir}
@@ -187,58 +198,73 @@ export function ProductsTable({
             </tr>
           </thead>
           <tbody>
-            {sorted.map(({ product, variant }) => (
-              <tr
-                key={variant?.id ?? product.id}
-                className="border-b border-border last:border-0"
-              >
-                <td className="py-2 pr-2">
-                  {product.imageUrl ? (
-                    // Signed Storage URLs carry an expiring query string, so a
-                    // plain <img> is used rather than next/image.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={product.imageUrl}
-                      alt=""
-                      className="size-10 rounded-md object-cover ring-1 ring-foreground/10"
-                    />
-                  ) : (
-                    <div className="flex size-10 items-center justify-center rounded-md bg-muted ring-1 ring-foreground/10">
-                      <ImageIcon className="size-4 text-muted-foreground" />
-                    </div>
-                  )}
-                </td>
-                <td className="py-2 pr-2">
-                  <span className="block truncate font-medium">
-                    {product.name}
-                  </span>
-                  <span className="text-muted-foreground block truncate text-xs">
-                    {variant ? variant.name : "No variants"}
-                  </span>
-                </td>
-                <td className="py-2 pr-2 font-mono text-xs">
-                  {variant?.sku ?? "—"}
-                </td>
-                <td className="py-2 pr-2 font-mono text-xs text-muted-foreground">
-                  {variant?.barcode ?? "—"}
-                </td>
-                <td className="py-2 pr-2 text-right tabular-nums">
-                  {variant ? variant.onHand : "—"}
-                </td>
-                <td className="py-2 pr-2 tabular-nums">
-                  {priceCell(variant)}
-                </td>
-                <td className="py-2 text-right">
-                  <button
-                    type="button"
-                    onClick={() => setEditingProductId(product.id)}
-                    className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
-                  >
-                    Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {sorted.map(({ product, variant }) => {
+              const status = getStockStatus(
+                variant?.onHand ?? 0,
+                product.isActive
+              );
+              return (
+                <tr
+                  key={variant?.id ?? product.id}
+                  onClick={() => openEdit(product.id)}
+                  className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/50"
+                >
+                  <td className="py-1.5 pr-2">
+                    {product.imageUrl ? (
+                      // Signed Storage URLs carry an expiring query string, so
+                      // a plain <img> is used rather than next/image.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={product.imageUrl}
+                        alt=""
+                        className="size-9 rounded-md object-cover ring-1 ring-foreground/10"
+                      />
+                    ) : (
+                      <div className="flex size-9 items-center justify-center rounded-md bg-muted ring-1 ring-foreground/10">
+                        <ImageIcon className="size-4 text-muted-foreground" />
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-1.5 pr-2">
+                    <span className="block truncate font-medium">
+                      {product.name}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {variant ? variant.name : "No variants"}
+                    </span>
+                  </td>
+                  <td className="py-1.5 pr-2 text-xs text-muted-foreground">
+                    <span className="block font-mono">
+                      {variant?.sku ?? "—"}
+                    </span>
+                    {variant?.barcode ? (
+                      <span className="block font-mono">{variant.barcode}</span>
+                    ) : null}
+                  </td>
+                  <td className="py-1.5 pr-2 text-right">
+                    <span className="flex flex-col items-end gap-0.5">
+                      <span className="font-semibold tabular-nums">
+                        {variant ? variant.onHand : "—"}
+                      </span>
+                      <StockStatusPill status={status} />
+                    </span>
+                  </td>
+                  <td className="py-1.5 pr-2">{priceCell(variant)}</td>
+                  <td className="py-1.5 text-right">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openEdit(product.id);
+                      }}
+                      className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

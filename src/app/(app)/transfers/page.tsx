@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { formatDateTime } from "@/lib/format";
 import {
   TransferForm,
@@ -82,15 +83,13 @@ function groupTransfers(rows: TransferMovementRow[]): Transfer[] {
 }
 
 export default async function TransfersPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   // All reads are RLS-scoped to the caller's organisation.
   const [locationsRes, variantsRes, transfersRes] = await Promise.all([

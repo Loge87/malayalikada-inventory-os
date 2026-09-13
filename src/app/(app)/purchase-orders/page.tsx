@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import {
   PurchaseOrderForm,
   type LocationOption,
@@ -55,15 +56,13 @@ function variantLabel(name: string, sku: string, productName?: string) {
 }
 
 export default async function PurchaseOrdersPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   // All reads are RLS-scoped to the caller's organisation.
   const [locationsRes, variantsRes, purchaseOrdersRes] = await Promise.all([

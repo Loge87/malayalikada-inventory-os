@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import {
   MovementForm,
   type LocationOption,
@@ -52,15 +53,13 @@ function formatMovementType(type: string) {
 }
 
 export default async function MovementsPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   // All four reads are RLS-scoped to the caller's organisation.
   const [locationsRes, variantsRes, movementsRes, levelsRes] = await Promise.all(

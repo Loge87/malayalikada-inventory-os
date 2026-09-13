@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
   StartCountForm,
@@ -48,15 +49,13 @@ function variantLabel(variant: VariantRef): string {
 }
 
 export default async function StockCountsPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   const [locationsRes, countsRes] = await Promise.all([
     supabase.from("locations").select("id, name").order("name"),

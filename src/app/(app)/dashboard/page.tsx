@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { daysUntil, formatDate, formatDateTime } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD, getStockStatus } from "@/lib/stock-status";
 import { StockStatusPill } from "@/components/inventory/stock-status-pill";
@@ -61,15 +62,13 @@ function signed(quantity: number): string {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   const expiryCutoff = new Date();
   expiryCutoff.setUTCDate(expiryCutoff.getUTCDate() + EXPIRY_WINDOW_DAYS);

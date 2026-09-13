@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { NewProductForm } from "@/components/products/new-product-form";
 
 export default async function NewProductPage({
@@ -9,15 +10,13 @@ export default async function NewProductPage({
 }: {
   searchParams: Promise<{ barcode?: string; returnTo?: string }>;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   const params = await searchParams;
   const barcode = (params.barcode ?? "").trim();

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { loadProducts } from "@/app/(app)/products/data";
 import { AddProductMenu } from "@/components/products/add-product-menu";
 import { ProductsTable } from "@/components/products/products-table";
@@ -14,15 +15,13 @@ import {
 } from "@/components/ui/card";
 
 export default async function ProductsPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   // RLS scopes reads to the caller's organisation.
   const [products, locationsRes] = await Promise.all([

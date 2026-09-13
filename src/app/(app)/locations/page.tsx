@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { LocationForm } from "@/components/locations/location-form";
 import {
   Card,
@@ -11,15 +12,13 @@ import {
 } from "@/components/ui/card";
 
 export default async function LocationsPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   // RLS scopes rows to the caller's organisation.
   const { data: locations, error } = await supabase

@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { loadProducts } from "@/app/(app)/products/data";
 import { ProductEditPageContent } from "@/components/products/product-edit-page-content";
 
@@ -9,15 +10,13 @@ export default async function ProductEditPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   const { id } = await params;
 

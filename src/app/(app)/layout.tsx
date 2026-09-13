@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { AppNav } from "@/components/nav/app-nav";
 
 /**
@@ -11,15 +12,13 @@ import { AppNav } from "@/components/nav/app-nav";
  * outside this group, so they never get the nav.
  */
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   // Non-fatal: the nav should still render even if this lookup has an issue —
   // it just shows no role rather than breaking every authenticated page.

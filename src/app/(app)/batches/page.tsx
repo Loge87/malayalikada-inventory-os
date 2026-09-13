@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
   LocationPicker,
@@ -39,15 +40,13 @@ export default async function BatchesPage({
 }: {
   searchParams: Promise<{ location?: string }>;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   const { data: locationRows, error: locationsError } = await supabase
     .from("locations")

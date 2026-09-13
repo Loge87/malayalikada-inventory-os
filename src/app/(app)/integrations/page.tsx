@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import { formatDateTime } from "@/lib/format";
 import {
   Card,
@@ -37,15 +38,13 @@ const STATUS_STYLES: Record<EventRow["processing_status"], string> = {
 };
 
 export default async function IntegrationsPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
+
+  const supabase = await createClient();
 
   // Both tables are RLS-scoped to the caller's organisation.
   const [mappingsRes, eventsRes] = await Promise.all([

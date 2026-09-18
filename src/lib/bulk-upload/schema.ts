@@ -1,6 +1,5 @@
 import {
   CURRENCIES,
-  DEFAULT_CURRENCY,
   VARIANT_UNITS,
   type Currency,
   type VariantUnit,
@@ -17,9 +16,9 @@ export const BULK_UPLOAD_COLUMNS = [
   "barcode",
   "unit",
   "currency",
-  "pack_price",
-  "units_per_pack",
   "unit_price",
+  "units_per_pack",
+  "pack_price",
   "initial_quantity",
   "initial_location_name",
 ] as const;
@@ -43,9 +42,9 @@ export type NormalizedBulkRow = {
   barcode: string | null;
   unit: VariantUnit;
   currency: Currency;
-  packPrice: number | null;
-  unitsPerPack: number;
   unitPrice: number | null;
+  unitsPerPack: number;
+  packPrice: number | null;
   initialQuantity: number | null;
   initialLocationName: string | null;
 };
@@ -71,6 +70,11 @@ export type BulkValidationContext = {
   existingSkusLower: ReadonlySet<string>;
   /** Location name (trimmed, lowercased) -> canonical { id, name }. */
   locationsByNameLower: ReadonlyMap<string, { id: string; name: string }>;
+  /** The organisation's configured default currency (organisations.
+   *  default_currency) — same "default for new variants going forward"
+   *  rule as the manual/scan create forms, applied to a blank `currency`
+   *  cell here. */
+  defaultCurrency: Currency;
 };
 
 function cell(row: RawBulkRow, key: string): string {
@@ -124,13 +128,13 @@ function validateRow(
   }
 
   const currencyRaw = cell(raw, "currency");
-  const currency = (currencyRaw || DEFAULT_CURRENCY) as Currency;
+  const currency = (currencyRaw || context.defaultCurrency) as Currency;
   if (currencyRaw !== "" && !CURRENCIES.includes(currency)) {
     errors.push(`currency "${currencyRaw}" is not one of: ${CURRENCIES.join(", ")}`);
   }
 
-  const packPriceResult = parseOptionalNumber(cell(raw, "pack_price"));
-  if (!packPriceResult.ok) errors.push("pack_price must be a non-negative number");
+  const unitPriceResult = parseOptionalNumber(cell(raw, "unit_price"));
+  if (!unitPriceResult.ok) errors.push("unit_price must be a non-negative number");
 
   const unitsPerPackRaw = cell(raw, "units_per_pack");
   const unitsPerPackResult =
@@ -139,8 +143,12 @@ function validateRow(
       : parseOptionalNumber(unitsPerPackRaw, { positive: true });
   if (!unitsPerPackResult.ok) errors.push("units_per_pack must be a positive number");
 
-  const unitPriceResult = parseOptionalNumber(cell(raw, "unit_price"));
-  if (!unitPriceResult.ok) errors.push("unit_price must be a non-negative number");
+  // Unlike the interactive forms, bulk-imported rows never auto-calculate
+  // pack_price from unit_price × units_per_pack — a spreadsheet has no
+  // "touched" state to know whether a given pack_price was deliberate or
+  // stale, so every column is taken literally, exactly as the file has it.
+  const packPriceResult = parseOptionalNumber(cell(raw, "pack_price"));
+  if (!packPriceResult.ok) errors.push("pack_price must be a non-negative number");
 
   const initialQuantityResult = parseOptionalNumber(cell(raw, "initial_quantity"), {
     positive: true,
@@ -186,9 +194,9 @@ function validateRow(
       barcode,
       unit,
       currency,
-      packPrice: packPriceResult.ok ? packPriceResult.value : null,
-      unitsPerPack: unitsPerPackResult.ok ? (unitsPerPackResult.value ?? 1) : 1,
       unitPrice: unitPriceResult.ok ? unitPriceResult.value : null,
+      unitsPerPack: unitsPerPackResult.ok ? (unitsPerPackResult.value ?? 1) : 1,
+      packPrice: packPriceResult.ok ? packPriceResult.value : null,
       initialQuantity: wantsInitialStock
         ? (initialQuantityResult.ok ? initialQuantityResult.value : null)
         : null,

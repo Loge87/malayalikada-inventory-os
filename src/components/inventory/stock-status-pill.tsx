@@ -1,10 +1,13 @@
 import { cn } from "@/lib/utils";
 import type { StockStatus } from "@/lib/stock-status";
 
+// Reads from the --status-* tokens in globals.css, not raw Tailwind color
+// classes — the CSS variable already swaps value in dark mode, so no
+// dark: prefix is needed here the way a hardcoded emerald-700 would.
 const STYLES: Record<StockStatus, string> = {
-  in_stock: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  low_stock: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  out_of_stock: "bg-red-500/10 text-red-700 dark:text-red-400",
+  in_stock: "bg-status-success/10 text-status-success",
+  low_stock: "bg-status-warning/10 text-status-warning",
+  out_of_stock: "bg-status-critical/10 text-status-critical",
   inactive: "bg-muted text-muted-foreground",
 };
 

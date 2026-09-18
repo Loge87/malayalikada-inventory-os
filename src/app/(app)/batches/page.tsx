@@ -7,13 +7,7 @@ import {
   LocationPicker,
   type LocationOption,
 } from "@/components/batches/location-picker";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type BatchRow = {
   id: string;
@@ -82,13 +76,17 @@ export default async function BatchesPage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6 md:p-10">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
+      <div>
+        <h1 className="text-page-title">Batches</h1>
+        <p className="text-page-subtitle">
+          Stock lots by location, FEFO — soonest-expiring first.
+        </p>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Batches — FEFO</CardTitle>
-          <CardDescription>
-            Stock lots at a location, soonest-expiring first.
-          </CardDescription>
+          <CardTitle>Lots by location</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {locations.length > 0 ? (
@@ -104,7 +102,7 @@ export default async function BatchesPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-muted-foreground">
+                  <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
                     <th className="py-2 pr-4 font-medium">Variant</th>
                     <th className="py-2 pr-4 font-medium">Batch</th>
                     <th className="py-2 pr-4 font-medium">Expiry</th>
@@ -123,7 +121,7 @@ export default async function BatchesPage({
                     return (
                       <tr
                         key={batch.id}
-                        className="border-t border-border align-top"
+                        className="border-t border-border align-top transition-colors hover:bg-muted/40"
                       >
                         <td className="py-2 pr-4">
                           <span className="block">

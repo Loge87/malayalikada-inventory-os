@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/get-current-user";
+import type { Role } from "@/lib/permissions";
 import { AppNav } from "@/components/nav/app-nav";
+import { RoleProvider } from "@/components/providers/role-provider";
 
 /**
  * Wraps every authenticated page (everything under the (app) route group —
@@ -28,10 +30,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     .eq("user_id", user.id)
     .single();
 
+  const role = (roleRow?.role as Role | undefined) ?? null;
+
   return (
     <div className="flex min-h-full flex-col md:flex-row">
-      <AppNav userEmail={user.email ?? ""} role={roleRow?.role ?? null} />
-      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+      <AppNav userEmail={user.email ?? ""} role={role} />
+      <main className="flex-1 pb-16 md:pb-0">
+        <RoleProvider role={role}>{children}</RoleProvider>
+      </main>
     </div>
   );
 }

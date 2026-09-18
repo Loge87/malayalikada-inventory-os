@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganisationId } from "@/lib/organisation";
+import { getCurrentUserRole } from "@/lib/roles";
+import { hasPermission } from "@/lib/permissions";
 import {
   LOCATION_TYPES,
   type LocationFormState,
@@ -25,6 +27,14 @@ export async function createLocation(
   }
 
   const supabase = await createClient();
+
+  // UI-level permission model (lib/permissions.ts), checked here too since
+  // the `locations` RLS policy doesn't itself distinguish staff from admin
+  // — it only scopes by organisation.
+  const role = await getCurrentUserRole(supabase);
+  if (!hasPermission(role, "locations:manage")) {
+    return { error: "You don't have permission to add locations." };
+  }
 
   const organisationId = await getCurrentOrganisationId(supabase);
 

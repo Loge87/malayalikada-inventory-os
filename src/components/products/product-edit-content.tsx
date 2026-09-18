@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
-import { Image as ImageIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import {
   deleteProduct,
@@ -9,10 +10,14 @@ import {
   updateVariant,
 } from "@/app/(app)/products/actions";
 import { VARIANT_UNITS, type Currency } from "@/app/(app)/products/constants";
+import { formatMoney } from "@/lib/format";
+import {
+  applyPriceSettings,
+  type PriceSettingsRates,
+} from "@/lib/price-calculation";
 import { Button } from "@/components/ui/button";
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -26,8 +31,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { usePermissions } from "@/components/providers/role-provider";
+import { ProductImageField } from "@/components/products/product-image-field";
 import { VariantForm } from "@/components/products/variant-form";
 import { VariantPricingFields } from "@/components/products/variant-pricing-fields";
+import { toastManager } from "@/components/ui/toast";
 import type {
   EditableProduct,
   EditableVariant,
@@ -40,41 +48,26 @@ const UNIT_ITEMS: Record<string, string> = Object.fromEntries(
 
 function ProductFieldsForm({ product }: { product: EditableProduct }) {
   const [state, formAction, pending] = useActionState(updateProduct, undefined);
-  const [preview, setPreview] = useState<string | null>(null);
   const idPrefix = `edit-product-${product.id}`;
+  const router = useRouter();
+
+  // revalidatePath() (in the server action) only invalidates the cache for
+  // the *next* request to /products — it doesn't push anything to a tree
+  // that's already mounted, like this panel's own list is. router.refresh()
+  // is the client-side half: it re-runs the current route's Server
+  // Components against that now-invalidated cache, so the list actually
+  // reflects the edit without a full navigation.
+  useEffect(() => {
+    if (state && "ok" in state) {
+      router.refresh();
+    }
+  }, [state, router]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="productId" value={product.id} />
       <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor={`${idPrefix}-image`}>Product image</FieldLabel>
-          <div className="flex items-center gap-3">
-            <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted ring-1 ring-foreground/10">
-              {preview || product.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={preview ?? product.imageUrl ?? undefined}
-                  alt=""
-                  className="size-full object-cover"
-                />
-              ) : (
-                <ImageIcon className="size-6 text-muted-foreground" />
-              )}
-            </div>
-            <Input
-              id={`${idPrefix}-image`}
-              name="image"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                setPreview(file ? URL.createObjectURL(file) : null);
-              }}
-            />
-          </div>
-          <FieldDescription>PNG, JPEG, or WEBP, up to 5MB.</FieldDescription>
-        </Field>
+        <ProductImageField idPrefix={idPrefix} initialPreviewUrl={product.imageUrl} />
 
         <Field>
           <FieldLabel htmlFor={`${idPrefix}-name`}>Product name</FieldLabel>
@@ -116,9 +109,71 @@ function ProductFieldsForm({ product }: { product: EditableProduct }) {
   );
 }
 
-function VariantEditForm({ variant }: { variant: EditableVariant }) {
+function CalculatedPrices({
+  variant,
+  priceSettings,
+}: {
+  variant: EditableVariant;
+  priceSettings: PriceSettingsRates | null;
+}) {
+  if (!priceSettings) {
+    return (
+      <p className="rounded-md bg-status-warning/10 px-3 py-2 text-xs text-status-warning">
+        <Link href="/settings" className="font-medium underline">
+          Set price settings
+        </Link>{" "}
+        to calculate retail and wholesale price.
+      </p>
+    );
+  }
+
+  // Retail applies the Price Settings multiplier to unit_price (selling one
+  // at a time); wholesale applies the exact same multiplier to pack_price
+  // (selling by the case) — same shared applyPriceSettings(), different
+  // base. pack_price itself stays a plain editable input above, not run
+  // through the multiplier — see VariantPricingFields.
+  const retailPrice = applyPriceSettings(variant.unitPrice, priceSettings);
+  const wholesalePrice = applyPriceSettings(variant.packPrice, priceSettings);
+
+  return (
+    <div className="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2">
+      <span className="text-xs font-medium text-muted-foreground">
+        Calculated from Price Settings
+      </span>
+      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
+        <span>
+          Retail:{" "}
+          <span className="font-medium tabular-nums">
+            {retailPrice != null ? formatMoney(retailPrice, variant.currency) : "—"}
+          </span>
+        </span>
+        <span>
+          Wholesale:{" "}
+          <span className="font-medium tabular-nums">
+            {wholesalePrice != null ? formatMoney(wholesalePrice, variant.currency) : "—"}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function VariantEditForm({
+  variant,
+  priceSettings,
+}: {
+  variant: EditableVariant;
+  priceSettings: PriceSettingsRates | null;
+}) {
   const [state, formAction, pending] = useActionState(updateVariant, undefined);
   const idPrefix = `edit-variant-${variant.id}`;
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state && "ok" in state) {
+      router.refresh();
+    }
+  }, [state, router]);
 
   return (
     <form
@@ -188,6 +243,8 @@ function VariantEditForm({ variant }: { variant: EditableVariant }) {
         defaultUnitPrice={variant.unitPrice}
       />
 
+      <CalculatedPrices variant={variant} priceSettings={priceSettings} />
+
       {state && "error" in state ? <FieldError>{state.error}</FieldError> : null}
 
       <Button
@@ -212,12 +269,32 @@ function DeleteProductSection({
 }) {
   const [state, formAction, pending] = useActionState(deleteProduct, undefined);
   const [confirming, setConfirming] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (state && "ok" in state) {
+      // The actual bug fix: on desktop, onDeleted just closes the panel
+      // (setSelectedProductId(null)) — no navigation happens, so nothing
+      // else would ever tell the already-rendered list to re-fetch. On
+      // mobile, onDeleted does router.push("/products"), which happens to
+      // already re-fetch on its own since it's a real navigation — but
+      // calling refresh() here too is harmless, and keeps this component
+      // correct on its own rather than relying on what the caller does
+      // with onDeleted.
+      router.refresh();
+      // state.result is "deactivated" when the product had movement/PO
+      // history (see the danger-zone copy above) — say so rather than
+      // claiming "deleted" for a row that's actually still there.
+      toastManager.add({
+        title:
+          state.result === "deactivated"
+            ? `${product.name} deactivated`
+            : `${product.name} deleted`,
+        type: "success",
+      });
       onDeleted?.(state.result);
     }
-  }, [state, onDeleted]);
+  }, [state, onDeleted, product.name, router]);
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 p-3">
@@ -272,18 +349,30 @@ function DeleteProductSection({
 /**
  * The actual editable content for a product — product fields + image,
  * per-variant edit forms, add-another-variant, and delete. Shared, unchanged,
- * between the desktop side panel (ProductEditDrawer) and the mobile full-page
- * edit route, so both are the same functionality in different chrome.
+ * between the desktop persistent side panel (ProductEditPanel) and the
+ * mobile full-page edit route, so both are the same functionality in
+ * different chrome.
  */
 export function ProductEditContent({
   product,
   locations,
+  defaultCurrency,
+  priceSettings,
   onDeleted,
 }: {
   product: EditableProduct;
   locations: LocationOption[];
+  /** The organisation's configured default currency — only used to pre-fill
+   *  the "Add another variant" form below; existing variants keep showing
+   *  their own stored currency (VariantEditForm passes variant.currency). */
+  defaultCurrency: Currency;
+  /** The organisation's saved Price Settings rates, or null if never saved
+   *  — drives each variant's calculated Retail/Pack-box price display. */
+  priceSettings: PriceSettingsRates | null;
   onDeleted?: (result: "deleted" | "deactivated") => void;
 }) {
+  const { can } = usePermissions();
+
   return (
     <div className="flex flex-col gap-4">
       {!product.isActive ? (
@@ -302,7 +391,11 @@ export function ProductEditContent({
           Variants ({product.variants.length})
         </span>
         {product.variants.map((variant) => (
-          <VariantEditForm key={variant.id} variant={variant} />
+          <VariantEditForm
+            key={variant.id}
+            variant={variant}
+            priceSettings={priceSettings}
+          />
         ))}
         {product.variants.length === 0 ? (
           <p className="text-muted-foreground text-sm">
@@ -315,12 +408,19 @@ export function ProductEditContent({
 
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium">Add another variant</span>
-        <VariantForm productId={product.id} locations={locations} />
+        <VariantForm
+          productId={product.id}
+          locations={locations}
+          defaultCurrency={defaultCurrency}
+        />
       </div>
 
-      <Separator />
-
-      <DeleteProductSection product={product} onDeleted={onDeleted} />
+      {can("products:delete") ? (
+        <>
+          <Separator />
+          <DeleteProductSection product={product} onDeleted={onDeleted} />
+        </>
+      ) : null}
     </div>
   );
 }

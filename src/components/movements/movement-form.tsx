@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { recordMovement } from "@/app/(app)/movements/actions";
 import {
@@ -8,6 +9,7 @@ import {
   MOVEMENT_TYPE_LABELS,
 } from "@/app/(app)/movements/constants";
 import { Button } from "@/components/ui/button";
+import { toastManager } from "@/components/ui/toast";
 import {
   Card,
   CardContent,
@@ -52,6 +54,7 @@ export function MovementForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [movementType, setMovementType] = useState("PURCHASE_RECEIVED");
   const [handledState, setHandledState] = useState<typeof state>(undefined);
+  const router = useRouter();
 
   // Reset the controlled movement type once per successful submit (render-phase
   // "adjust state when something changes" pattern — no effect).
@@ -65,8 +68,13 @@ export function MovementForm({
   useEffect(() => {
     if (state && "ok" in state) {
       formRef.current?.reset();
+      // Same latent bug as the products list (see products-table.tsx):
+      // revalidatePath() alone doesn't update this already-mounted page's
+      // "On hand" / "Recent movements" lists — router.refresh() does.
+      router.refresh();
+      toastManager.add({ title: "Stock movement recorded", type: "success" });
     }
-  }, [state]);
+  }, [state, router]);
 
   const isReceipt = movementType === "PURCHASE_RECEIVED";
 

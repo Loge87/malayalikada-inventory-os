@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
 import type { BulkRowResult } from "@/lib/bulk-upload/schema";
 
+// Same --status-* tokens as StockStatusPill (globals.css) — one status
+// vocabulary for the whole app, not a second hardcoded palette here.
 const STYLES: Record<BulkRowResult["status"], string> = {
-  valid: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  skipped_duplicate: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  error: "bg-red-500/10 text-red-700 dark:text-red-400",
+  valid: "bg-status-success/10 text-status-success",
+  skipped_duplicate: "bg-status-warning/10 text-status-warning",
+  error: "bg-status-critical/10 text-status-critical",
 };
 
 const LABELS: Record<BulkRowResult["status"], string> = {

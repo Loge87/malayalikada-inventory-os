@@ -22,6 +22,17 @@ export function formatDate(value: string | Date): string {
   return DATE.format(new Date(value));
 }
 
+// No year — for dense chart axis ticks / tooltips over a 90-day window.
+const SHORT_DATE = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+
+export function formatShortDate(value: string | Date): string {
+  return SHORT_DATE.format(new Date(value));
+}
+
 export function formatDateTime(value: string | Date): string {
   return `${DATE_TIME.format(new Date(value))} UTC`;
 }

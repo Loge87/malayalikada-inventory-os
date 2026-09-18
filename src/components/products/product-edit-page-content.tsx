@@ -7,17 +7,24 @@ import { ArrowLeft } from "lucide-react";
 import { ProductEditContent } from "@/components/products/product-edit-content";
 import type { EditableProduct } from "@/components/products/products-table";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
+import type { Currency } from "@/app/(app)/products/constants";
+import type { PriceSettingsRates } from "@/lib/price-calculation";
 
 /**
- * The mobile-width full-page equivalent of ProductEditDrawer — same fields,
- * same ProductEditContent, just page chrome instead of a side panel.
+ * The mobile-width full-page equivalent of ProductEditPanel — same fields,
+ * same ProductEditContent, just page chrome instead of a persistent side
+ * panel.
  */
 export function ProductEditPageContent({
   product,
   locations,
+  defaultCurrency,
+  priceSettings,
 }: {
   product: EditableProduct;
   locations: LocationOption[];
+  defaultCurrency: Currency;
+  priceSettings: PriceSettingsRates | null;
 }) {
   const router = useRouter();
 
@@ -32,8 +39,8 @@ export function ProductEditPageContent({
       </Link>
 
       <div>
-        <h1 className="font-heading text-xl font-medium">{product.name}</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-page-title">{product.name}</h1>
+        <p className="text-page-subtitle">
           Product details, pricing, and variants.
         </p>
       </div>
@@ -42,6 +49,8 @@ export function ProductEditPageContent({
         key={product.id}
         product={product}
         locations={locations}
+        defaultCurrency={defaultCurrency}
+        priceSettings={priceSettings}
         onDeleted={() => router.push("/products")}
       />
     </div>

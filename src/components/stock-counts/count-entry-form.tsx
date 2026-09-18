@@ -87,7 +87,7 @@ export function CountEntryForm({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-muted-foreground">
+                  <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
                     <th className="py-2 pr-4 font-medium">Variant</th>
                     <th className="py-2 pr-4 font-medium text-right">
                       Expected
@@ -98,7 +98,10 @@ export function CountEntryForm({
                 </thead>
                 <tbody>
                   {parsed.map(({ item, diff }) => (
-                    <tr key={item.id} className="border-t border-border">
+                    <tr
+                      key={item.id}
+                      className="border-t border-border transition-colors hover:bg-muted/40"
+                    >
                       <td className="py-1.5 pr-4">{item.label}</td>
                       <td className="py-1.5 pr-4 text-right tabular-nums text-muted-foreground">
                         {item.expected}

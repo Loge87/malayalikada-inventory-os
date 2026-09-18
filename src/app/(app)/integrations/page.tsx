@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/get-current-user";
+import { getCurrentUserRole } from "@/lib/roles";
+import { hasPermission } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/format";
 import {
   Card,
@@ -46,6 +48,13 @@ export default async function IntegrationsPage() {
 
   const supabase = await createClient();
 
+  // Staff can't access integration settings at all (lib/permissions.ts) —
+  // redirected rather than shown an empty/broken page.
+  const role = await getCurrentUserRole(supabase);
+  if (!hasPermission(role, "integrations:view")) {
+    redirect("/dashboard");
+  }
+
   // Both tables are RLS-scoped to the caller's organisation.
   const [mappingsRes, eventsRes] = await Promise.all([
     supabase
@@ -76,10 +85,10 @@ export default async function IntegrationsPage() {
   ).length;
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6 md:p-10">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
       <div>
-        <h1 className="font-heading text-xl font-medium">Integrations</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-page-title">Integrations</h1>
+        <p className="text-page-subtitle">
           POS and channel events. Stock only ever changes through the inventory
           ledger — channels never write quantities directly.
         </p>
@@ -132,7 +141,7 @@ export default async function IntegrationsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-muted-foreground">
+                  <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
                     <th className="py-2 pr-4 font-medium">Event</th>
                     <th className="py-2 pr-4 font-medium">Reference</th>
                     <th className="py-2 pr-4 font-medium">Status</th>
@@ -141,7 +150,10 @@ export default async function IntegrationsPage() {
                 </thead>
                 <tbody>
                   {events.map((event) => (
-                    <tr key={event.id} className="border-t border-border align-top">
+                    <tr
+                      key={event.id}
+                      className="border-t border-border align-top transition-colors hover:bg-muted/40"
+                    >
                       <td className="py-2 pr-4 whitespace-nowrap">
                         {event.source_system} · {event.event_type}
                       </td>

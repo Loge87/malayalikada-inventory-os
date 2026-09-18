@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/get-current-user";
+import {
+  getCurrentOrganisationId,
+  getOrganisationDefaultCurrency,
+} from "@/lib/organisation";
+import { DEFAULT_CURRENCY } from "@/app/(app)/products/constants";
 import { NewProductForm } from "@/components/products/new-product-form";
 
 export default async function NewProductPage({
@@ -25,21 +30,25 @@ export default async function NewProductPage({
   // from /products' own "Scan barcode" menu item (should return to /products).
   const returnTo = params.returnTo === "/scan" ? "/scan" : "/products";
 
-  const { data: locations, error } = await supabase
-    .from("locations")
-    .select("id, name")
-    .order("name");
+  const [{ data: locations, error }, organisationId] = await Promise.all([
+    supabase.from("locations").select("id, name").order("name"),
+    getCurrentOrganisationId(supabase),
+  ]);
 
   if (error) {
     throw error;
   }
 
+  const defaultCurrency = organisationId
+    ? await getOrganisationDefaultCurrency(supabase, organisationId)
+    : DEFAULT_CURRENCY;
+
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col gap-6 p-6 md:p-10">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
       <div>
-        <h1 className="font-heading text-xl font-medium">Add product</h1>
+        <h1 className="text-page-title">Add product</h1>
         {barcode ? (
-          <p className="text-muted-foreground text-sm">
+          <p className="text-page-subtitle">
             For scanned barcode{" "}
             <span className="font-mono text-foreground">{barcode}</span>
           </p>
@@ -49,6 +58,7 @@ export default async function NewProductPage({
       <NewProductForm
         barcode={barcode}
         locations={locations ?? []}
+        defaultCurrency={defaultCurrency}
         returnTo={returnTo}
       />
 

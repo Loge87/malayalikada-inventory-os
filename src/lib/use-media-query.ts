@@ -26,3 +26,14 @@ export function useMediaQuery(query: string): boolean {
 export function useIsDesktop(): boolean {
   return useMediaQuery("(min-width: 768px)");
 }
+
+/** Tailwind's `lg`. Wider than useIsDesktop() on purpose — a persistent
+ *  master-detail split (the products list + its side panel) needs real
+ *  room for both columns at once, which 768px doesn't have once the
+ *  sidebar and page padding are subtracted (it works out to a ~450px
+ *  content area — enough for a full-width list or a full-width panel, not
+ *  both). Below this width, the panel's own entry point falls back to the
+ *  same full-page navigation mobile uses, rather than squeezing. */
+export function useIsWideDesktop(): boolean {
+  return useMediaQuery("(min-width: 1024px)");
+}

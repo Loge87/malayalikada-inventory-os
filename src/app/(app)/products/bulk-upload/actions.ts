@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentOrganisationId } from "@/lib/organisation";
+import {
+  getCurrentOrganisationId,
+  getOrganisationDefaultCurrency,
+} from "@/lib/organisation";
 import { parseBulkUploadFile } from "@/lib/bulk-upload/parse-file";
 import {
   validateBulkRows,
@@ -12,14 +15,18 @@ import {
   type NormalizedBulkRow,
 } from "@/lib/bulk-upload/schema";
 
-/** Both queries are RLS-scoped to the caller's organisation already — no
- * explicit organisation_id filter needed (or wanted) here. */
+/** The sku/location queries are RLS-scoped to the caller's organisation
+ * already — no explicit organisation_id filter needed (or wanted) there;
+ * the default-currency lookup needs it explicitly since organisations is
+ * looked up by id, not by an implicit "mine" scope. */
 async function loadValidationContext(
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  organisationId: string
 ): Promise<BulkValidationContext> {
-  const [skusRes, locationsRes] = await Promise.all([
+  const [skusRes, locationsRes, defaultCurrency] = await Promise.all([
     supabase.from("product_variants").select("sku"),
     supabase.from("locations").select("id, name"),
+    getOrganisationDefaultCurrency(supabase, organisationId),
   ]);
 
   if (skusRes.error) throw skusRes.error;
@@ -35,7 +42,7 @@ async function loadValidationContext(
     ])
   );
 
-  return { existingSkusLower, locationsByNameLower };
+  return { existingSkusLower, locationsByNameLower, defaultCurrency };
 }
 
 export type PreviewBulkUploadState =
@@ -81,7 +88,7 @@ export async function previewBulkUpload(
     return { error: "That file has no data rows." };
   }
 
-  const context = await loadValidationContext(supabase);
+  const context = await loadValidationContext(supabase, organisationId);
   const results = validateBulkRows(rawRows, context);
 
   const counts = { valid: 0, skipped: 0, error: 0 };
@@ -132,7 +139,7 @@ export async function importBulkUpload(
     return { error: "Could not determine your organisation." };
   }
 
-  const context = await loadValidationContext(supabase);
+  const context = await loadValidationContext(supabase, organisationId);
   const seenSkusLower = new Set<string>();
 
   let created = 0;

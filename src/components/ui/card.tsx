@@ -5,14 +5,28 @@ import { cn } from "@/lib/utils"
 function Card({
   className,
   size = "default",
+  elevated = false,
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: React.ComponentProps<"div"> & {
+  size?: "default" | "sm"
+  /** Opt-in stronger-presence surface — flat bg-card (no gradient, no
+   *  backdrop-blur; both were tried in earlier passes and explicitly
+   *  reversed) plus a light, barely-there shadow (--shadow-elevated,
+   *  closer in weight to shadow-sm than shadow-md) instead of the ring the
+   *  default card uses — shadow alone does the separation work here.
+   *  Deliberately a prop, not the new default, so this stays scoped to the
+   *  pages that have adopted it. Was named `glossy` when it did carry a
+   *  gradient; renamed once that was removed so the prop still describes
+   *  what it actually does. */
+  elevated?: boolean
+}) {
   return (
     <div
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground transition-shadow duration-300 ease-out [--card-spacing:--spacing(5)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        elevated ? "shadow-elevated" : "shadow-sm ring-1 ring-foreground/[0.04]",
         className
       )}
       {...props}
@@ -25,7 +39,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)",
+        "group/card-header @container/card-header grid auto-rows-min items-start gap-1.5 rounded-t-xl px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)",
         className
       )}
       {...props}

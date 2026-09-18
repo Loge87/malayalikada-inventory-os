@@ -12,7 +12,7 @@ export default async function BulkUploadPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6 md:p-10">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
       <div>
         <Link
           href="/products"
@@ -20,8 +20,8 @@ export default async function BulkUploadPage() {
         >
           ← Products
         </Link>
-        <h1 className="font-heading mt-1 text-xl font-medium">Bulk upload</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-page-title mt-1">Bulk upload</h1>
+        <p className="text-page-subtitle">
           Import many products and variants at once from a CSV or Excel file.
         </p>
       </div>

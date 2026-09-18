@@ -129,7 +129,12 @@ export default async function TransfersPage() {
   const transfers = groupTransfers(transfersRes.data ?? []);
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 md:p-10">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
+      <div>
+        <h1 className="text-page-title">Transfers</h1>
+        <p className="text-page-subtitle">Move stock between locations.</p>
+      </div>
+
       <TransferForm locations={locations} variants={variants} />
 
       <Card>

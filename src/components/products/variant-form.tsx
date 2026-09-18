@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { createVariant } from "@/app/(app)/products/actions";
-import { VARIANT_UNITS } from "@/app/(app)/products/constants";
+import { VARIANT_UNITS, type Currency } from "@/app/(app)/products/constants";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -26,14 +27,17 @@ const UNIT_ITEMS: Record<string, string> = Object.fromEntries(
 export function VariantForm({
   productId,
   locations,
+  defaultCurrency,
 }: {
   productId: string;
   locations: LocationOption[];
+  defaultCurrency: Currency;
 }) {
   const [state, formAction, pending] = useActionState(createVariant, undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const [resetKey, setResetKey] = useState(0);
   const [handledState, setHandledState] = useState<typeof state>(undefined);
+  const router = useRouter();
 
   // Remount VariantExtraFields (clearing its controlled pricing state) once per
   // successful submit — the render-phase "adjust state when something changes"
@@ -48,8 +52,9 @@ export function VariantForm({
   useEffect(() => {
     if (state && "ok" in state) {
       formRef.current?.reset();
+      router.refresh();
     }
-  }, [state]);
+  }, [state, router]);
 
   return (
     <form ref={formRef} action={formAction} className="mt-3">
@@ -112,6 +117,7 @@ export function VariantForm({
           key={resetKey}
           idPrefix={`variant-${productId}`}
           locations={locations}
+          defaultCurrency={defaultCurrency}
         />
 
         {state && "error" in state ? (

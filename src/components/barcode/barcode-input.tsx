@@ -20,24 +20,30 @@ const IDLE_RESET_MS = 400;
 type Timing = { startedAt: number; lastAt: number; keystrokes: number };
 const emptyTiming: Timing = { startedAt: 0, lastAt: 0, keystrokes: 0 };
 
-export function BarcodeInput({
-  onScan,
-  autoFocus = true,
-  keepFocus = autoFocus,
-  disabled = false,
-  placeholder = "Scan or type a barcode",
-  className,
-}: {
-  /** Fired on Enter with the trimmed value. `source` is "scan" when the keystroke
-   *  timing matched a hardware scanner, "manual" when it was typed or pasted. */
-  onScan: (barcode: string, source: ScanSource) => void;
-  autoFocus?: boolean;
-  /** Pull focus back to the field when the window regains focus. */
-  keepFocus?: boolean;
-  disabled?: boolean;
-  placeholder?: string;
-  className?: string;
-}) {
+export const BarcodeInput = React.forwardRef<
+  HTMLInputElement,
+  {
+    /** Fired on Enter with the trimmed value. `source` is "scan" when the keystroke
+     *  timing matched a hardware scanner, "manual" when it was typed or pasted. */
+    onScan: (barcode: string, source: ScanSource) => void;
+    autoFocus?: boolean;
+    /** Pull focus back to the field when the window regains focus. */
+    keepFocus?: boolean;
+    disabled?: boolean;
+    placeholder?: string;
+    className?: string;
+  }
+>(function BarcodeInput(
+  {
+    onScan,
+    autoFocus = true,
+    keepFocus = autoFocus,
+    disabled = false,
+    placeholder = "Scan or type a barcode",
+    className,
+  },
+  forwardedRef
+) {
   const inputRef = useRef<HTMLInputElement>(null);
   const timingRef = useRef<Timing>(emptyTiming);
   const [value, setValue] = useState("");
@@ -100,7 +106,11 @@ export function BarcodeInput({
 
   return (
     <Input
-      ref={inputRef}
+      ref={(node) => {
+        inputRef.current = node;
+        if (typeof forwardedRef === "function") forwardedRef(node);
+        else if (forwardedRef) forwardedRef.current = node;
+      }}
       type="text"
       inputMode="text"
       autoComplete="off"
@@ -115,4 +125,4 @@ export function BarcodeInput({
       onKeyDown={handleKeyDown}
     />
   );
-}
+});

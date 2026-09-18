@@ -106,7 +106,14 @@ export default async function PurchaseOrdersPage() {
   const purchaseOrders = purchaseOrdersRes.data ?? [];
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 md:p-10">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
+      <div>
+        <h1 className="text-page-title">Purchase Orders</h1>
+        <p className="text-page-subtitle">
+          Receive stock from suppliers into a location.
+        </p>
+      </div>
+
       <PurchaseOrderForm locations={locations} variants={variants} />
 
       <Card>

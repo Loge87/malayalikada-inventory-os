@@ -90,10 +90,10 @@ export default async function StockCountsPage() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6 md:p-10">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
       <div>
-        <h1 className="font-heading text-xl font-medium">Stock counts</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-page-title">Stock counts</h1>
+        <p className="text-page-subtitle">
           Corrections are recorded as ADJUSTMENT movements in the ledger, one per
           discrepancy.
         </p>

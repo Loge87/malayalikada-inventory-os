@@ -35,10 +35,41 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-hover-foreground: var(--primary-hover-foreground);
+  --color-primary-active-foreground: var(--primary-active-foreground);
+  --color-primary-50: var(--primary-50);
+  --color-primary-100: var(--primary-100);
+  --color-primary-200: var(--primary-200);
+  --color-primary-300: var(--primary-300);
+  --color-primary-400: var(--primary-400);
+  --color-primary-500: var(--primary-500);
+  --color-primary-600: var(--primary-600);
+  --color-primary-700: var(--primary-700);
+  --color-primary-800: var(--primary-800);
+  --color-primary-900: var(--primary-900);
+  --color-primary-950: var(--primary-950);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* Status semantics — deliberately separate from --primary (the brand/
+     interactive accent). Anything that means "this stock is fine / low /
+     out / inactive" reads from these, never from a raw Tailwind color
+     class, so the whole status vocabulary can be reskinned in one place —
+     see StockStatusPill and BulkRowStatusPill. */
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-critical: var(--status-critical);
+  /* Reversed from an earlier, much heavier version (24-48px blur up to 18%
+     opacity, plus an inset glass-rim highlight that only made sense
+     alongside the gradient/blur treatment this app no longer uses). Opt-in
+     via Card's `elevated` prop — flat solid fill (no gradient, no
+     backdrop-blur), just a light, barely-there shadow: closer in weight to
+     shadow-sm than shadow-md, small blur radius, low opacity. */
+  --shadow-elevated: 0 1px 2px 0 rgb(0 0 0 / 0.04),
+    0 4px 10px -4px rgb(0 0 0 / 0.08);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,72 +80,176 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* A barely-tinted off-white page plane with pure-white cards sitting on
+     top of it — the subtle layered-surface look of Linear/Vercel's
+     dashboards, rather than a flat single white. */
+  --background: oklch(0.985 0.003 247);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  /* Brand/interactive accent — reserved for primary actions, active nav,
+     links, and focus rings. Everything else (secondary/accent/muted) stays
+     neutral gray on purpose, so the accent still reads as "the one color
+     that means 'do this'" instead of tinting the whole UI.
+     --primary is step 600 of the scale below (same hue ~150°, constant
+     across every step; lightness/chroma follow Tailwind's own oklch
+     methodology — a light->dark L curve with chroma tapering at the
+     extremes, each step gamut-clamped back into sRGB). Hover/active read
+     from --primary-hover/--primary-active (real darker steps, not an
+     opacity dim) so they, and any --primary-* tinted background elsewhere,
+     always stay coherent with each other. */
+  --primary: #00ba58;
+  --primary-hover: #00813b; /* step 700 */
+  --primary-active: #00672d; /* step 800 */
+  /* The rest-state fill (step 600, L 0.69) is light enough that dark text
+     wins (7.70:1); the hover/active fills are darkened enough (steps 700/
+     800) that the SAME dark text drops to 3.96:1 / 2.81:1 — both fail AA.
+     White text on those two darker fills is 5.00:1 / 7.05:1, so the button
+     swaps foreground color together with the fill on hover/active rather
+     than reusing one static foreground for every state. */
+  --primary-hover-foreground: #ffffff;
+  --primary-active-foreground: #ffffff;
+  --primary-50: #e7ffeb;
+  --primary-100: #c2ffce;
+  --primary-200: #a4f2b5;
+  --primary-300: #7fdf97;
+  --primary-400: #51c875;
+  --primary-500: #44c26c;
+  --primary-600: #00ba58;
+  --primary-700: #00813b;
+  --primary-800: #00672d;
+  --primary-900: #005725;
+  --primary-950: #002f11;
+  /* White text on this primary fails WCAG contrast (2.6:1) — this vivid a
+     green needs a dark foreground (6.97:1 against --foreground) instead,
+     same as several real-world brands built on a similarly bright green. */
+  --primary-foreground: var(--foreground);
+  --secondary: oklch(0.97 0.002 247);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --muted: oklch(0.97 0.002 247);
+  /* neutral-600, not neutral-500 — neutral-500 measured only 4.53:1 against
+     --background (barely above the 4.5:1 floor, no real margin); neutral-600
+     clears both --background and --card at 7.4-7.8:1. */
+  --muted-foreground: oklch(0.439 0 0);
+  --accent: oklch(0.97 0.002 247);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* One step darker than red-600 — the un-tinted color already cleared
+     4.5:1 (4.83) but the actual rendered case (bg-destructive/10
+     text-destructive, the ghost destructive button and any plain
+     text-destructive on a tinted chip) measured 4.13:1, a real AA fail. */
+  --destructive: #c81e1e;
+  --border: oklch(0.914 0.003 247);
+  --input: oklch(0.914 0.003 247);
+  /* --primary itself (step 600) only reaches 2.57:1 against a white card
+     even fully opaque — nowhere near the 3:1 a focus ring needs as a
+     non-text UI indicator. Step 700 does, once opaque enough (button.tsx
+     and friends use it at 80% -> 3.54:1). */
+  --ring: var(--primary-700);
+  /* Status semantics (stock health) — intentionally their own tokens, not
+     aliases of --primary, so "brand color" and "this is low on stock" can
+     never be confused or accidentally reskinned together. --status-success
+     is deliberately hue-shifted teal-ward (~180° vs --primary's ~150°, a
+     30° separation) — both read as "green," but a glance tells "primary
+     action" apart from "in-stock status." Warning/critical sit in
+     amber/red, far enough from green that they need no such check. See
+     StockStatusPill / BulkRowStatusPill for the only two places these are
+     consumed. */
+  --status-success: #007667;
+  /* One step darker than amber-700 — the low-stock pill (bg-status-warning/10
+     text-status-warning) measured 4.39:1, just under the 4.5:1 floor. */
+  --status-warning: #a34d08;
+  --status-critical: var(--destructive);
+  /* Dashboard movement-type series — its own validated categorical palette
+     (blue/orange/violet/red; chosen and checked with the dataviz skill's
+     validator for CVD-safe adjacent contrast), deliberately independent of
+     --primary and --status-success so a chart bar is never mistaken for a
+     brand action or a stock-status color. Slot 5 is a neutral gray, used
+     only if a 5th series (e.g. an extra currency) ever appears. See
+     lib/movement-types.ts. */
+  --chart-1: #2a78d6; /* blue — received */
+  --chart-2: #eb6834; /* orange — sold */
+  --chart-3: #4a3aa7; /* violet — transferred */
+  --chart-4: #e34948; /* red — adjusted */
+  --chart-5: var(--muted-foreground);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
+  --sidebar: oklch(0.99 0.002 247);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: oklch(0.97 0.002 247);
   --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-border: oklch(0.914 0.003 247);
+  --sidebar-ring: var(--primary);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Full reversal of the warm/glass direction — GitHub's actual dark theme
+     values, exact hex, flat solid fills. No gradient, no backdrop-blur:
+     background #0d1117, card #161b22, text #e6edf3, border #30363d.
+     Re-verified: 16.0:1 (text vs background), 14.6:1 (text vs card). */
+  --background: #0d1117;
+  --foreground: #e6edf3;
+  --card: #161b22;
+  --card-foreground: #e6edf3;
+  --popover: #161b22;
+  --popover-foreground: #e6edf3;
+  /* Step 500 of the same scale (:root) — lighter than light mode's 600
+     anchor for visibility on a dark surface, same hue. Hover/active step
+     one darker each time (500->600->700), same direction of travel as
+     light mode. Needs the same dark foreground text as light mode — a
+     light-mode-bright green fails just as badly with white text. */
+  --primary: #44c26c;
+  --primary-hover: #00ba58; /* step 600 */
+  --primary-active: #00813b; /* step 700 */
+  --primary-foreground: oklch(0.145 0 0);
+  /* Step 600 (the hover fill, L 0.69) is exactly light-mode's own base
+     shade, so dark text still wins there too (7.70:1) — only the active
+     fill (step 700, L 0.527) needs the swap to white (5.00:1). */
+  --primary-hover-foreground: oklch(0.145 0 0);
+  --primary-active-foreground: #ffffff;
+  /* One step lighter again than the new --card, same cool blue-gray family
+     GitHub's own border color (#30363d) sits in — keeps the ascending
+     background < card < secondary/muted/accent order. */
+  --secondary: #262c33;
+  --secondary-foreground: #e6edf3;
+  --muted: #262c33;
+  /* neutral-300 — re-verified against these flat surfaces: 12.8:1 vs
+     background, 11.7:1 vs card, 9.5:1 vs secondary/muted — all comfortable. */
+  --muted-foreground: oklch(0.87 0 0);
+  --accent: #262c33;
+  --accent-foreground: #e6edf3;
+  /* Unchanged from the last pass — re-verified against the new card:
+     12.58:1 (well past the 4.5:1 floor it was originally calibrated to
+     clear at 4.67:1 against a much lighter card). */
+  --destructive: #ffd1cf;
+  /* Exact requested value — a real solid border color now, not a
+     translucent white overlay. As a decorative divider (not the sole way
+     any control's boundary is conveyed) it's exempt from the 3:1 non-text
+     floor the same way the old translucent value was; measured 1.42:1
+     against the new card, consistent with that established carve-out. */
+  --border: #30363d;
+  --input: #30363d;
+  --ring: var(--primary);
+  /* Same +30° teal shift as light mode — re-checked against the new card:
+     9.85:1, still comfortable. */
+  --status-success: #22dbc0;
+  --status-warning: #fbbf24; /* amber-400 — re-checked, 10.36:1 against the new card */
+  --status-critical: var(--destructive);
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #9085e9;
+  --chart-4: #e66767;
+  --chart-5: var(--muted-foreground);
+  --sidebar: #161b22;
+  --sidebar-foreground: #e6edf3;
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: #e6edf3;
+  --sidebar-accent: #262c33;
+  --sidebar-accent-foreground: #e6edf3;
+  --sidebar-border: #30363d;
+  --sidebar-ring: var(--primary);
 }
 
 @layer base {
@@ -126,5 +261,79 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Baseline focus-visible ring for every plain <button>/<a> in the app —
+     a native browser outline's color/width/visibility vary across engines
+     and are easy to lose against a dark surface, so every interactive
+     element gets an explicit, high-contrast ring instead. Components that
+     already set their own focus-visible treatment (Button, Input, Select,
+     Checkbox, Accordion) apply outline-none plus their own ring via
+     utility classes, which sit in a later layer and simply take over. */
+  button,
+  a {
+    @apply outline-none;
+  }
+  button:focus-visible,
+  a:focus-visible {
+    @apply ring-3 ring-ring/80;
+  }
+}
+
+/* Typography scale — every page's title/subtitle pair and every place that
+   needs small muted meta text reads from these four, rather than each page
+   repeating its own ad hoc font-size/weight/color combination. */
+@utility text-page-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--foreground);
+}
+
+@utility text-page-subtitle {
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+}
+
+@utility text-section-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--foreground);
+}
+
+@utility text-caption {
+  font-size: var(--text-xs);
+  color: var(--muted-foreground);
+}
+
+/* A scrollbar that's invisible at rest and only appears, thin and subtle,
+   while the cursor is actually over this specific scroll container — for
+   the products side panel, so a long form doesn't sit under a permanent
+   scrollbar track when nobody's scrolling it. Firefox: scrollbar-width
+   switches none -> thin on :hover. Chrome/Safari/Edge: the thumb itself is
+   transparent at rest (the track is already transparent) and only painted
+   in on :hover. Never the page's own scrollbar — this only applies where
+   the class is used. */
+@utility scrollbar-hover-thin {
+  scrollbar-width: none;
+  &:hover {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--foreground) 25%, transparent)
+      transparent;
+  }
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 9999px;
+  }
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--foreground) 25%, transparent);
   }
 }

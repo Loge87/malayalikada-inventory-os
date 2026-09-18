@@ -2,6 +2,12 @@ import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/get-current-user";
+import {
+  getCurrentOrganisationId,
+  getOrganisationDefaultCurrency,
+  getOrganisationPriceSettings,
+} from "@/lib/organisation";
+import { DEFAULT_CURRENCY } from "@/app/(app)/products/constants";
 import { loadProducts } from "@/app/(app)/products/data";
 import { ProductEditPageContent } from "@/components/products/product-edit-page-content";
 
@@ -20,9 +26,10 @@ export default async function ProductEditPage({
 
   const { id } = await params;
 
-  const [products, locationsRes] = await Promise.all([
+  const [products, locationsRes, organisationId] = await Promise.all([
     loadProducts(supabase, { id }),
     supabase.from("locations").select("id, name").order("name"),
+    getCurrentOrganisationId(supabase),
   ]);
 
   if (locationsRes.error) {
@@ -34,11 +41,22 @@ export default async function ProductEditPage({
     notFound();
   }
 
+  const [defaultCurrency, priceSettings] = await Promise.all([
+    organisationId
+      ? getOrganisationDefaultCurrency(supabase, organisationId)
+      : Promise.resolve(DEFAULT_CURRENCY),
+    organisationId
+      ? getOrganisationPriceSettings(supabase, organisationId)
+      : Promise.resolve(null),
+  ]);
+
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6 md:p-10">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
       <ProductEditPageContent
         product={product}
         locations={locationsRes.data ?? []}
+        defaultCurrency={defaultCurrency}
+        priceSettings={priceSettings}
       />
     </div>
   );

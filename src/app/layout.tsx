@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+import { Toaster } from "@/components/ui/toast";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// next/font — self-hosted, no runtime request to Google Fonts and no
+// render-blocking external stylesheet. Named "--font-sans" (not
+// "--font-inter") because globals.css's @theme block reads the app's
+// sans font from that variable name, whatever face is loaded here.
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
@@ -21,9 +27,27 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // next-themes sets the "dark" class on this element client-side
+      // (before paint, via its own blocking inline script) based on
+      // localStorage — the server has no way to know that in advance, so
+      // this attribute legitimately differs between server and client
+      // render. suppressHydrationWarning tells React that's expected here,
+      // not a bug.
+      suppressHydrationWarning
+      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {/* defaultTheme="dark" + enableSystem={false}: a first-time visitor
+            (no "theme" key in localStorage yet) gets dark mode, ignoring
+            OS/browser preference entirely, per the product decision — not
+            "system" mode. Anyone who has already toggled a preference (the
+            key now exists) keeps getting exactly that, every subsequent
+            visit, forever, until they toggle again. */}
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          {children}
+          <Toaster />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

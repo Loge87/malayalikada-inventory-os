@@ -1,5 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  CURRENCIES,
+  DEFAULT_CURRENCY,
+  type Currency,
+} from "@/app/(app)/products/constants";
+import type { PriceSettingsRates } from "@/lib/price-calculation";
+
 /**
  * Resolves the signed-in user's `organisation_id` from their `user_roles` row.
  *
@@ -32,4 +39,59 @@ export async function getCurrentOrganisationId(
   }
 
   return data.organisation_id as string;
+}
+
+/**
+ * The organisation's configured default currency (organisations.
+ * default_currency, 0017_*.sql) — the pre-filled default for a NEW
+ * product/variant's currency field going forward, nothing more. It never
+ * overrides an existing variant's own stored currency; see that
+ * migration's header comment for the full reasoning. Falls back to
+ * DEFAULT_CURRENCY if the row is missing or holds a value outside the
+ * current CURRENCIES list (defensive only — the column is NOT NULL with a
+ * valid default, so this should never actually happen in practice).
+ */
+export async function getOrganisationDefaultCurrency(
+  supabase: SupabaseClient,
+  organisationId: string
+): Promise<Currency> {
+  const { data } = await supabase
+    .from("organisations")
+    .select("default_currency")
+    .eq("id", organisationId)
+    .single();
+
+  const value = data?.default_currency as string | undefined;
+  return CURRENCIES.includes(value as Currency) ? (value as Currency) : DEFAULT_CURRENCY;
+}
+
+/**
+ * The organisation's saved Price Settings rates (price_settings, 0016_*.sql),
+ * or null when the organisation has never saved any — the signal every
+ * retail/pack-price display uses to show a "Set price settings" fallback
+ * instead of a calculation with no real inputs. Once a row exists (even one
+ * saved with every field left at 0), this returns real rates and the
+ * calculation proceeds normally.
+ */
+export async function getOrganisationPriceSettings(
+  supabase: SupabaseClient,
+  organisationId: string
+): Promise<PriceSettingsRates | null> {
+  const { data } = await supabase
+    .from("price_settings")
+    .select(
+      "cgst_percent, sgst_percent, profit_margin_percent, logistics_charges_percent, additional_charges_percent"
+    )
+    .eq("organisation_id", organisationId)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  return {
+    cgstPercent: data.cgst_percent,
+    sgstPercent: data.sgst_percent,
+    profitMarginPercent: data.profit_margin_percent,
+    logisticsChargesPercent: data.logistics_charges_percent,
+    additionalChargesPercent: data.additional_charges_percent,
+  };
 }

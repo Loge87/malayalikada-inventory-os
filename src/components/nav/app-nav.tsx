@@ -14,17 +14,30 @@ import {
   MapPin,
   Menu,
   Package,
+  Percent,
   Plug,
   ScanLine,
+  ScrollText,
+  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
 
 import { signOut } from "@/app/(auth)/actions";
+import { hasPermission, type Permission } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/nav/theme-toggle";
 import { cn } from "@/lib/utils";
 
-type NavLink = { href: string; label: string; icon: LucideIcon };
+type NavLink = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Omitted = every role can see it. Set = hidden unless the current role
+   *  has this permission (lib/permissions.ts) — e.g. staff never sees
+   *  Integrations, since that page redirects them away anyway. */
+  permission?: Permission;
+};
 
 // Single source of truth for every authenticated route — the desktop sidebar,
 // the mobile bottom bar, and the mobile "more" panel all render from this list,
@@ -39,7 +52,30 @@ const NAV_LINKS: NavLink[] = [
   { href: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
   { href: "/stock-counts", label: "Stock Counts", icon: ClipboardCheck },
   { href: "/batches", label: "Batches", icon: Layers },
-  { href: "/integrations", label: "Integrations", icon: Plug },
+  {
+    href: "/integrations",
+    label: "Integrations",
+    icon: Plug,
+    permission: "integrations:view",
+  },
+  {
+    href: "/audit-log",
+    label: "Audit Log",
+    icon: ScrollText,
+    permission: "audit:view",
+  },
+  {
+    href: "/settings/team",
+    label: "Team",
+    icon: Users,
+    permission: "roles:manage",
+  },
+  {
+    href: "/settings",
+    label: "Price Settings",
+    icon: Percent,
+    permission: "pricing:manage",
+  },
 ];
 
 // The app is used on phones for scanning, so the bottom bar keeps the busiest
@@ -69,14 +105,14 @@ function NavRow({
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors",
+        "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-200 hover:translate-x-0.5",
         active
           ? "bg-primary/10 font-medium text-primary"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
         className
       )}
     >
-      <Icon className="size-4 shrink-0" />
+      <Icon className="size-4 shrink-0 transition-transform duration-200 group-hover:scale-110" />
       {link.label}
     </Link>
   );
@@ -87,8 +123,10 @@ function roleLabel(role: string | null): string {
   return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
-/** Email + role + sign-out, grouped together as one block — used at the
- *  bottom of the desktop sidebar and the bottom of the mobile menu panel. */
+/** Email + role + theme toggle + sign-out, grouped together as one block —
+ *  used at the bottom of the desktop sidebar and the bottom of the mobile
+ *  menu panel. The theme toggle lives here rather than a settings page so
+ *  it's always one tap away, on both layouts, without a separate entry. */
 function ProfileSection({
   userEmail,
   role,
@@ -98,9 +136,12 @@ function ProfileSection({
 }) {
   return (
     <div className="flex flex-col gap-2 border-t border-border p-3">
-      <div className="min-w-0">
-        <p className="truncate text-sm">{userEmail}</p>
-        <p className="text-muted-foreground text-xs">{roleLabel(role)}</p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm">{userEmail}</p>
+          <p className="text-muted-foreground text-xs">{roleLabel(role)}</p>
+        </div>
+        <ThemeToggle />
       </div>
       <form action={signOut}>
         <Button
@@ -127,24 +168,29 @@ export function AppNav({
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const primaryLinks = NAV_LINKS.filter((link) =>
+  const visibleLinks = NAV_LINKS.filter(
+    (link) => !link.permission || hasPermission(role, link.permission)
+  );
+  const primaryLinks = visibleLinks.filter((link) =>
     MOBILE_PRIMARY_HREFS.includes(link.href)
   );
-  const overflowLinks = NAV_LINKS.filter(
+  const overflowLinks = visibleLinks.filter(
     (link) => !MOBILE_PRIMARY_HREFS.includes(link.href)
   );
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden shrink-0 flex-col border-r border-border bg-muted/30 md:flex md:w-56">
+      {/* Desktop sidebar — sticky + viewport-height, so it stays fixed to the
+          screen and only the main content scrolls, rather than the sidebar
+          scrolling away with a tall page. */}
+      <aside className="hidden shrink-0 flex-col border-r border-border bg-muted/30 md:sticky md:top-0 md:flex md:h-screen md:w-56 md:overflow-y-auto">
         <div className="p-4">
           <span className="font-heading text-sm font-semibold">
             Malayalikada
           </span>
         </div>
-        <nav className="flex flex-1 flex-col gap-0.5 px-2">
-          {NAV_LINKS.map((link) => (
+        <nav className="flex flex-1 flex-col gap-1 px-2">
+          {visibleLinks.map((link) => (
             <NavRow
               key={link.href}
               link={link}
@@ -206,7 +252,7 @@ export function AppNav({
               <X className="size-5" />
             </button>
           </div>
-          <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
+          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
             {overflowLinks.map((link) => (
               <NavRow
                 key={link.href}

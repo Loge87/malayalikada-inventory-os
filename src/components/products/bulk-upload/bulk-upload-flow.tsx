@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { Download, UploadCloud } from "lucide-react";
 
 import {
@@ -19,6 +19,7 @@ import {
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { BulkRowStatusPill } from "@/components/products/bulk-upload/bulk-row-status-pill";
+import { toastManager } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 const TEMPLATE_HREF = `data:text/csv;charset=utf-8,${encodeURIComponent(bulkUploadTemplateCsv())}`;
@@ -73,6 +74,17 @@ export function BulkUploadFlow() {
   }, [preview]);
 
   const imported = importState && "ok" in importState ? importState : null;
+
+  // Bulk import creates many products in one submit, so the literal
+  // "[Product name] added" wording doesn't fit — a count summary instead.
+  useEffect(() => {
+    if (imported && imported.created > 0) {
+      toastManager.add({
+        title: `${imported.created} product${imported.created === 1 ? "" : "s"} added`,
+        type: "success",
+      });
+    }
+  }, [imported]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -152,9 +164,11 @@ export function BulkUploadFlow() {
                 <FieldDescription>
                   Required columns: product_name, category, variant_name, sku,
                   unit. Optional: brand, barcode, currency (default NZD),
-                  pack_price, units_per_pack (default 1), unit_price,
+                  unit_price, units_per_pack (default 1), pack_price,
                   initial_quantity, initial_location_name (required if
-                  initial_quantity is set).
+                  initial_quantity is set). Retail price and wholesale
+                  price aren&apos;t columns — both are calculated from unit
+                  price / pack price and your Price Settings.
                 </FieldDescription>
               </Field>
               {dropError ? <FieldError>{dropError}</FieldError> : null}
@@ -184,7 +198,7 @@ export function BulkUploadFlow() {
             <div className="overflow-x-auto rounded-md ring-1 ring-border">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
                     <th className="px-3 py-2 font-medium">Line</th>
                     <th className="px-3 py-2 font-medium">Product / variant</th>
                     <th className="px-3 py-2 font-medium">SKU</th>
@@ -194,7 +208,13 @@ export function BulkUploadFlow() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {preview.results.map((r) => (
-                    <tr key={r.line} className={cn(r.status === "error" && "bg-red-500/5")}>
+                    <tr
+                      key={r.line}
+                      className={cn(
+                        "transition-colors hover:bg-muted/40",
+                        r.status === "error" && "bg-status-critical/5"
+                      )}
+                    >
                       <td className="px-3 py-2 tabular-nums text-muted-foreground">
                         {r.line}
                       </td>
@@ -223,7 +243,7 @@ export function BulkUploadFlow() {
             </div>
 
             {imported ? (
-              <div className="rounded-md bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-400">
+              <div className="rounded-md bg-status-success/10 p-3 text-sm text-status-success">
                 Import complete — created {imported.created}, skipped{" "}
                 {imported.skipped}
                 {imported.errors > 0 ? `, ${imported.errors} failed` : ""}.

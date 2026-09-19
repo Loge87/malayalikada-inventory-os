@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -217,5 +218,18 @@ export async function importBulkUpload(
   }
 
   revalidatePath("/products");
+
+  // Land back on the products list after a successful import, same as
+  // manual entry and camera scan (createProductWithVariant in
+  // products/actions.ts) — consistent redirect target across every path
+  // that creates a product. revalidatePath() above means the list is
+  // already fresh by the time this redirect lands. Only when nothing was
+  // actually created (every row skipped or errored) does this stay on the
+  // bulk-upload page instead, so the per-row review table above is still
+  // there to explain why.
+  if (created > 0) {
+    redirect(`/products?bulkCreated=${created}`);
+  }
+
   return { ok: true, created, skipped, errors };
 }

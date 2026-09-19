@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
 import { Download, UploadCloud } from "lucide-react";
 
 import {
@@ -19,7 +19,6 @@ import {
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { BulkRowStatusPill } from "@/components/products/bulk-upload/bulk-row-status-pill";
-import { toastManager } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 const TEMPLATE_HREF = `data:text/csv;charset=utf-8,${encodeURIComponent(bulkUploadTemplateCsv())}`;
@@ -73,18 +72,12 @@ export function BulkUploadFlow() {
     );
   }, [preview]);
 
+  // importBulkUpload redirects to /products (toast fired there by
+  // ProductCreatedToast) whenever it actually creates at least one product,
+  // so `importState` only ever resolves here — without ever navigating away
+  // — when nothing was created (every row skipped or errored): the redirect
+  // throws before useActionState sees a result otherwise.
   const imported = importState && "ok" in importState ? importState : null;
-
-  // Bulk import creates many products in one submit, so the literal
-  // "[Product name] added" wording doesn't fit — a count summary instead.
-  useEffect(() => {
-    if (imported && imported.created > 0) {
-      toastManager.add({
-        title: `${imported.created} product${imported.created === 1 ? "" : "s"} added`,
-        type: "success",
-      });
-    }
-  }, [imported]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -243,9 +236,11 @@ export function BulkUploadFlow() {
             </div>
 
             {imported ? (
-              <div className="rounded-md bg-status-success/10 p-3 text-sm text-status-success">
-                Import complete — created {imported.created}, skipped{" "}
-                {imported.skipped}
+              // Only reached when nothing was actually created (every row
+              // skipped or errored) — importBulkUpload redirects to
+              // /products otherwise, so imported.created is always 0 here.
+              <div className="rounded-md bg-status-warning/10 p-3 text-sm text-status-warning">
+                Nothing imported — {imported.skipped} skipped
                 {imported.errors > 0 ? `, ${imported.errors} failed` : ""}.
               </div>
             ) : (

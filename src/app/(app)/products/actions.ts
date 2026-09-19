@@ -546,11 +546,9 @@ export async function createProductWithVariant(
   }
 
   // The RPC returns the new variant's id, not the product's — look the
-  // product up. Needed both to attach the image (non-fatal if this whole
-  // block fails: the product/variant is already created at this point, so
-  // an image hiccup shouldn't block success, just leave the product
-  // imageless) and, unconditionally, for the post-create redirect target
-  // below.
+  // product up, needed to attach the image (non-fatal if this whole block
+  // fails: the product/variant is already created at this point, so an
+  // image hiccup shouldn't block success, just leave the product imageless).
   let productId: string | null = null;
   if (variantId) {
     const { data: variantRow } = await supabase
@@ -577,9 +575,6 @@ export async function createProductWithVariant(
 
   revalidatePath("/products");
   revalidatePath("/scan");
-  if (productId) {
-    revalidatePath(`/products/${productId}/edit`);
-  }
   // redirect() throws before this action's return value ever reaches the
   // client's useActionState, so the normal "check the result, fire a toast"
   // pattern can't apply here — the created name rides along in the query
@@ -587,14 +582,13 @@ export async function createProductWithVariant(
   //
   // /scan keeps returning to /scan — that flow exists specifically so the
   // same barcode can be re-scanned and now resolves, not to keep editing.
-  // Otherwise, land directly on the new product's edit view rather than
-  // the list: that's where "Add another variant" already lives (one at a
-  // time, immediately — see VariantForm), so a product created with more
-  // than one variant in mind doesn't need any new multi-variant UI, just
-  // to already be looking at the place that offers it.
+  // Every other entry point (manual entry, and camera scan via
+  // AddProductMenu on /products) lands back on the products list, not the
+  // new product's edit page — revalidatePath("/products") above means the
+  // list is already fresh by the time this redirect lands, so the new
+  // product is visible immediately, not stale.
   const created = `created=${encodeURIComponent(productName)}`;
-  const editTarget = productId ? `/products/${productId}/edit` : "/products";
-  redirect(returnTo === "/scan" ? `/scan?${created}` : `${editTarget}?${created}`);
+  redirect(returnTo === "/scan" ? `/scan?${created}` : `/products?${created}`);
 }
 
 export type DeleteProductState =

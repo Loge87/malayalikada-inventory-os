@@ -9,7 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { VariantPricingFields } from "@/components/products/variant-pricing-fields";
+import {
+  ReadOnlyCurrencyField,
+  VariantPricingFields,
+} from "@/components/products/variant-pricing-fields";
 import type { Currency } from "@/app/(app)/products/constants";
 
 export type LocationOption = { id: string; name: string };
@@ -30,8 +33,10 @@ export function VariantExtraFields({
   /** Disambiguates element ids when several instances render on one page. */
   idPrefix: string;
   locations: LocationOption[];
-  /** The organisation's configured default currency — pre-fills this NEW
-   *  variant's currency select. Doesn't affect any existing variant. */
+  /** The organisation's current Price Settings currency — this NEW
+   *  variant's currency is always set to this, server-side (products/
+   *  actions.ts), no per-variant override. Shown read-only, after the
+   *  price fields. */
   defaultCurrency: Currency;
 }) {
   const locationItems: Record<string, string> = Object.fromEntries(
@@ -40,7 +45,8 @@ export function VariantExtraFields({
 
   return (
     <>
-      <VariantPricingFields idPrefix={idPrefix} defaultCurrency={defaultCurrency} />
+      <VariantPricingFields idPrefix={idPrefix} />
+      <ReadOnlyCurrencyField idPrefix={idPrefix} currency={defaultCurrency} />
 
       <div className="flex flex-col gap-3">
         <span className="text-xs font-medium text-muted-foreground">

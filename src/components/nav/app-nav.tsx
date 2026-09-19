@@ -14,10 +14,10 @@ import {
   MapPin,
   Menu,
   Package,
-  Percent,
   Plug,
   ScanLine,
   ScrollText,
+  Settings as SettingsIcon,
   Users,
   X,
   type LucideIcon,
@@ -37,33 +37,25 @@ type NavLink = {
    *  has this permission (lib/permissions.ts) — e.g. staff never sees
    *  Integrations, since that page redirects them away anyway. */
   permission?: Permission;
+  /** Visible but inert — grayed out, not a real link, with a "Soon" badge.
+   *  Orthogonal to `permission`: permission still controls whether the item
+   *  shows up at all; `disabled` only controls whether a shown item is
+   *  clickable. See the TEMP block below. */
+  disabled?: boolean;
 };
 
 // Single source of truth for every authenticated route — the desktop sidebar,
 // the mobile bottom bar, and the mobile "more" panel all render from this list,
 // so there is one nav implementation, not several that can drift apart.
+//
+// Enabled items first, disabled ones grouped at the bottom (NavRow renders
+// the latter as inert with a "Soon" badge) — order here is render order.
 const NAV_LINKS: NavLink[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/scan", label: "Scan", icon: ScanLine },
   { href: "/products", label: "Products", icon: Package },
   { href: "/locations", label: "Locations", icon: MapPin },
-  { href: "/movements", label: "Movements", icon: History },
   { href: "/transfers", label: "Transfers", icon: ArrowRightLeft },
-  { href: "/purchase-orders", label: "Purchase Orders", icon: ClipboardList },
-  { href: "/stock-counts", label: "Stock Counts", icon: ClipboardCheck },
-  { href: "/batches", label: "Batches", icon: Layers },
-  {
-    href: "/integrations",
-    label: "Integrations",
-    icon: Plug,
-    permission: "integrations:view",
-  },
-  {
-    href: "/audit-log",
-    label: "Audit Log",
-    icon: ScrollText,
-    permission: "audit:view",
-  },
   {
     href: "/settings/team",
     label: "Team",
@@ -72,16 +64,54 @@ const NAV_LINKS: NavLink[] = [
   },
   {
     href: "/settings",
-    label: "Price Settings",
-    icon: Percent,
+    label: "Settings",
+    icon: SettingsIcon,
     permission: "pricing:manage",
   },
+
+  // --- TEMP: disabled for the client demo, not a permanent change ---
+  // These are real, working, tested features — just held back so the demo's
+  // first impression stays focused. Revert by deleting `disabled: true`
+  // from each (and moving them back up wherever fits) once the demo's done.
+  { href: "/movements", label: "Movements", icon: History, disabled: true },
+  {
+    href: "/purchase-orders",
+    label: "Purchase Orders",
+    icon: ClipboardList,
+    disabled: true,
+  },
+  {
+    href: "/stock-counts",
+    label: "Stock Counts",
+    icon: ClipboardCheck,
+    disabled: true,
+  },
+  { href: "/batches", label: "Batches", icon: Layers, disabled: true },
+  {
+    href: "/integrations",
+    label: "Integrations",
+    icon: Plug,
+    permission: "integrations:view",
+    disabled: true,
+  },
+  {
+    href: "/audit-log",
+    label: "Audit Log",
+    icon: ScrollText,
+    permission: "audit:view",
+    disabled: true,
+  },
+  // --- END TEMP ---
 ];
 
 // The app is used on phones for scanning, so the bottom bar keeps the busiest
 // four one tap away, as plain nav destinations; everything else (still in the
 // sidebar on desktop) lives behind the single "menu" button on mobile.
-const MOBILE_PRIMARY_HREFS = ["/dashboard", "/scan", "/products", "/movements"];
+//
+// TEMP: Movements swapped for Transfers here while Movements is demo-
+// disabled above — a quick-access tab has to be a real destination. Swap
+// back once Movements is re-enabled.
+const MOBILE_PRIMARY_HREFS = ["/dashboard", "/scan", "/products", "/transfers"];
 
 function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -99,6 +129,31 @@ function NavRow({
   className?: string;
 }) {
   const Icon = link.icon;
+
+  // Visible so the full feature set is apparent, but genuinely inert — not
+  // a <Link>, no href, nothing to click. The badge is always-visible text
+  // (not a hover-only tooltip): this nav is used on phones as much as
+  // desktop, where hover doesn't exist. `title` adds a native tooltip on
+  // desktop hover too, at no extra cost.
+  if (link.disabled) {
+    return (
+      <span
+        aria-disabled="true"
+        title="Coming soon"
+        className={cn(
+          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground/50 select-none",
+          className
+        )}
+      >
+        <Icon className="size-4 shrink-0" />
+        {link.label}
+        <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground/70 uppercase">
+          Soon
+        </span>
+      </span>
+    );
+  }
+
   return (
     <Link
       href={link.href}

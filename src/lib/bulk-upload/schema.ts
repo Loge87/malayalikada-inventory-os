@@ -68,6 +68,11 @@ export type BulkRowResult =
 export type BulkValidationContext = {
   /** Trimmed, lowercased SKUs that already exist for this organisation. */
   existingSkusLower: ReadonlySet<string>;
+  /** Trimmed, lowercased barcodes that already exist for this
+   *  organisation — same "don't create a duplicate product" rule the
+   *  manual/scan create form enforces (products/actions.ts), applied here
+   *  too since bulk upload is the third product-creation entry point. */
+  existingBarcodesLower: ReadonlySet<string>;
   /** Location name (trimmed, lowercased) -> canonical { id, name }. */
   locationsByNameLower: ReadonlyMap<string, { id: string; name: string }>;
   /** The organisation's configured default currency (organisations.
@@ -206,11 +211,13 @@ function validateRow(
 }
 
 /**
- * Validates every parsed row, then applies the duplicate-SKU rule across the
- * whole file: a SKU that already exists in the organisation, or that appears
- * more than once in the file, gets every one of its rows skipped rather than
- * imported or used to update an existing product (per the bulk-upload spec —
- * duplicates never update existing rows).
+ * Validates every parsed row, then applies the duplicate rules across the
+ * whole file: a SKU (checked first) or barcode that already exists in the
+ * organisation, or that appears more than once in the file, gets every one
+ * of its rows skipped rather than imported or used to update an existing
+ * product (per the bulk-upload spec — duplicates never update existing
+ * rows). Rows with no barcode at all are never subject to the barcode
+ * check — plenty of variants legitimately have none.
  */
 export function validateBulkRows(
   rawRows: RawBulkRow[],
@@ -219,17 +226,22 @@ export function validateBulkRows(
   const perRow = rawRows.map((raw, i) => validateRow(raw, i + 2, context));
 
   const skuOccurrences = new Map<string, number>();
+  const barcodeOccurrences = new Map<string, number>();
   for (const result of perRow) {
     if (result.status !== "valid") continue;
-    const key = result.data.sku.toLowerCase();
-    skuOccurrences.set(key, (skuOccurrences.get(key) ?? 0) + 1);
+    const skuKey = result.data.sku.toLowerCase();
+    skuOccurrences.set(skuKey, (skuOccurrences.get(skuKey) ?? 0) + 1);
+    if (result.data.barcode) {
+      const barcodeKey = result.data.barcode.toLowerCase();
+      barcodeOccurrences.set(barcodeKey, (barcodeOccurrences.get(barcodeKey) ?? 0) + 1);
+    }
   }
 
   return perRow.map((result) => {
     if (result.status !== "valid") return result;
-    const key = result.data.sku.toLowerCase();
-    const inFileCount = skuOccurrences.get(key) ?? 0;
-    if (context.existingSkusLower.has(key)) {
+    const skuKey = result.data.sku.toLowerCase();
+    const inFileSkuCount = skuOccurrences.get(skuKey) ?? 0;
+    if (context.existingSkusLower.has(skuKey)) {
       return {
         line: result.line,
         status: "skipped_duplicate",
@@ -238,7 +250,7 @@ export function validateBulkRows(
         raw: result.raw,
       };
     }
-    if (inFileCount > 1) {
+    if (inFileSkuCount > 1) {
       return {
         line: result.line,
         status: "skipped_duplicate",
@@ -246,6 +258,28 @@ export function validateBulkRows(
         reason: "SKU appears more than once in this file",
         raw: result.raw,
       };
+    }
+    if (result.data.barcode) {
+      const barcodeKey = result.data.barcode.toLowerCase();
+      const inFileBarcodeCount = barcodeOccurrences.get(barcodeKey) ?? 0;
+      if (context.existingBarcodesLower.has(barcodeKey)) {
+        return {
+          line: result.line,
+          status: "skipped_duplicate",
+          sku: result.data.sku,
+          reason: "This product already exists (barcode already in this organisation)",
+          raw: result.raw,
+        };
+      }
+      if (inFileBarcodeCount > 1) {
+        return {
+          line: result.line,
+          status: "skipped_duplicate",
+          sku: result.data.sku,
+          reason: "Barcode appears more than once in this file",
+          raw: result.raw,
+        };
+      }
     }
     return result;
   });

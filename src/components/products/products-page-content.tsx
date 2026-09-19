@@ -18,7 +18,7 @@ import {
 import { ProductEditPanel } from "@/components/products/product-edit-panel";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import type { Currency } from "@/app/(app)/products/constants";
-import type { PriceSettingsRates } from "@/lib/price-calculation";
+import type { OrganisationPriceSettings } from "@/lib/organisation";
 
 /**
  * Owns the one piece of state ProductsTable and the edit panel both need to
@@ -37,13 +37,19 @@ export function ProductsPageContent({
   defaultCurrency,
   priceSettings,
   initialStatusFilter,
+  selectedLocationId,
   emptyMessage,
 }: {
   products: EditableProduct[];
   locations: LocationOption[];
   defaultCurrency: Currency;
-  priceSettings: PriceSettingsRates | null;
+  priceSettings: OrganisationPriceSettings | null;
   initialStatusFilter: StockStatus | null;
+  /** From /products?location=<id> — already applied server-side to
+   *  `products` (page.tsx); passed through so ProductsTable's location
+   *  dropdown shows the right value, and so it can key off this to reset
+   *  its own filters/pagination when the location changes. */
+  selectedLocationId: string | null;
   emptyMessage: string;
 }) {
   const isWideDesktop = useIsWideDesktop();
@@ -68,10 +74,18 @@ export function ProductsPageContent({
           <CardContent>
             {products.length > 0 ? (
               <ProductsTable
+                // Remounts on a location change — a fresh instance means
+                // search/status/category filters and pagination all reset
+                // cleanly to their defaults rather than carrying over
+                // whatever they happened to be for the previous location,
+                // and totalPages/page recompute from scratch against the
+                // new (already server-filtered) `products` set.
+                key={selectedLocationId ?? "all-locations"}
                 products={products}
                 locations={locations}
                 priceSettings={priceSettings}
                 initialStatusFilter={initialStatusFilter}
+                selectedLocationId={selectedLocationId}
                 selectedProductId={selectedProduct?.id ?? null}
                 onSelectProduct={setSelectedProductId}
               />

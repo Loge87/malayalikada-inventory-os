@@ -11,10 +11,8 @@ import {
 } from "@/app/(app)/products/actions";
 import { VARIANT_UNITS, type Currency } from "@/app/(app)/products/constants";
 import { formatMoney } from "@/lib/format";
-import {
-  applyPriceSettings,
-  type PriceSettingsRates,
-} from "@/lib/price-calculation";
+import { applyPriceSettings, resolveWholesaleRates } from "@/lib/price-calculation";
+import type { OrganisationPriceSettings } from "@/lib/organisation";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -34,7 +32,10 @@ import { Separator } from "@/components/ui/separator";
 import { usePermissions } from "@/components/providers/role-provider";
 import { ProductImageField } from "@/components/products/product-image-field";
 import { VariantForm } from "@/components/products/variant-form";
-import { VariantPricingFields } from "@/components/products/variant-pricing-fields";
+import {
+  ReadOnlyCurrencyField,
+  VariantPricingFields,
+} from "@/components/products/variant-pricing-fields";
 import { toastManager } from "@/components/ui/toast";
 import type {
   EditableProduct,
@@ -114,7 +115,7 @@ function CalculatedPrices({
   priceSettings,
 }: {
   variant: EditableVariant;
-  priceSettings: PriceSettingsRates | null;
+  priceSettings: OrganisationPriceSettings | null;
 }) {
   if (!priceSettings) {
     return (
@@ -127,13 +128,21 @@ function CalculatedPrices({
     );
   }
 
-  // Retail applies the Price Settings multiplier to unit_price (selling one
-  // at a time); wholesale applies the exact same multiplier to pack_price
-  // (selling by the case) — same shared applyPriceSettings(), different
-  // base. pack_price itself stays a plain editable input above, not run
-  // through the multiplier — see VariantPricingFields.
-  const retailPrice = applyPriceSettings(variant.unitPrice, priceSettings);
-  const wholesalePrice = applyPriceSettings(variant.packPrice, priceSettings);
+  // Retail applies its own Price Settings rates to unit_price (selling one
+  // at a time). Wholesale applies its own rates to pack_price (selling by
+  // the case) — unless "use same as retail" is checked, in which case
+  // resolveWholesaleRates() picks retail's rates instead, live. pack_price
+  // itself stays a plain editable input above, not run through either
+  // multiplier — see VariantPricingFields.
+  const retailPrice = applyPriceSettings(variant.unitPrice, priceSettings.retail);
+  const wholesalePrice = applyPriceSettings(
+    variant.packPrice,
+    resolveWholesaleRates(
+      priceSettings.retail,
+      priceSettings.wholesale,
+      priceSettings.wholesaleUsesSameAsRetail
+    )
+  );
 
   return (
     <div className="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2">
@@ -161,9 +170,16 @@ function CalculatedPrices({
 function VariantEditForm({
   variant,
   priceSettings,
+  defaultCurrency,
 }: {
   variant: EditableVariant;
-  priceSettings: PriceSettingsRates | null;
+  priceSettings: OrganisationPriceSettings | null;
+  /** The organisation's CURRENT Price Settings currency — not
+   *  variant.currency. Saving this form re-syncs the variant's stored
+   *  currency to this value regardless of what it was before (products/
+   *  actions.ts's updateVariant), so the read-only display here shows what
+   *  it will become, not what it currently is. */
+  defaultCurrency: Currency;
 }) {
   const [state, formAction, pending] = useActionState(updateVariant, undefined);
   const idPrefix = `edit-variant-${variant.id}`;
@@ -237,13 +253,16 @@ function VariantEditForm({
 
       <VariantPricingFields
         idPrefix={idPrefix}
-        defaultCurrency={variant.currency as Currency}
         defaultPackPrice={variant.packPrice}
         defaultUnitsPerPack={variant.unitsPerPack}
         defaultUnitPrice={variant.unitPrice}
       />
 
       <CalculatedPrices variant={variant} priceSettings={priceSettings} />
+
+      {/* After all the price fields, including retail/wholesale above —
+          per the read-only currency display's own placement rule. */}
+      <ReadOnlyCurrencyField idPrefix={idPrefix} currency={defaultCurrency} />
 
       {state && "error" in state ? <FieldError>{state.error}</FieldError> : null}
 
@@ -362,13 +381,14 @@ export function ProductEditContent({
 }: {
   product: EditableProduct;
   locations: LocationOption[];
-  /** The organisation's configured default currency — only used to pre-fill
-   *  the "Add another variant" form below; existing variants keep showing
-   *  their own stored currency (VariantEditForm passes variant.currency). */
+  /** The organisation's current Price Settings currency — every variant
+   *  here (new, via "Add another variant" below, and existing, via each
+   *  VariantEditForm) always uses this now; there's no per-variant
+   *  override anymore, so this is passed to both. */
   defaultCurrency: Currency;
   /** The organisation's saved Price Settings rates, or null if never saved
    *  — drives each variant's calculated Retail/Pack-box price display. */
-  priceSettings: PriceSettingsRates | null;
+  priceSettings: OrganisationPriceSettings | null;
   onDeleted?: (result: "deleted" | "deactivated") => void;
 }) {
   const { can } = usePermissions();
@@ -395,6 +415,7 @@ export function ProductEditContent({
             key={variant.id}
             variant={variant}
             priceSettings={priceSettings}
+            defaultCurrency={defaultCurrency}
           />
         ))}
         {product.variants.length === 0 ? (

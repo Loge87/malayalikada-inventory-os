@@ -65,22 +65,31 @@ export async function getOrganisationDefaultCurrency(
   return CURRENCIES.includes(value as Currency) ? (value as Currency) : DEFAULT_CURRENCY;
 }
 
+/** The organisation's saved Price Settings — retail and wholesale are
+ *  independent rate sets (price_settings, 0019_*.sql); wholesaleUsesSameAsRetail
+ *  says whether wholesale should resolve to retail's rates instead (see
+ *  resolveWholesaleRates() in price-calculation.ts). */
+export type OrganisationPriceSettings = {
+  retail: PriceSettingsRates;
+  wholesale: PriceSettingsRates;
+  wholesaleUsesSameAsRetail: boolean;
+};
+
 /**
- * The organisation's saved Price Settings rates (price_settings, 0016_*.sql),
- * or null when the organisation has never saved any — the signal every
- * retail/pack-price display uses to show a "Set price settings" fallback
- * instead of a calculation with no real inputs. Once a row exists (even one
- * saved with every field left at 0), this returns real rates and the
- * calculation proceeds normally.
+ * The organisation's saved Price Settings, or null when the organisation has
+ * never saved any — the signal every retail/wholesale-price display uses to
+ * show a "Set price settings" fallback instead of a calculation with no real
+ * inputs. Once a row exists (even one saved with every field left at 0),
+ * this returns real rates and the calculation proceeds normally.
  */
 export async function getOrganisationPriceSettings(
   supabase: SupabaseClient,
   organisationId: string
-): Promise<PriceSettingsRates | null> {
+): Promise<OrganisationPriceSettings | null> {
   const { data } = await supabase
     .from("price_settings")
     .select(
-      "cgst_percent, sgst_percent, profit_margin_percent, logistics_charges_percent, additional_charges_percent"
+      "cgst_percent, sgst_percent, profit_margin_percent, logistics_charges_percent, additional_charges_percent, wholesale_cgst_percent, wholesale_sgst_percent, wholesale_profit_margin_percent, wholesale_logistics_charges_percent, wholesale_additional_charges_percent, wholesale_use_same_as_retail"
     )
     .eq("organisation_id", organisationId)
     .maybeSingle();
@@ -88,10 +97,20 @@ export async function getOrganisationPriceSettings(
   if (!data) return null;
 
   return {
-    cgstPercent: data.cgst_percent,
-    sgstPercent: data.sgst_percent,
-    profitMarginPercent: data.profit_margin_percent,
-    logisticsChargesPercent: data.logistics_charges_percent,
-    additionalChargesPercent: data.additional_charges_percent,
+    retail: {
+      cgstPercent: data.cgst_percent,
+      sgstPercent: data.sgst_percent,
+      profitMarginPercent: data.profit_margin_percent,
+      logisticsChargesPercent: data.logistics_charges_percent,
+      additionalChargesPercent: data.additional_charges_percent,
+    },
+    wholesale: {
+      cgstPercent: data.wholesale_cgst_percent,
+      sgstPercent: data.wholesale_sgst_percent,
+      profitMarginPercent: data.wholesale_profit_margin_percent,
+      logisticsChargesPercent: data.wholesale_logistics_charges_percent,
+      additionalChargesPercent: data.wholesale_additional_charges_percent,
+    },
+    wholesaleUsesSameAsRetail: data.wholesale_use_same_as_retail,
   };
 }

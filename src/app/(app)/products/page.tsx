@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -26,9 +25,11 @@ const VALID_STATUS_FILTERS: StockStatus[] = [
 export default async function ProductsPage({
   searchParams,
 }: {
-  // From the dashboard's stat cards (?status=low_stock) and its stock-by-
-  // location chart/table (?location=<id>) — so "jump to the filtered list"
-  // is a real navigation, not a dead link.
+  // ?status=<...> arrives from the dashboard's stat cards. ?location=<id>
+  // arrives either the same way (the dashboard's stock-by-location chart/
+  // table) or from this page's own location filter dropdown (ProductsTable)
+  // — either way it's a real URL, so the filtered view survives a refresh
+  // and can be bookmarked/shared.
   searchParams: Promise<{ status?: string; location?: string }>;
 }) {
   const user = await getCurrentUser();
@@ -68,8 +69,9 @@ export default async function ProductsPage({
   // Re-scope to one location's actual stock, not the cross-location
   // aggregate loadProducts() normally returns — each variant's onHand is
   // overridden to that location's own on_hand, and variants never stocked
-  // there are dropped, so this reads as "what's actually at this location,"
-  // matching what the dashboard's chart/table link to.
+  // there (or stocked at exactly 0) are dropped, so this reads as "what's
+  // actually stocked at this location," matching what the dashboard's
+  // chart/table and the new location filter dropdown both mean by it.
   let products = productsResult;
   let locationFilterName: string | null = null;
   if (location) {
@@ -79,7 +81,8 @@ export default async function ProductsPage({
       const { data: levelsAtLocation, error: levelsError } = await supabase
         .from("inventory_levels")
         .select("product_variant_id, on_hand")
-        .eq("location_id", location);
+        .eq("location_id", location)
+        .gt("on_hand", 0);
       if (levelsError) {
         throw levelsError;
       }
@@ -120,27 +123,13 @@ export default async function ProductsPage({
         <AddProductMenu />
       </div>
 
-      {locationFilterName ? (
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">
-            Showing stock at:
-          </span>
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium hover:bg-muted/70"
-          >
-            {locationFilterName}
-            <span aria-hidden>×</span>
-          </Link>
-        </div>
-      ) : null}
-
       <ProductsPageContent
         products={products}
         locations={locations}
         defaultCurrency={defaultCurrency}
         priceSettings={priceSettings}
         initialStatusFilter={initialStatusFilter}
+        selectedLocationId={location ?? null}
         emptyMessage={location ? "No stock at this location" : "No products yet"}
       />
       <ProductCreatedToast />

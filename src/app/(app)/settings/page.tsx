@@ -19,6 +19,12 @@ type PriceSettingsRow = {
   profit_margin_percent: number;
   logistics_charges_percent: number;
   additional_charges_percent: number;
+  wholesale_cgst_percent: number;
+  wholesale_sgst_percent: number;
+  wholesale_profit_margin_percent: number;
+  wholesale_logistics_charges_percent: number;
+  wholesale_additional_charges_percent: number;
+  wholesale_use_same_as_retail: boolean;
 };
 
 export default async function PriceSettingsPage() {
@@ -43,13 +49,14 @@ export default async function PriceSettingsPage() {
   }
 
   // No row yet = never saved — the form just starts at zero for every
-  // percent field (currency still has a real value: organisations.
-  // default_currency is NOT NULL, defaulted at the column level).
+  // percent field, wholesale-mirrors-retail on (currency still has a real
+  // value: organisations.default_currency is NOT NULL, defaulted at the
+  // column level).
   const [{ data, error }, currency] = await Promise.all([
     supabase
       .from("price_settings")
       .select(
-        "cgst_percent, sgst_percent, profit_margin_percent, logistics_charges_percent, additional_charges_percent"
+        "cgst_percent, sgst_percent, profit_margin_percent, logistics_charges_percent, additional_charges_percent, wholesale_cgst_percent, wholesale_sgst_percent, wholesale_profit_margin_percent, wholesale_logistics_charges_percent, wholesale_additional_charges_percent, wholesale_use_same_as_retail"
       )
       .eq("organisation_id", organisationId)
       .maybeSingle<PriceSettingsRow>(),
@@ -62,11 +69,21 @@ export default async function PriceSettingsPage() {
 
   const settings: PriceSettings = {
     currency,
-    cgstPercent: data?.cgst_percent ?? 0,
-    sgstPercent: data?.sgst_percent ?? 0,
-    profitMarginPercent: data?.profit_margin_percent ?? 0,
-    logisticsChargesPercent: data?.logistics_charges_percent ?? 0,
-    additionalChargesPercent: data?.additional_charges_percent ?? 0,
+    retail: {
+      cgstPercent: data?.cgst_percent ?? 0,
+      sgstPercent: data?.sgst_percent ?? 0,
+      profitMarginPercent: data?.profit_margin_percent ?? 0,
+      logisticsChargesPercent: data?.logistics_charges_percent ?? 0,
+      additionalChargesPercent: data?.additional_charges_percent ?? 0,
+    },
+    wholesale: {
+      cgstPercent: data?.wholesale_cgst_percent ?? 0,
+      sgstPercent: data?.wholesale_sgst_percent ?? 0,
+      profitMarginPercent: data?.wholesale_profit_margin_percent ?? 0,
+      logisticsChargesPercent: data?.wholesale_logistics_charges_percent ?? 0,
+      additionalChargesPercent: data?.wholesale_additional_charges_percent ?? 0,
+    },
+    wholesaleUsesSameAsRetail: data?.wholesale_use_same_as_retail ?? true,
   };
 
   return (

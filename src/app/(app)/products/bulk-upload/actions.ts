@@ -15,25 +15,30 @@ import {
   type NormalizedBulkRow,
 } from "@/lib/bulk-upload/schema";
 
-/** The sku/location queries are RLS-scoped to the caller's organisation
- * already — no explicit organisation_id filter needed (or wanted) there;
- * the default-currency lookup needs it explicitly since organisations is
- * looked up by id, not by an implicit "mine" scope. */
+/** The sku/barcode/location queries are RLS-scoped to the caller's
+ * organisation already — no explicit organisation_id filter needed (or
+ * wanted) there; the default-currency lookup needs it explicitly since
+ * organisations is looked up by id, not by an implicit "mine" scope. */
 async function loadValidationContext(
   supabase: Awaited<ReturnType<typeof createClient>>,
   organisationId: string
 ): Promise<BulkValidationContext> {
-  const [skusRes, locationsRes, defaultCurrency] = await Promise.all([
-    supabase.from("product_variants").select("sku"),
+  const [variantsRes, locationsRes, defaultCurrency] = await Promise.all([
+    supabase.from("product_variants").select("sku, barcode"),
     supabase.from("locations").select("id, name"),
     getOrganisationDefaultCurrency(supabase, organisationId),
   ]);
 
-  if (skusRes.error) throw skusRes.error;
+  if (variantsRes.error) throw variantsRes.error;
   if (locationsRes.error) throw locationsRes.error;
 
   const existingSkusLower = new Set(
-    (skusRes.data ?? []).map((r) => r.sku.trim().toLowerCase())
+    (variantsRes.data ?? []).map((r) => r.sku.trim().toLowerCase())
+  );
+  const existingBarcodesLower = new Set(
+    (variantsRes.data ?? [])
+      .map((r) => r.barcode?.trim().toLowerCase())
+      .filter((b): b is string => Boolean(b))
   );
   const locationsByNameLower = new Map(
     (locationsRes.data ?? []).map((l) => [
@@ -42,7 +47,12 @@ async function loadValidationContext(
     ])
   );
 
-  return { existingSkusLower, locationsByNameLower, defaultCurrency };
+  return {
+    existingSkusLower,
+    existingBarcodesLower,
+    locationsByNameLower,
+    defaultCurrency,
+  };
 }
 
 export type PreviewBulkUploadState =
@@ -141,6 +151,7 @@ export async function importBulkUpload(
 
   const context = await loadValidationContext(supabase, organisationId);
   const seenSkusLower = new Set<string>();
+  const seenBarcodesLower = new Set<string>();
 
   let created = 0;
   let skipped = 0;
@@ -148,8 +159,20 @@ export async function importBulkUpload(
 
   for (const row of rows) {
     const skuLower = row.sku.trim().toLowerCase();
+    const barcodeLower = row.barcode?.trim().toLowerCase() || null;
 
     if (context.existingSkusLower.has(skuLower) || seenSkusLower.has(skuLower)) {
+      skipped++;
+      continue;
+    }
+    // Same "don't create a duplicate product" rule as SKU, re-checked here
+    // for the same reason (a row valid at preview time may have been
+    // created by someone else since) — only when this row actually has a
+    // barcode.
+    if (
+      barcodeLower &&
+      (context.existingBarcodesLower.has(barcodeLower) || seenBarcodesLower.has(barcodeLower))
+    ) {
       skipped++;
       continue;
     }
@@ -187,6 +210,9 @@ export async function importBulkUpload(
     }
 
     seenSkusLower.add(skuLower);
+    if (barcodeLower) {
+      seenBarcodesLower.add(barcodeLower);
+    }
     created++;
   }
 

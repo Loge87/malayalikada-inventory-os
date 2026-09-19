@@ -2,55 +2,63 @@
 
 import { useState, type ReactNode } from "react";
 
-import { CURRENCIES, DEFAULT_CURRENCY, type Currency } from "@/app/(app)/products/constants";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const CURRENCY_ITEMS: Record<string, string> = Object.fromEntries(
-  CURRENCIES.map((c) => [c, c])
-);
 
 export type VariantPricingFieldNodes = {
-  currencyField: ReactNode;
   packPriceField: ReactNode;
   unitsPerPackField: ReactNode;
   unitPriceField: ReactNode;
 };
 
 /**
- * The currency + pack/unit pricing fields' shared state and markup, as
- * separate field nodes rather than one fixed layout — so a caller with its
- * own grid (new-product-form's 2-column layout pairs these fields with
- * others, e.g. currency+unit) can place each one wherever it needs to,
- * while every caller still shares the exact same auto-calculate-pack-price
- * behavior (unit price × units per pack — pack price is the derived one,
- * overridable, since a supplier sometimes quotes a case price that doesn't
- * cleanly multiply out). `VariantPricingFields` below is the default
- * arrangement, used as-is by the product edit drawer and the "add variant"
- * form.
+ * Read-only — currency is no longer a per-variant choice (removed the
+ * editable dropdown here): every variant's currency now always tracks the
+ * organisation's current Price Settings currency, set in products/
+ * actions.ts server-side, not submitted from this form at all (no `name`
+ * attribute — nothing to send). This just shows what that value is.
+ */
+export function ReadOnlyCurrencyField({
+  idPrefix,
+  currency,
+}: {
+  idPrefix: string;
+  currency: string;
+}) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={`${idPrefix}-currency`}>Currency</FieldLabel>
+      <Input id={`${idPrefix}-currency`} value={currency} disabled />
+      <FieldDescription>Set in Price Settings.</FieldDescription>
+    </Field>
+  );
+}
+
+/**
+ * The pack/unit pricing fields' shared state and markup, as separate field
+ * nodes rather than one fixed layout — so a caller with its own grid
+ * (new-product-form's 2-column layout pairs these fields with others, e.g.
+ * unit price+quantity) can place each one wherever it needs to, while every
+ * caller still shares the exact same auto-calculate-pack-price behavior
+ * (unit price × units per pack — pack price is the derived one, overridable,
+ * since a supplier sometimes quotes a case price that doesn't cleanly
+ * multiply out). `VariantPricingFields` below is the default arrangement,
+ * used as-is by the product edit drawer and the "add variant" form.
  *
- * No retail or wholesale price field here — both are calculated
+ * No currency field here — see ReadOnlyCurrencyField above. No retail or
+ * wholesale price field either — both are calculated
  * (src/lib/price-calculation.ts: retail from unit_price, wholesale from
  * pack_price, via the organisation's Price Settings), never entered
- * manually. This hook only covers the cost-side inputs: currency, unit
- * price, units per pack, and pack price.
+ * manually. This hook only covers the cost-side inputs: unit price, units
+ * per pack, and pack price.
  */
 export function useVariantPricingFields({
   idPrefix,
-  defaultCurrency = DEFAULT_CURRENCY,
   defaultPackPrice = null,
   defaultUnitsPerPack = 1,
   defaultUnitPrice = null,
 }: {
   idPrefix: string;
-  defaultCurrency?: Currency;
   defaultPackPrice?: number | null;
   defaultUnitsPerPack?: number;
   defaultUnitPrice?: number | null;
@@ -79,24 +87,6 @@ export function useVariantPricingFields({
       setPackPrice("");
     }
   }
-
-  const currencyField = (
-    <Field>
-      <FieldLabel htmlFor={`${idPrefix}-currency`}>Currency</FieldLabel>
-      <Select name="currency" defaultValue={defaultCurrency} items={CURRENCY_ITEMS}>
-        <SelectTrigger id={`${idPrefix}-currency`} className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {CURRENCIES.map((currency) => (
-            <SelectItem key={currency} value={currency}>
-              {currency}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </Field>
-  );
 
   const unitPriceField = (
     <Field>
@@ -163,7 +153,6 @@ export function useVariantPricingFields({
   );
 
   return {
-    currencyField,
     packPriceField,
     unitsPerPackField,
     unitPriceField,
@@ -171,33 +160,31 @@ export function useVariantPricingFields({
 }
 
 /**
- * Currency + pack/unit pricing fields, grouped under one heading, in their
- * default arrangement. Shared by every place a variant's price is set —
- * variant creation (via VariantExtraFields, alongside the initial-stock
- * fields) and editing an existing variant (alone, in the product edit
- * drawer) — so pricing behaves identically everywhere rather than being
- * reimplemented per form.
+ * Pack/unit pricing fields, grouped under one heading, in their default
+ * arrangement. Shared by every place a variant's price is set — variant
+ * creation (via VariantExtraFields, alongside the initial-stock fields) and
+ * editing an existing variant (alone, in the product edit drawer) — so
+ * pricing behaves identically everywhere rather than being reimplemented
+ * per form. Doesn't include the read-only currency display or retail/
+ * wholesale — where those go depends on each caller's own layout (retail/
+ * wholesale, when shown at all, needs the currency display to come after
+ * them, and only the edit panel shows them), so each caller renders those
+ * itself around this component rather than this owning that ordering.
  */
 export function VariantPricingFields(
   props: Parameters<typeof useVariantPricingFields>[0]
 ) {
-  const { currencyField, packPriceField, unitsPerPackField, unitPriceField } =
+  const { packPriceField, unitsPerPackField, unitPriceField } =
     useVariantPricingFields(props);
 
   return (
     <div className="flex flex-col gap-3">
       <span className="text-xs font-medium text-muted-foreground">Pricing</span>
-      <Field orientation="responsive">
-        {currencyField}
-        {unitPriceField}
-      </Field>
+      <Field>{unitPriceField}</Field>
       <Field orientation="responsive">
         {unitsPerPackField}
         {packPriceField}
       </Field>
-      {/* No retail/wholesale inputs here — both are calculated
-          (src/lib/price-calculation.ts) and shown read-only elsewhere
-          (see ProductEditContent's CalculatedPrices block). */}
     </div>
   );
 }

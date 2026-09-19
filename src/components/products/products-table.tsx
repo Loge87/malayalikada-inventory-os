@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Image as ImageIcon } from "lucide-react";
 
@@ -10,10 +10,8 @@ import { formatMoney } from "@/lib/format";
 import { getStockStatus, type StockStatus } from "@/lib/stock-status";
 import { useIsWideDesktop } from "@/lib/use-media-query";
 import { usePagination } from "@/lib/use-pagination";
-import {
-  applyPriceSettings,
-  type PriceSettingsRates,
-} from "@/lib/price-calculation";
+import { applyPriceSettings, resolveWholesaleRates } from "@/lib/price-calculation";
+import type { OrganisationPriceSettings } from "@/lib/organisation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -70,6 +68,7 @@ const STATUS_FILTER_LABELS: Record<StockStatus, string> = {
 
 const ALL_STATUSES = "all";
 const ALL_CATEGORIES = "all";
+const ALL_LOCATIONS = "all";
 const STATUS_ITEMS: Record<string, string> = {
   [ALL_STATUSES]: "All statuses",
   ...STATUS_FILTER_LABELS,
@@ -136,20 +135,28 @@ export function ProductsTable({
   locations,
   priceSettings,
   initialStatusFilter = null,
+  selectedLocationId = null,
   selectedProductId = null,
   onSelectProduct,
 }: {
   products: EditableProduct[];
   locations: LocationOption[];
-  /** The organisation's saved Price Settings rates, or null if it's never
-   *  saved any — drives the Retail Price / Wholesale Price columns
-   *  (src/lib/price-calculation.ts: retail from unit price, wholesale from
-   *  pack/box price). null shows a "Set price settings" banner instead of
-   *  a broken calculation. */
-  priceSettings: PriceSettingsRates | null;
+  /** The organisation's saved Price Settings, or null if it's never saved
+   *  any — drives the Retail Price / Wholesale Price columns
+   *  (src/lib/price-calculation.ts: retail from unit price using its own
+   *  rates, wholesale from pack/box price using its own rates unless "use
+   *  same as retail" is checked). null shows a "Set price settings" banner
+   *  instead of a broken calculation. */
+  priceSettings: OrganisationPriceSettings | null;
   /** From /products?status=... — e.g. a dashboard stat card linking to the
    *  low-stock or out-of-stock subset. */
   initialStatusFilter?: StockStatus | null;
+  /** From /products?location=<id> — `products` has already been filtered
+   *  server-side (page.tsx) to variants actually stocked (on_hand > 0)
+   *  there; this is only used to show the right value in the location
+   *  dropdown below. The parent remounts this whole component (via `key`)
+   *  when it changes, so there's no need to react to it locally. */
+  selectedLocationId?: string | null;
   /** The product currently open in the desktop side panel (owned by the
    *  parent, ProductsPageContent) — only used to highlight its row(s) here. */
   selectedProductId?: string | null;
@@ -159,6 +166,7 @@ export function ProductsTable({
   onSelectProduct: (productId: string) => void;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { can } = usePermissions();
   const isWideDesktop = useIsWideDesktop();
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -224,6 +232,23 @@ export function ProductsTable({
     } else {
       router.push(`/products/${productId}/edit`);
     }
+  }
+
+  // Changing the location filter is a real navigation (it needs a fresh
+  // server-side query against inventory_levels — see page.tsx), not a
+  // client-side filter like search/status/category. Preserves every other
+  // existing query param (e.g. ?status= from a dashboard link) and only
+  // touches `location`, so those aren't silently dropped by picking a
+  // location.
+  function navigateToLocation(locationId: string | null) {
+    const next = new URLSearchParams(searchParams.toString());
+    if (locationId) {
+      next.set("location", locationId);
+    } else {
+      next.delete("location");
+    }
+    const query = next.toString();
+    router.push(query ? `/products?${query}` : "/products");
   }
 
   const allRows: Row[] = products.flatMap((product): Row[] =>
@@ -345,7 +370,15 @@ export function ProductsTable({
   }
 
   const hasActiveFilters =
-    statusFilter != null || categoryFilter !== ALL_CATEGORIES || searchQuery !== "";
+    statusFilter != null ||
+    categoryFilter !== ALL_CATEGORIES ||
+    searchQuery !== "" ||
+    selectedLocationId != null;
+
+  const locationItems: Record<string, string> = {
+    [ALL_LOCATIONS]: "All locations",
+    ...Object.fromEntries(locations.map((l) => [l.id, l.name])),
+  };
 
   return (
     <>
@@ -401,6 +434,27 @@ export function ProductsTable({
             </SelectContent>
           </Select>
         ) : null}
+        {locations.length > 0 ? (
+          <Select
+            items={locationItems}
+            value={selectedLocationId ?? ALL_LOCATIONS}
+            onValueChange={(value) => {
+              if (value == null) return;
+              navigateToLocation(value === ALL_LOCATIONS ? null : value);
+            }}
+          >
+            <SelectTrigger className="w-fit min-w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(locationItems).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
         {hasActiveFilters ? (
           <button
             type="button"
@@ -409,6 +463,14 @@ export function ProductsTable({
               setStatusFilter(null);
               setCategoryFilter(ALL_CATEGORIES);
               resetPage();
+              // A location change re-fetches from the server (see
+              // navigateToLocation above) and remounts this whole
+              // component (ProductsPageContent keys on it), which already
+              // resets everything else above — so only bother navigating
+              // if a location is actually set.
+              if (selectedLocationId != null) {
+                navigateToLocation(null);
+              }
             }}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
@@ -635,7 +697,7 @@ export function ProductsTable({
                   <td className="hidden py-3 pr-2 text-right xl:table-cell">
                     {priceSettings
                       ? moneyCell(
-                          applyPriceSettings(variant?.unitPrice ?? null, priceSettings),
+                          applyPriceSettings(variant?.unitPrice ?? null, priceSettings.retail),
                           variant?.currency
                         )
                       : moneyCell(undefined, undefined)}
@@ -643,7 +705,14 @@ export function ProductsTable({
                   <td className="hidden py-3 pr-2 text-right xl:table-cell">
                     {priceSettings
                       ? moneyCell(
-                          applyPriceSettings(variant?.packPrice ?? null, priceSettings),
+                          applyPriceSettings(
+                            variant?.packPrice ?? null,
+                            resolveWholesaleRates(
+                              priceSettings.retail,
+                              priceSettings.wholesale,
+                              priceSettings.wholesaleUsesSameAsRetail
+                            )
+                          ),
                           variant?.currency
                         )
                       : moneyCell(undefined, undefined)}

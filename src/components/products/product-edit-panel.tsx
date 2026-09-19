@@ -14,7 +14,7 @@ import { ProductEditContent } from "@/components/products/product-edit-content";
 import type { EditableProduct } from "@/components/products/products-table";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import type { Currency } from "@/app/(app)/products/constants";
-import type { PriceSettingsRates } from "@/lib/price-calculation";
+import type { OrganisationPriceSettings } from "@/lib/organisation";
 
 /**
  * Desktop-width edit surface: a persistent panel that's part of the page's
@@ -36,7 +36,7 @@ export function ProductEditPanel({
   product: EditableProduct;
   locations: LocationOption[];
   defaultCurrency: Currency;
-  priceSettings: PriceSettingsRates | null;
+  priceSettings: OrganisationPriceSettings | null;
   onClose: () => void;
 }) {
   return (

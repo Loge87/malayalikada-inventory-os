@@ -10,6 +10,7 @@ import {
 import { DEFAULT_CURRENCY } from "@/app/(app)/products/constants";
 import { loadProducts } from "@/app/(app)/products/data";
 import { ProductEditPageContent } from "@/components/products/product-edit-page-content";
+import { ProductCreatedToast } from "@/components/products/product-created-toast";
 
 export default async function ProductEditPage({
   params,
@@ -58,6 +59,7 @@ export default async function ProductEditPage({
         defaultCurrency={defaultCurrency}
         priceSettings={priceSettings}
       />
+      <ProductCreatedToast />
     </div>
   );
 }

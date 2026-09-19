@@ -1,6 +1,6 @@
 /**
  * The one place retail_price / wholesale_price are computed from a base
- * price plus the organisation's Price Settings (CGST, SGST, profit margin,
+ * price plus a Price Settings rate set (CGST, SGST, profit margin,
  * logistics charges, additional charges — all percentages, entered as
  * whole numbers, e.g. "9" means 9%). Every display site (products list,
  * detail panel, /scan result) calls this instead of re-deriving the formula,
@@ -14,6 +14,15 @@
  * an argument rather than being duplicated per price type. pack_price
  * itself is never run through this: it stays the plain, manually-
  * overridable unit_price × units_per_pack figure (0010_variant_pricing.sql).
+ *
+ * Retail and wholesale now have independent rate sets (0019_*.sql) — the
+ * "Retail Price Settings" and "Wholesale Price Settings" cards in
+ * PriceSettingsForm. Retail always uses its own rates. Wholesale uses its
+ * own rates too, UNLESS "use same as retail" is checked, in which case
+ * resolveWholesaleRates() below picks the retail rate set instead — live,
+ * every time it's called, never a value copied at save time, so a later
+ * change to retail's rates is reflected in wholesale immediately for as
+ * long as the checkbox stays on.
  */
 export type PriceSettingsRates = {
   cgstPercent: number;
@@ -40,4 +49,18 @@ export function applyPriceSettings(
     (1 + rates.additionalChargesPercent / 100);
 
   return baseAmount * multiplier;
+}
+
+/**
+ * Which rate set actually governs wholesale right now: its own, or a live
+ * mirror of retail. Never a snapshot — every call re-reads whichever
+ * `retailRates` the caller currently has, so this can never go stale the
+ * way a copy taken at save time would.
+ */
+export function resolveWholesaleRates(
+  retailRates: PriceSettingsRates,
+  wholesaleRates: PriceSettingsRates,
+  wholesaleUsesSameAsRetail: boolean
+): PriceSettingsRates {
+  return wholesaleUsesSameAsRetail ? retailRates : wholesaleRates;
 }

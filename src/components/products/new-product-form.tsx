@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import Link from "next/link";
+import { useActionState, useState } from "react";
 
 import { createProductWithVariant } from "@/app/(app)/products/actions";
 import { VARIANT_UNITS } from "@/app/(app)/products/constants";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -27,8 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BarcodeDuplicateField } from "@/components/products/barcode-duplicate-field";
 import { ProductImageField } from "@/components/products/product-image-field";
-import { useVariantPricingFields } from "@/components/products/variant-pricing-fields";
+import {
+  ReadOnlyCurrencyField,
+  useVariantPricingFields,
+} from "@/components/products/variant-pricing-fields";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import type { Currency } from "@/app/(app)/products/constants";
 
@@ -44,9 +49,10 @@ export function NewProductForm({
 }: {
   barcode: string;
   locations: LocationOption[];
-  /** The organisation's configured default currency (organisations.
-   *  default_currency) — pre-fills this NEW variant's currency select.
-   *  Doesn't affect any existing variant. */
+  /** The organisation's current Price Settings currency (organisations.
+   *  default_currency) — this NEW variant's currency is always set to
+   *  this, server-side (products/actions.ts), no per-variant override.
+   *  Shown here read-only, after the price fields. */
   defaultCurrency: Currency;
   /** Where to land after a successful create — "/scan" for the scan-originated
    *  flow (so the barcode can be re-scanned), otherwise "/products". */
@@ -56,13 +62,16 @@ export function NewProductForm({
     createProductWithVariant,
     undefined
   );
+  const [barcodeDuplicate, setBarcodeDuplicate] = useState<
+    { productId: string; productName: string } | null
+  >(null);
 
   // Pulled out of the default VariantPricingFields arrangement so this form
-  // can pair currency with unit and unit price with initial quantity — its
-  // own 2-column grouping, rather than the pricing-only pairing the edit
-  // drawer and "add variant" form use.
-  const { currencyField, packPriceField, unitsPerPackField, unitPriceField } =
-    useVariantPricingFields({ idPrefix: "new-product", defaultCurrency });
+  // can pair unit price with initial quantity — its own 2-column grouping,
+  // rather than the pricing-only pairing the edit drawer and "add variant"
+  // form use.
+  const { packPriceField, unitsPerPackField, unitPriceField } =
+    useVariantPricingFields({ idPrefix: "new-product" });
 
   const locationItems: Record<string, string> = Object.fromEntries(
     locations.map((l) => [l.id, l.name])
@@ -132,21 +141,18 @@ export function NewProductForm({
                 <FieldLabel htmlFor="sku">SKU</FieldLabel>
                 <Input id="sku" name="sku" placeholder="RICE-BAS-5KG" required />
               </Field>
-              <Field>
-                <FieldLabel htmlFor="barcode">Barcode</FieldLabel>
-                <Input
+              <div className="flex flex-col gap-2">
+                <BarcodeDuplicateField
                   id="barcode"
-                  name="barcode"
                   defaultValue={barcode}
-                  placeholder="Optional"
-                  className={barcode ? "font-mono" : undefined}
+                  onDuplicateChange={setBarcodeDuplicate}
                 />
                 {barcode ? (
                   <FieldDescription>
                     Pre-filled from the scan — edit if it was misread.
                   </FieldDescription>
                 ) : null}
-              </Field>
+              </div>
             </Field>
 
             {/* Pricing and initial stock share one section — unit price
@@ -159,23 +165,20 @@ export function NewProductForm({
             <span className="text-xs font-medium text-muted-foreground">
               Pricing &amp; initial stock (optional)
             </span>
-            <Field orientation="responsive">
-              {currencyField}
-              <Field>
-                <FieldLabel htmlFor="unit">Unit</FieldLabel>
-                <Select name="unit" defaultValue="each" items={UNIT_ITEMS}>
-                  <SelectTrigger id="unit" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VARIANT_UNITS.map((unit) => (
-                      <SelectItem key={unit} value={unit}>
-                        {unit}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
+            <Field>
+              <FieldLabel htmlFor="unit">Unit</FieldLabel>
+              <Select name="unit" defaultValue="each" items={UNIT_ITEMS}>
+                <SelectTrigger id="unit" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VARIANT_UNITS.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field orientation="responsive">
               {unitPriceField}
@@ -201,6 +204,9 @@ export function NewProductForm({
               {unitsPerPackField}
               {packPriceField}
             </Field>
+            {/* After all the price fields, per the read-only currency
+                display's own placement rule — see ReadOnlyCurrencyField. */}
+            <ReadOnlyCurrencyField idPrefix="new-product" currency={defaultCurrency} />
 
             <Field>
               <FieldLabel htmlFor="new-product-initialLocationId">
@@ -226,8 +232,25 @@ export function NewProductForm({
             {state && "error" in state ? (
               <FieldError>{state.error}</FieldError>
             ) : null}
+            {state && "duplicate" in state ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-md bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
+                <span>
+                  This product already exists ({state.duplicate.productName}).
+                </span>
+                <Link
+                  href={`/products/${state.duplicate.productId}/edit`}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  View existing product
+                </Link>
+              </div>
+            ) : null}
 
-            <Button type="submit" className="w-full" disabled={pending}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={pending || barcodeDuplicate != null}
+            >
               {pending ? "Creating…" : "Create product"}
             </Button>
           </FieldGroup>

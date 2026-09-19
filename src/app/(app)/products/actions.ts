@@ -7,19 +7,92 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentOrganisationId } from "@/lib/organisation";
+import {
+  getCurrentOrganisationId,
+  getOrganisationDefaultCurrency,
+} from "@/lib/organisation";
 import { getCurrentUserRole } from "@/lib/roles";
 import { hasPermission } from "@/lib/permissions";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
-  CURRENCIES,
   MAX_IMAGE_BYTES,
   PRODUCT_IMAGE_BUCKET,
   VARIANT_UNITS,
-  type Currency,
   type ProductFormState,
   type VariantUnit,
 } from "@/app/(app)/products/constants";
+
+export type BarcodeCheckResult =
+  | { exists: false }
+  | { exists: true; productId: string; productName: string };
+
+/**
+ * The one place a barcode gets checked against existing product_variants —
+ * called both immediately (checkBarcodeExists below, from all three
+ * creation entry points the instant a barcode is captured: camera decode,
+ * hardware-scanner Enter, or manual-typing blur) and again here as
+ * createProductWithVariant's own submit-time safety net (a barcode could
+ * have been created by someone else in the gap between the immediate check
+ * and clicking submit). One implementation, not three.
+ */
+async function findExistingProductByBarcode(
+  supabase: SupabaseClient,
+  organisationId: string,
+  barcode: string
+): Promise<{ productId: string; productName: string } | null> {
+  // `.limit(1)` rather than `.maybeSingle()` since barcode has no DB
+  // uniqueness constraint — a pre-existing duplicate from before this check
+  // existed shouldn't itself throw here.
+  const { data: existingRows, error } = await supabase
+    .from("product_variants")
+    .select("product_id, products(name)")
+    .eq("organisation_id", organisationId)
+    .eq("barcode", barcode)
+    .limit(1);
+  if (error) {
+    throw error;
+  }
+  const existing = existingRows?.[0];
+  if (!existing) {
+    return null;
+  }
+  // Verified against the live database: PostgREST returns a to-one embed
+  // like this as a plain object, not an array — TypeScript's own inference
+  // here (no generated schema types in this project) can't always tell
+  // to-one apart from to-many and isn't authoritative.
+  const product = existing.products as unknown as { name: string } | null;
+  return {
+    productId: existing.product_id,
+    productName: product?.name ?? "that product",
+  };
+}
+
+/**
+ * Callable directly from a client component — not tied to a <form>, so it
+ * runs the instant a barcode is captured (camera scan, hardware scanner, or
+ * manual typing) rather than waiting for the rest of the create-product
+ * form to be filled in and submitted. Used by AddProductMenu (camera +
+ * hardware scanner, before it ever navigates to the create form) and
+ * NewProductForm's own barcode field (hardware scanner typed directly into
+ * that field, or manual typing on blur).
+ */
+export async function checkBarcodeExists(
+  barcode: string
+): Promise<BarcodeCheckResult> {
+  const trimmed = barcode.trim();
+  if (!trimmed) {
+    return { exists: false };
+  }
+
+  const supabase = await createClient();
+  const organisationId = await getCurrentOrganisationId(supabase);
+  if (!organisationId) {
+    return { exists: false };
+  }
+
+  const match = await findExistingProductByBarcode(supabase, organisationId, trimmed);
+  return match ? { exists: true, ...match } : { exists: false };
+}
 
 /**
  * Validates and uploads a product image, shared by the create and edit
@@ -54,7 +127,6 @@ async function uploadProductImage(
 }
 
 type Pricing = {
-  currency: Currency;
   packPrice: number | null;
   unitsPerPack: number;
   unitPrice: number | null;
@@ -77,14 +149,17 @@ function parseOptionalPrice(
   return { value };
 }
 
-/** Currency + pack/unit price validation, shared by every place a variant's
- * price is set (create and edit alike). */
+/**
+ * Pack/unit price validation, shared by every place a variant's price is
+ * set (create and edit alike). Currency isn't parsed here at all anymore —
+ * it's no longer a form field (removed the editable per-variant dropdown):
+ * every caller instead fetches the organisation's current Price Settings
+ * currency directly via getOrganisationDefaultCurrency() and uses that,
+ * for both new variants and edits to existing ones. A variant's stored
+ * currency now always tracks the org's current setting, not something
+ * chosen per variant.
+ */
 function parsePricing(formData: FormData): { error: string } | { value: Pricing } {
-  const currency = String(formData.get("currency") ?? "").trim();
-  if (!CURRENCIES.includes(currency as Currency)) {
-    return { error: "Choose a currency." };
-  }
-
   const packPriceResult = parseOptionalPrice(formData, "packPrice", "Pack price");
   if ("error" in packPriceResult) return packPriceResult;
 
@@ -99,7 +174,6 @@ function parsePricing(formData: FormData): { error: string } | { value: Pricing 
 
   return {
     value: {
-      currency: currency as Currency,
       packPrice: packPriceResult.value,
       unitsPerPack,
       unitPrice: unitPriceResult.value,
@@ -187,6 +261,8 @@ export async function createVariant(
     return { error: "Could not determine your organisation." };
   }
 
+  const currency = await getOrganisationDefaultCurrency(supabase, organisationId);
+
   // create_product_variant inserts the variant and, if a location + quantity
   // were given, records the opening stock through record_inventory_movement
   // (PURCHASE_RECEIVED, reference_type 'initial_stock') — never a direct write
@@ -199,7 +275,7 @@ export async function createVariant(
     p_sku: sku,
     p_barcode: barcode || null,
     p_unit: unit,
-    p_currency: extra.currency,
+    p_currency: currency,
     p_pack_price: extra.packPrice,
     p_units_per_pack: extra.unitsPerPack,
     p_unit_price: extra.unitPrice,
@@ -256,6 +332,12 @@ export async function updateVariant(
     return { error: "Could not determine your organisation." };
   }
 
+  // Always the org's CURRENT Price Settings currency, even for a variant
+  // that was previously saved under a different one — no dropdown here
+  // means no way to preserve a per-variant override, so every save
+  // re-syncs to whatever the organisation is set to right now.
+  const currency = await getOrganisationDefaultCurrency(supabase, organisationId);
+
   const { error } = await supabase
     .from("product_variants")
     .update({
@@ -263,7 +345,7 @@ export async function updateVariant(
       sku,
       barcode: barcode || null,
       unit,
-      currency: pricing.currency,
+      currency,
       pack_price: pricing.packPrice,
       units_per_pack: pricing.unitsPerPack,
       unit_price: pricing.unitPrice,
@@ -351,6 +433,12 @@ export async function updateProduct(
   return { ok: true };
 }
 
+export type CreateProductState =
+  | { error: string }
+  | { duplicate: { productId: string; productName: string } }
+  | { ok: true }
+  | undefined;
+
 /**
  * Create a product together with its first variant — the single entry point
  * for adding a new product, reached either by scanning a barcode (pre-filled)
@@ -360,9 +448,9 @@ export async function updateProduct(
  * resolves; otherwise it returns to /products to see the new row.
  */
 export async function createProductWithVariant(
-  _prevState: ProductFormState,
+  _prevState: CreateProductState,
   formData: FormData
-): Promise<ProductFormState> {
+): Promise<CreateProductState> {
   const returnTo =
     String(formData.get("returnTo") ?? "") === "/scan" ? "/scan" : "/products";
   const productName = String(formData.get("productName") ?? "").trim();
@@ -372,6 +460,28 @@ export async function createProductWithVariant(
   const sku = String(formData.get("sku") ?? "").trim();
   const barcode = String(formData.get("barcode") ?? "").trim();
   const unit = String(formData.get("unit") ?? "");
+
+  const supabase = await createClient();
+
+  const organisationId = await getCurrentOrganisationId(supabase);
+  if (!organisationId) {
+    return { error: "Could not determine your organisation." };
+  }
+
+  // Checked FIRST, before any other field validation — this is the same
+  // submit-time safety net checkBarcodeExists() above already ran
+  // immediately (camera decode, hardware-scanner Enter, or manual-typing
+  // blur), but a barcode could've been created by someone else in the gap
+  // since. Deliberately ahead of "Product name is required" etc.: a
+  // scanned barcode is often the very first thing filled in, and a
+  // duplicate should surface before the user spends time on the rest of
+  // the form, not after.
+  if (barcode) {
+    const existing = await findExistingProductByBarcode(supabase, organisationId, barcode);
+    if (existing) {
+      return { duplicate: existing };
+    }
+  }
 
   if (!productName) {
     return { error: "Product name is required." };
@@ -408,12 +518,7 @@ export async function createProductWithVariant(
     }
   }
 
-  const supabase = await createClient();
-
-  const organisationId = await getCurrentOrganisationId(supabase);
-  if (!organisationId) {
-    return { error: "Could not determine your organisation." };
-  }
+  const currency = await getOrganisationDefaultCurrency(supabase, organisationId);
 
   // create_product_with_variant creates the product, then delegates to
   // create_product_variant for the variant + optional initial stock — the
@@ -428,7 +533,7 @@ export async function createProductWithVariant(
     p_sku: sku,
     p_barcode: barcode || null,
     p_unit: unit,
-    p_currency: extra.currency,
+    p_currency: currency,
     p_pack_price: extra.packPrice,
     p_units_per_pack: extra.unitsPerPack,
     p_unit_price: extra.unitPrice,
@@ -441,16 +546,21 @@ export async function createProductWithVariant(
   }
 
   // The RPC returns the new variant's id, not the product's — look the
-  // product up to attach the image. Non-fatal: the product/variant is
-  // already created at this point, so an image hiccup shouldn't block
-  // success, just leave the product imageless.
-  if (hasImage && variantId) {
+  // product up. Needed both to attach the image (non-fatal if this whole
+  // block fails: the product/variant is already created at this point, so
+  // an image hiccup shouldn't block success, just leave the product
+  // imageless) and, unconditionally, for the post-create redirect target
+  // below.
+  let productId: string | null = null;
+  if (variantId) {
     const { data: variantRow } = await supabase
       .from("product_variants")
       .select("product_id")
       .eq("id", variantId)
       .single();
-    if (variantRow?.product_id) {
+    productId = variantRow?.product_id ?? null;
+
+    if (hasImage && productId) {
       const uploaded = await uploadProductImage(
         supabase,
         organisationId,
@@ -460,18 +570,31 @@ export async function createProductWithVariant(
         await supabase
           .from("products")
           .update({ image_url: uploaded.path })
-          .eq("id", variantRow.product_id);
+          .eq("id", productId);
       }
     }
   }
 
   revalidatePath("/products");
   revalidatePath("/scan");
+  if (productId) {
+    revalidatePath(`/products/${productId}/edit`);
+  }
   // redirect() throws before this action's return value ever reaches the
   // client's useActionState, so the normal "check the result, fire a toast"
   // pattern can't apply here — the created name rides along in the query
   // string instead, read once on the landing page (see ProductCreatedToast).
-  redirect(`${returnTo}?created=${encodeURIComponent(productName)}`);
+  //
+  // /scan keeps returning to /scan — that flow exists specifically so the
+  // same barcode can be re-scanned and now resolves, not to keep editing.
+  // Otherwise, land directly on the new product's edit view rather than
+  // the list: that's where "Add another variant" already lives (one at a
+  // time, immediately — see VariantForm), so a product created with more
+  // than one variant in mind doesn't need any new multi-variant UI, just
+  // to already be looking at the place that offers it.
+  const created = `created=${encodeURIComponent(productName)}`;
+  const editTarget = productId ? `/products/${productId}/edit` : "/products";
+  redirect(returnTo === "/scan" ? `/scan?${created}` : `${editTarget}?${created}`);
 }
 
 export type DeleteProductState =

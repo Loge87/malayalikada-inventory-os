@@ -6,10 +6,8 @@ import { useCallback, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { getStockStatus } from "@/lib/stock-status";
-import {
-  applyPriceSettings,
-  type PriceSettingsRates,
-} from "@/lib/price-calculation";
+import { applyPriceSettings, resolveWholesaleRates } from "@/lib/price-calculation";
+import type { OrganisationPriceSettings } from "@/lib/organisation";
 import { BarcodeInput } from "@/components/barcode/barcode-input";
 import { CameraScanButton } from "@/components/barcode/camera-scan-button";
 import type { ScanSource } from "@/components/barcode/types";
@@ -71,7 +69,7 @@ export function ScanLookup({
 }: {
   /** The organisation's saved Price Settings rates, or null if never saved
    *  — drives the found variant's calculated Retail/Pack-box price. */
-  priceSettings: PriceSettingsRates | null;
+  priceSettings: OrganisationPriceSettings | null;
 }) {
   const supabase = useRef(createClient()).current;
   const requestId = useRef(0);
@@ -241,7 +239,7 @@ function LookupResult({
   priceSettings,
 }: {
   lookup: Lookup;
-  priceSettings: PriceSettingsRates | null;
+  priceSettings: OrganisationPriceSettings | null;
 }) {
   if (lookup.state === "idle") {
     return (
@@ -290,15 +288,23 @@ function LookupResult({
   const isActive = variant.products?.is_active ?? true;
   const total = variant.inventory_levels.reduce((sum, l) => sum + l.on_hand, 0);
   const totalStatus = getStockStatus(total, isActive);
-  // Retail applies the Price Settings multiplier to unit_price (selling one
-  // at a time); wholesale applies the exact same multiplier to pack_price
-  // (selling by the case) — pack_price itself is shown as-is, not run
-  // through the multiplier.
+  // Retail applies retail's own rates to unit_price (selling one at a
+  // time). Wholesale applies its own rates to pack_price (selling by the
+  // case) — unless "use same as retail" is checked, in which case
+  // resolveWholesaleRates() picks retail's rates instead, live. pack_price
+  // itself is shown as-is, not run through either multiplier.
   const retailPrice = priceSettings
-    ? applyPriceSettings(variant.unit_price, priceSettings)
+    ? applyPriceSettings(variant.unit_price, priceSettings.retail)
     : null;
   const wholesalePrice = priceSettings
-    ? applyPriceSettings(variant.pack_price, priceSettings)
+    ? applyPriceSettings(
+        variant.pack_price,
+        resolveWholesaleRates(
+          priceSettings.retail,
+          priceSettings.wholesale,
+          priceSettings.wholesaleUsesSameAsRetail
+        )
+      )
     : null;
 
   const byType = (type: string) =>

@@ -15,8 +15,8 @@
 -- derived from unit_price/pack_price at render time.
 
 alter table public.product_variants
-  drop column retail_price,
-  drop column wholesale_price;
+  drop column if exists retail_price,
+  drop column if exists wholesale_price;
 
 ------------------------------------------------------------------------------
 -- create_product_variant / create_product_with_variant: drop both
@@ -28,7 +28,7 @@ drop function if exists public.create_product_variant(
   uuid, uuid, text, text, text, text, text, numeric, numeric, numeric, numeric, numeric, uuid, numeric
 );
 
-create function public.create_product_variant(
+create or replace function public.create_product_variant(
   p_organisation_id uuid,
   p_product_id uuid,
   p_name text,
@@ -81,7 +81,7 @@ drop function if exists public.create_product_with_variant(
   uuid, text, text, text, text, text, text, text, numeric, numeric, numeric, numeric, numeric, uuid, numeric
 );
 
-create function public.create_product_with_variant(
+create or replace function public.create_product_with_variant(
   p_organisation_id uuid,
   p_product_name text,
   p_category text,

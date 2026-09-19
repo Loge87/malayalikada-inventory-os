@@ -106,7 +106,11 @@ export default async function DashboardPage() {
   const [products, locationsRes, levelsRes, batchesRes, movementsRes] =
     await Promise.all([
       loadProducts(supabase),
-      supabase.from("locations").select("id, name").order("name"),
+      supabase
+        .from("locations")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name"),
       supabase
         .from("inventory_levels")
         .select(
@@ -170,7 +174,12 @@ export default async function DashboardPage() {
 
   const stockValueByCurrency = new Map<string, number>();
   for (const v of flatVariants) {
-    if (v.unitPrice == null) continue;
+    // Same isActive check totalSkus above already applies — this loop
+    // was missing it, so a deactivated (soft-deleted) product's stock
+    // still counted toward the total, disagreeing with /products (which
+    // excludes inactive products from its default view) and with the
+    // "Total SKUs" card right next to this one.
+    if (!v.isActive || v.unitPrice == null) continue;
     stockValueByCurrency.set(
       v.currency,
       (stockValueByCurrency.get(v.currency) ?? 0) + v.onHand * v.unitPrice
@@ -226,12 +235,18 @@ export default async function DashboardPage() {
   for (const row of levels) {
     const aggregate = locationAggregates.get(row.location_id);
     if (!aggregate) continue;
-    aggregate.totalSkus += 1;
 
     const variant = row.product_variants;
-    const status = getStockStatus(row.on_hand, variant?.products?.is_active ?? true);
+    const isActive = variant?.products?.is_active ?? true;
+    const status = getStockStatus(row.on_hand, isActive);
     if (status === "out_of_stock") aggregate.outOfStockCount += 1;
     if (status === "low_stock") aggregate.lowStockCount += 1;
+
+    // Same isActive check as the main "Total SKUs" / "Total stock value"
+    // stat cards above — a deactivated product's stock shouldn't count
+    // toward either number here either, for the same reason.
+    if (!isActive) continue;
+    aggregate.totalSkus += 1;
 
     if (variant?.unit_price != null) {
       aggregate.valueByCurrency.set(

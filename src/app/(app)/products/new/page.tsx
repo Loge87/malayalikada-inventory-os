@@ -31,7 +31,11 @@ export default async function NewProductPage({
   const returnTo = params.returnTo === "/scan" ? "/scan" : "/products";
 
   const [{ data: locations, error }, organisationId] = await Promise.all([
-    supabase.from("locations").select("id, name").order("name"),
+    supabase
+      .from("locations")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name"),
     getCurrentOrganisationId(supabase),
   ]);
 

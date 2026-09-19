@@ -29,7 +29,11 @@ export default async function ProductEditPage({
 
   const [products, locationsRes, organisationId] = await Promise.all([
     loadProducts(supabase, { id }),
-    supabase.from("locations").select("id, name").order("name"),
+    supabase
+      .from("locations")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name"),
     getCurrentOrganisationId(supabase),
   ]);
 

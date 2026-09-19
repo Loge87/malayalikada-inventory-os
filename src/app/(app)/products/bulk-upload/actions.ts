@@ -25,7 +25,7 @@ async function loadValidationContext(
 ): Promise<BulkValidationContext> {
   const [variantsRes, locationsRes, defaultCurrency] = await Promise.all([
     supabase.from("product_variants").select("sku, barcode"),
-    supabase.from("locations").select("id, name"),
+    supabase.from("locations").select("id, name").eq("is_active", true),
     getOrganisationDefaultCurrency(supabase, organisationId),
   ]);
 

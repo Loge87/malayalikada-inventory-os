@@ -66,7 +66,11 @@ export default async function PurchaseOrdersPage() {
 
   // All reads are RLS-scoped to the caller's organisation.
   const [locationsRes, variantsRes, purchaseOrdersRes] = await Promise.all([
-    supabase.from("locations").select("id, name").order("name"),
+    supabase
+      .from("locations")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name"),
     supabase
       .from("product_variants")
       .select("id, name, sku, products(name)")

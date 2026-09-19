@@ -48,7 +48,11 @@ export default async function ProductsPage({
   // RLS scopes reads to the caller's organisation.
   const [productsResult, locationsRes, organisationId] = await Promise.all([
     loadProducts(supabase),
-    supabase.from("locations").select("id, name").order("name"),
+    supabase
+      .from("locations")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name"),
     getCurrentOrganisationId(supabase),
   ]);
 

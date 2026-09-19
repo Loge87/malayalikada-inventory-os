@@ -93,7 +93,11 @@ export default async function TransfersPage() {
 
   // All reads are RLS-scoped to the caller's organisation.
   const [locationsRes, variantsRes, transfersRes] = await Promise.all([
-    supabase.from("locations").select("id, name").order("name"),
+    supabase
+      .from("locations")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name"),
     supabase
       .from("product_variants")
       .select("id, name, sku, products(name)")

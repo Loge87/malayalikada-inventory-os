@@ -58,7 +58,11 @@ export default async function StockCountsPage() {
   const supabase = await createClient();
 
   const [locationsRes, countsRes] = await Promise.all([
-    supabase.from("locations").select("id, name").order("name"),
+    supabase
+      .from("locations")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name"),
     supabase
       .from("stock_counts")
       .select(

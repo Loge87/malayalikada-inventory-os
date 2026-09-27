@@ -7,6 +7,7 @@ import {
   ArrowRightLeft,
   ClipboardCheck,
   ClipboardList,
+  Handshake,
   History,
   Layers,
   LayoutDashboard,
@@ -14,6 +15,7 @@ import {
   MapPin,
   Menu,
   Package,
+  PackageMinus,
   Plug,
   ScanLine,
   ScrollText,
@@ -53,8 +55,15 @@ type NavLink = {
 const NAV_LINKS: NavLink[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/scan", label: "Scan", icon: ScanLine },
+  { href: "/stock-out", label: "Stock Out", icon: PackageMinus },
   { href: "/products", label: "Products", icon: Package },
   { href: "/locations", label: "Locations", icon: MapPin },
+  {
+    href: "/clients",
+    label: "Clients",
+    icon: Handshake,
+    permission: "clients:manage",
+  },
   { href: "/transfers", label: "Transfers", icon: ArrowRightLeft },
   {
     href: "/settings/team",

@@ -47,6 +47,22 @@ export type InviteMemberState =
  * but isn't in this organisation yet. lookup_invitee (0013_*.sql) resolves
  * the email and reports which case applies; this just acts on it.
  */
+/** Parses the invite/assign forms' `locationIds` field — a JSON-encoded
+ *  array of location ids, same convention as products-table.tsx's
+ *  productIds/variantIds hidden fields. */
+function parseLocationIds(formData: FormData): { error: string } | { value: string[] } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(String(formData.get("locationIds") ?? "[]"));
+  } catch {
+    return { error: "Malformed location selection." };
+  }
+  if (!Array.isArray(parsed) || !parsed.every((id) => typeof id === "string")) {
+    return { error: "Malformed location selection." };
+  }
+  return { value: parsed };
+}
+
 export async function inviteMember(
   _prevState: InviteMemberState,
   formData: FormData
@@ -59,6 +75,14 @@ export async function inviteMember(
   }
   if (!VALID_ROLES.includes(role as Role)) {
     return { error: "Choose a role." };
+  }
+  const locationIdsResult = parseLocationIds(formData);
+  if ("error" in locationIdsResult) {
+    return locationIdsResult;
+  }
+  const { value: locationIds } = locationIdsResult;
+  if (role === "staff" && locationIds.length === 0) {
+    return { error: "Assign at least one location to a staff member." };
   }
 
   const supabase = await createClient();
@@ -95,6 +119,22 @@ export async function inviteMember(
   });
   if (insertError) {
     return { error: insertError.message };
+  }
+
+  if (locationIds.length > 0) {
+    const { error: locationsError } = await supabase.from("user_locations").insert(
+      locationIds.map((locationId) => ({
+        organisation_id: organisationId,
+        user_id: result.user_id,
+        location_id: locationId,
+      }))
+    );
+    if (locationsError) {
+      // The member is already added at this point (user_roles succeeded) —
+      // surface the error so the owner knows to assign locations manually
+      // from the member list below, rather than pretending nothing happened.
+      return { error: `Member added, but location assignment failed: ${locationsError.message}` };
+    }
   }
 
   revalidatePath("/settings/team");
@@ -141,6 +181,26 @@ export async function updateMemberRole(
     const ownerCount = members.filter((m) => m.role === "owner").length;
     if (ownerCount <= 1) {
       return { error: "An organisation must have at least one owner." };
+    }
+  }
+
+  // Staff must always have at least one assigned location (same rule
+  // assignMemberLocations enforces from the other direction) — a role
+  // change to staff has to check the member's EXISTING user_locations
+  // rows, since this form doesn't touch location assignment itself.
+  if (newRole === "staff" && target.role !== "staff") {
+    const { count, error: countError } = await supabase
+      .from("user_locations")
+      .select("id", { count: "exact", head: true })
+      .eq("organisation_id", organisationId)
+      .eq("user_id", targetUserId);
+    if (countError) {
+      return { error: countError.message };
+    }
+    if (!count) {
+      return {
+        error: "Assign this member to at least one location before making them staff.",
+      };
     }
   }
 
@@ -203,6 +263,83 @@ export async function removeMember(
     .eq("user_id", targetUserId);
   if (error) {
     return { error: error.message };
+  }
+
+  revalidatePath("/settings/team");
+  return { ok: true };
+}
+
+export type AssignMemberLocationsState = { error: string } | { ok: true } | undefined;
+
+/**
+ * Replaces a member's full set of assigned locations (Stock Out feature,
+ * Stage 2) — gated by locations:manage, not roles:manage, so an admin can
+ * do this even though they can't invite/change roles/remove members. Same
+ * "any org member" RLS as every other locations:manage-gated write
+ * (locations itself, createLocation/updateLocation) — this is the app-side
+ * half of that convention.
+ */
+export async function assignMemberLocations(
+  _prevState: AssignMemberLocationsState,
+  formData: FormData
+): Promise<AssignMemberLocationsState> {
+  const targetUserId = String(formData.get("userId") ?? "");
+  if (!targetUserId) {
+    return { error: "Missing member." };
+  }
+  const locationIdsResult = parseLocationIds(formData);
+  if ("error" in locationIdsResult) {
+    return locationIdsResult;
+  }
+  const { value: locationIds } = locationIdsResult;
+
+  const supabase = await createClient();
+  const organisationId = await getCurrentOrganisationId(supabase);
+  if (!organisationId) {
+    return { error: "Could not determine your organisation." };
+  }
+  const role = await getCurrentUserRole(supabase);
+  if (!hasPermission(role, "locations:manage")) {
+    return { error: "You don't have permission to assign locations." };
+  }
+
+  const { data: target, error: targetError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("organisation_id", organisationId)
+    .eq("user_id", targetUserId)
+    .single();
+  if (targetError || !target) {
+    return { error: "Member not found." };
+  }
+  if (target.role === "staff" && locationIds.length === 0) {
+    return { error: "Staff members need at least one assigned location." };
+  }
+
+  // Replace the full set: delete every existing assignment for this member,
+  // then insert the new one — simpler and safer than diffing, and this
+  // action always receives the complete desired set (see
+  // LocationAssignmentField), never a partial add/remove.
+  const { error: deleteError } = await supabase
+    .from("user_locations")
+    .delete()
+    .eq("organisation_id", organisationId)
+    .eq("user_id", targetUserId);
+  if (deleteError) {
+    return { error: deleteError.message };
+  }
+
+  if (locationIds.length > 0) {
+    const { error: insertError } = await supabase.from("user_locations").insert(
+      locationIds.map((locationId) => ({
+        organisation_id: organisationId,
+        user_id: targetUserId,
+        location_id: locationId,
+      }))
+    );
+    if (insertError) {
+      return { error: insertError.message };
+    }
   }
 
   revalidatePath("/settings/team");

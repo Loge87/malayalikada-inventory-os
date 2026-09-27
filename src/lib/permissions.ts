@@ -11,6 +11,7 @@ export type Role = "owner" | "admin" | "staff";
 export type Permission =
   | "products:delete"
   | "locations:manage"
+  | "clients:manage"
   | "integrations:view"
   | "audit:view"
   | "roles:manage"
@@ -18,14 +19,16 @@ export type Permission =
 
 // staff: view everything, record movements (sales/adjustments/transfers/
 //   receiving/stock counts), scan/add products.
-// admin: staff + delete products, manage locations, view integration logs,
-//   view the audit log, manage price settings (CGST/SGST/margin/charges).
+// admin: staff + delete products, manage locations, manage clients, view
+//   integration logs, view the audit log, manage price settings (CGST/SGST/
+//   margin/charges).
 // owner: admin + manage user roles (no UI for this yet — see roles.ts).
 const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   staff: new Set([]),
   admin: new Set([
     "products:delete",
     "locations:manage",
+    "clients:manage",
     "integrations:view",
     "audit:view",
     "pricing:manage",
@@ -33,6 +36,7 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   owner: new Set([
     "products:delete",
     "locations:manage",
+    "clients:manage",
     "integrations:view",
     "audit:view",
     "roles:manage",

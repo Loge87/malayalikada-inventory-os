@@ -13,6 +13,7 @@ import {
 } from "@/lib/organisation";
 import { getCurrentUserRole } from "@/lib/roles";
 import { hasPermission } from "@/lib/permissions";
+import { findAnyVariantByBarcode } from "@/lib/product-lookup";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
   MAX_IMAGE_BYTES,
@@ -22,9 +23,16 @@ import {
   type VariantUnit,
 } from "@/app/(app)/products/constants";
 
-export type BarcodeCheckResult =
-  | { exists: false }
-  | { exists: true; productId: string; productName: string };
+export type ExistingProductMatch = {
+  productId: string;
+  productName: string;
+  /** false = the match belongs to a soft-deleted product — not a real
+   *  duplicate to block, but offered as "reactivate this instead of
+   *  creating a second product with the same barcode." */
+  isActive: boolean;
+};
+
+export type BarcodeCheckResult = { exists: false } | ({ exists: true } & ExistingProductMatch);
 
 /**
  * The one place a barcode gets checked against existing product_variants —
@@ -34,36 +42,27 @@ export type BarcodeCheckResult =
  * createProductWithVariant's own submit-time safety net (a barcode could
  * have been created by someone else in the gap between the immediate check
  * and clicking submit). One implementation, not three.
+ *
+ * Unlike /scan and /stock-out (which use findActiveVariantsByBarcode and
+ * treat a soft-deleted product's barcode as if it doesn't exist at all),
+ * this uses findAnyVariantByBarcode so it can tell an active duplicate
+ * (blocked) apart from an inactive one (offer to reactivate) — creating a
+ * fresh product for a barcode that already belongs to a discontinued one
+ * would leave two separate products silently sharing the same barcode.
  */
 async function findExistingProductByBarcode(
   supabase: SupabaseClient,
   organisationId: string,
   barcode: string
-): Promise<{ productId: string; productName: string } | null> {
-  // `.limit(1)` rather than `.maybeSingle()` since barcode has no DB
-  // uniqueness constraint — a pre-existing duplicate from before this check
-  // existed shouldn't itself throw here.
-  const { data: existingRows, error } = await supabase
-    .from("product_variants")
-    .select("product_id, products(name)")
-    .eq("organisation_id", organisationId)
-    .eq("barcode", barcode)
-    .limit(1);
-  if (error) {
-    throw error;
-  }
-  const existing = existingRows?.[0];
-  if (!existing) {
+): Promise<ExistingProductMatch | null> {
+  const match = await findAnyVariantByBarcode(supabase, barcode, { organisationId });
+  if (!match) {
     return null;
   }
-  // Verified against the live database: PostgREST returns a to-one embed
-  // like this as a plain object, not an array — TypeScript's own inference
-  // here (no generated schema types in this project) can't always tell
-  // to-one apart from to-many and isn't authoritative.
-  const product = existing.products as unknown as { name: string } | null;
   return {
-    productId: existing.product_id,
-    productName: product?.name ?? "that product",
+    productId: match.product_id,
+    productName: match.product_name,
+    isActive: match.is_active,
   };
 }
 
@@ -435,7 +434,7 @@ export async function updateProduct(
 
 export type CreateProductState =
   | { error: string }
-  | { duplicate: { productId: string; productName: string } }
+  | { duplicate: ExistingProductMatch }
   | { ok: true }
   | undefined;
 
@@ -785,4 +784,42 @@ export async function bulkMoveStock(
     return { error: "Could not move any of the selected stock." };
   }
   return { ok: true, moved, errors: errorCount };
+}
+
+export type ReactivateProductState = { error: string } | { ok: true } | undefined;
+
+/**
+ * Reactivates a soft-deleted product (is_active = false -> true) — the
+ * alternative to creating a brand-new product when a scanned/typed barcode
+ * turns out to belong to a discontinued one (see findExistingProductByBarcode
+ * above). Not tied to a <form>/useActionState — called directly from
+ * whichever duplicate-check UI surfaced the "reactivate?" option
+ * (BarcodeDuplicateField, AddProductMenu, NewProductForm), same convention
+ * as checkBarcodeExists. Same permission as deleting a product (products:
+ * delete) — undoing a deactivation is the same tier of decision as causing
+ * one. The variant's own fields (SKU, pricing, etc.) are left exactly as
+ * they were; nothing here resets them.
+ */
+export async function reactivateProduct(
+  productId: string
+): Promise<ReactivateProductState> {
+  const supabase = await createClient();
+
+  const role = await getCurrentUserRole(supabase);
+  if (!hasPermission(role, "products:delete")) {
+    return { error: "You don't have permission to reactivate products." };
+  }
+
+  const { error } = await supabase
+    .from("products")
+    .update({ is_active: true })
+    .eq("id", productId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/products");
+  revalidatePath(`/products/${productId}/edit`);
+  return { ok: true };
 }

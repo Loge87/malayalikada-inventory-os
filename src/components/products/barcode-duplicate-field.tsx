@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 
 import { checkBarcodeExists } from "@/app/(app)/products/actions";
+import type { ExistingProductMatch } from "@/app/(app)/products/actions";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button";
+import { ReactivateProductButton } from "@/components/products/reactivate-product-button";
 import { cn } from "@/lib/utils";
 
 /**
@@ -30,15 +32,11 @@ export function BarcodeDuplicateField({
 }: {
   id: string;
   defaultValue: string;
-  onDuplicateChange: (
-    duplicate: { productId: string; productName: string } | null
-  ) => void;
+  onDuplicateChange: (duplicate: ExistingProductMatch | null) => void;
 }) {
   const [value, setValue] = useState(defaultValue);
   const [checking, setChecking] = useState(false);
-  const [duplicate, setDuplicate] = useState<
-    { productId: string; productName: string } | null
-  >(null);
+  const [duplicate, setDuplicate] = useState<ExistingProductMatch | null>(null);
   // Avoids re-checking the same value twice in a row (e.g. blurring, then
   // tabbing back in and out again without changing anything).
   const lastCheckedRef = useRef<string | null>(null);
@@ -60,7 +58,11 @@ export function BarcodeDuplicateField({
     const result = await checkBarcodeExists(trimmed);
     setChecking(false);
     const next = result.exists
-      ? { productId: result.productId, productName: result.productName }
+      ? {
+          productId: result.productId,
+          productName: result.productName,
+          isActive: result.isActive,
+        }
       : null;
     setDuplicate(next);
     onDuplicateChange(next);
@@ -97,7 +99,7 @@ export function BarcodeDuplicateField({
       />
       {checking ? (
         <FieldDescription>Checking…</FieldDescription>
-      ) : duplicate ? (
+      ) : duplicate?.isActive ? (
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
           <span>This product already exists ({duplicate.productName}).</span>
           <Link
@@ -106,6 +108,18 @@ export function BarcodeDuplicateField({
           >
             View existing product
           </Link>
+        </div>
+      ) : duplicate ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
+          <span>
+            This barcode belonged to a discontinued product (
+            {duplicate.productName}) — reactivate it instead of creating a
+            new one?
+          </span>
+          <ReactivateProductButton
+            productId={duplicate.productId}
+            productName={duplicate.productName}
+          />
         </div>
       ) : null}
     </Field>

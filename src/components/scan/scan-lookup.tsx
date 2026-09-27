@@ -7,6 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { getStockStatus } from "@/lib/stock-status";
 import { applyPriceSettings, resolveWholesaleRates } from "@/lib/price-calculation";
+import {
+  findActiveVariantsByBarcode,
+  type BarcodeMatchVariant,
+} from "@/lib/product-lookup";
 import type { OrganisationPriceSettings } from "@/lib/organisation";
 import { BarcodeInput } from "@/components/barcode/barcode-input";
 import { CameraScanButton } from "@/components/barcode/camera-scan-button";
@@ -34,24 +38,15 @@ type InventoryLevel = {
   locations: { name: string; type: string } | null;
 };
 
-type Variant = {
-  id: string;
-  name: string;
-  sku: string;
-  barcode: string | null;
-  unit: string;
-  currency: string;
-  pack_price: number | null;
-  units_per_pack: number;
-  unit_price: number | null;
-  products: { name: string; category: string | null; is_active: boolean } | null;
-  inventory_levels: InventoryLevel[];
-};
-
 type Lookup =
   | { state: "idle" }
   | { state: "loading"; barcode: string }
-  | { state: "found"; barcode: string; source: ScanSource; variant: Variant }
+  | {
+      state: "found";
+      barcode: string;
+      source: ScanSource;
+      variant: BarcodeMatchVariant;
+    }
   | { state: "not_found"; barcode: string }
   | { state: "ambiguous"; barcode: string }
   | { state: "error"; barcode: string; message: string };
@@ -83,14 +78,18 @@ export function ScanLookup({
     const id = ++requestId.current;
     setLookup({ state: "loading", barcode });
 
-    const { data, error } = await supabase
-      .from("product_variants")
-      .select(
-        "id, name, sku, barcode, unit, currency, pack_price, units_per_pack, unit_price, products(name, category, is_active), inventory_levels(on_hand, locations(name, type))"
-      )
-      .eq("barcode", barcode)
-      .limit(2)
-      .returns<Variant[]>();
+    let data: BarcodeMatchVariant[] | null = null;
+    let error: { message: string } | null = null;
+    try {
+      // findActiveVariantsByBarcode (lib/product-lookup.ts) is the one
+      // shared query /scan, /stock-out, and the duplicate-check all use —
+      // it excludes variants whose parent product is soft-deleted, so a
+      // barcode that only belongs to a discontinued product reports
+      // "not found" here too, not a stale card for a product that's gone.
+      data = await findActiveVariantsByBarcode(supabase, barcode);
+    } catch (err) {
+      error = err instanceof Error ? err : new Error(String(err));
+    }
 
     if (id !== requestId.current) return; // superseded by a newer scan
 
@@ -193,7 +192,7 @@ export function ScanLookup({
   );
 }
 
-function variantLabel(variant: Variant): string {
+function variantLabel(variant: BarcodeMatchVariant): string {
   return variant.products?.name
     ? `${variant.products.name} — ${variant.name}`
     : variant.name;
@@ -285,7 +284,10 @@ function LookupResult({
   }
 
   const { variant, source } = lookup;
-  const isActive = variant.products?.is_active ?? true;
+  // Always true — findActiveVariantsByBarcode already excludes anything
+  // whose parent product is soft-deleted, so a "found" result here can
+  // never be an inactive product's stale card.
+  const isActive = true;
   const total = variant.inventory_levels.reduce((sum, l) => sum + l.on_hand, 0);
   const totalStatus = getStockStatus(total, isActive);
   // Retail applies retail's own rates to unit_price (selling one at a

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Camera, ChevronDown, PencilLine, Upload } from "lucide-react";
 
 import { checkBarcodeExists } from "@/app/(app)/products/actions";
+import type { ExistingProductMatch } from "@/app/(app)/products/actions";
 import { BarcodeInput } from "@/components/barcode/barcode-input";
 import { useCameraScan } from "@/components/barcode/use-camera-scan";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ReactivateProductButton } from "@/components/products/reactivate-product-button";
 
 /**
  * The single "Add product" entry point: a split button whose three options
@@ -37,9 +39,7 @@ export function AddProductMenu() {
   const router = useRouter();
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [checking, setChecking] = useState(false);
-  const [duplicate, setDuplicate] = useState<
-    { productId: string; productName: string } | null
-  >(null);
+  const [duplicate, setDuplicate] = useState<ExistingProductMatch | null>(null);
   // Deliberately separate from useCameraScan's own `isOpen`: that hook
   // calls its internal close() the instant a decode succeeds — synchronous,
   // before this component's async handleScan below even starts — which
@@ -130,15 +130,25 @@ export function AddProductMenu() {
           {duplicate ? (
             <>
               <p className="text-sm text-status-warning">
-                This product already exists ({duplicate.productName}).
+                {duplicate.isActive
+                  ? `This product already exists (${duplicate.productName}).`
+                  : `This barcode belonged to a discontinued product (${duplicate.productName}) — reactivate it instead of creating a new one?`}
               </p>
-              <div className="flex gap-2">
-                <Link
-                  href={`/products/${duplicate.productId}/edit`}
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
-                >
-                  View existing product
-                </Link>
+              <div className="flex flex-wrap gap-2">
+                {duplicate.isActive ? (
+                  <Link
+                    href={`/products/${duplicate.productId}/edit`}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    View existing product
+                  </Link>
+                ) : (
+                  <ReactivateProductButton
+                    productId={duplicate.productId}
+                    productName={duplicate.productName}
+                    onReactivated={() => setDialogOpen(false)}
+                  />
+                )}
                 <Button
                   type="button"
                   variant="ghost"

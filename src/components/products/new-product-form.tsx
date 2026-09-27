@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { BarcodeDuplicateField } from "@/components/products/barcode-duplicate-field";
 import { ProductImageField } from "@/components/products/product-image-field";
+import { ReactivateProductButton } from "@/components/products/reactivate-product-button";
 import {
   ReadOnlyCurrencyField,
   useVariantPricingFields,
@@ -233,17 +234,31 @@ export function NewProductForm({
               <FieldError>{state.error}</FieldError>
             ) : null}
             {state && "duplicate" in state ? (
-              <div className="flex flex-wrap items-center gap-2 rounded-md bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
-                <span>
-                  This product already exists ({state.duplicate.productName}).
-                </span>
-                <Link
-                  href={`/products/${state.duplicate.productId}/edit`}
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
-                >
-                  View existing product
-                </Link>
-              </div>
+              state.duplicate.isActive ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-md bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
+                  <span>
+                    This product already exists ({state.duplicate.productName}).
+                  </span>
+                  <Link
+                    href={`/products/${state.duplicate.productId}/edit`}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    View existing product
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 rounded-md bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
+                  <span>
+                    This barcode belonged to a discontinued product (
+                    {state.duplicate.productName}) — reactivate it instead of
+                    creating a new one?
+                  </span>
+                  <ReactivateProductButton
+                    productId={state.duplicate.productId}
+                    productName={state.duplicate.productName}
+                  />
+                </div>
+              )
             ) : null}
 
             <Button

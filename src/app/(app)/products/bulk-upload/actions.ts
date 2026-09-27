@@ -24,8 +24,17 @@ async function loadValidationContext(
   supabase: Awaited<ReturnType<typeof createClient>>,
   organisationId: string
 ): Promise<BulkValidationContext> {
+  // Same is_active fix as findActiveVariantsByBarcode (lib/product-lookup.ts)
+  // — without the products!inner join + filter, a CSV row matching a
+  // soft-deleted product's sku/barcode was treated as an existing
+  // duplicate and silently skipped, instead of being importable again (a
+  // discontinued product's sku/barcode isn't "taken" any more than /scan or
+  // the manual-entry duplicate-check now treat it as).
   const [variantsRes, locationsRes, defaultCurrency] = await Promise.all([
-    supabase.from("product_variants").select("sku, barcode"),
+    supabase
+      .from("product_variants")
+      .select("sku, barcode, products!inner(is_active)")
+      .eq("products.is_active", true),
     supabase.from("locations").select("id, name").eq("is_active", true),
     getOrganisationDefaultCurrency(supabase, organisationId),
   ]);

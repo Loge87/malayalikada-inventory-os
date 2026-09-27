@@ -272,6 +272,9 @@ export function StockOutLookup({
           variantLabel={variantLabel(found.variant)}
           myLocations={myLocations}
           clients={clients}
+          stockByLocationId={Object.fromEntries(
+            found.variant.inventory_levels.map((l) => [l.location_id, l.on_hand])
+          )}
           onStockedOut={clearResult}
         />
       ) : null}

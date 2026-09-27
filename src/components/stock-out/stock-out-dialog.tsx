@@ -35,6 +35,7 @@ export function StockOutDialog({
   variantLabel,
   myLocations,
   clients,
+  stockByLocationId,
   onStockedOut,
 }: {
   open: boolean;
@@ -45,6 +46,11 @@ export function StockOutDialog({
    *  every location in the org. */
   myLocations: LocationOption[];
   clients: ClientOption[];
+  /** This variant's on_hand per location_id, from the same scan result —
+   *  drives the "no stock available" pre-check below. A location this
+   *  variant has never had any stock at simply won't be a key here, same
+   *  as 0. */
+  stockByLocationId: Record<string, number>;
   /** Fires after a successful stock-out — resets the scan flow back to its
    *  pre-scan state (button prominence included), not just closing this
    *  dialog. */
@@ -77,6 +83,17 @@ export function StockOutDialog({
   const clientItems: Record<string, string> = Object.fromEntries(
     clients.map((c) => [c.id, c.name])
   );
+
+  // UX pre-check only — the real, authoritative sufficiency check is
+  // record_stock_out's own (unchanged). This just stops an obviously-doomed
+  // submission early, with a specific reason, instead of a disabled button
+  // and no explanation. null (not 0) when no location is selected yet —
+  // for a multi-location user, there's nothing to check until they pick
+  // one; for the single-location case, locationId is already set at mount,
+  // so this evaluates immediately.
+  const selectedLocationName = myLocations.find((l) => l.id === locationId)?.name ?? null;
+  const availableOnHand = locationId ? (stockByLocationId[locationId] ?? 0) : null;
+  const noStockAtLocation = availableOnHand !== null && availableOnHand <= 0;
 
   function handleSubmit() {
     const formData = new FormData();
@@ -146,6 +163,12 @@ export function StockOutDialog({
             />
           </Field>
 
+          {noStockAtLocation ? (
+            <p className="text-sm text-status-warning">
+              No stock available at {selectedLocationName}.
+            </p>
+          ) : null}
+
           {state && "error" in state ? <FieldError>{state.error}</FieldError> : null}
         </FieldGroup>
 
@@ -156,7 +179,7 @@ export function StockOutDialog({
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={pending || !locationId || !clientId || !quantity}
+            disabled={pending || !locationId || !clientId || !quantity || noStockAtLocation}
           >
             {pending ? "Recording…" : "Record stock out"}
           </Button>

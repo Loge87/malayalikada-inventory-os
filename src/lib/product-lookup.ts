@@ -37,6 +37,7 @@ export type BarcodeMatchVariant = {
   products: { name: string; category: string | null } | null;
   inventory_levels: {
     on_hand: number;
+    location_id: string;
     locations: { name: string; type: string } | null;
   }[];
 };
@@ -57,7 +58,7 @@ export async function findActiveVariantsByBarcode(
     .select(
       `id, product_id, name, sku, barcode, unit, currency, pack_price, units_per_pack, unit_price,
        products!inner(name, category, is_active),
-       inventory_levels(on_hand, locations(name, type))`
+       inventory_levels(on_hand, location_id, locations(name, type))`
     )
     .eq("barcode", barcode)
     .eq("products.is_active", true)

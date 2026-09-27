@@ -166,8 +166,20 @@ export function StockOutLookup({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <BarcodeInput onScan={handleScan} />
-          <CameraScanButton onScan={handleScan} />
+          {/* Row on desktop (input takes the remaining space, the camera
+              button sits beside it at its own natural width, not stretched
+              full-width) — stacked, both full-width, on mobile (flex-col is
+              the default; sm:flex-row only kicks in from that breakpoint
+              up). The camera button's OWN open (video) state still forces
+              itself to w-full regardless (see camera-scan-button.tsx), so
+              it breaks onto its own line here via flex-wrap rather than
+              being squeezed beside the input. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:gap-3">
+            <div className="sm:min-w-64 sm:flex-1">
+              <BarcodeInput onScan={handleScan} className="w-full" />
+            </div>
+            <CameraScanButton onScan={handleScan} />
+          </div>
           <LookupResult
             lookup={lookup}
             canStockOut={myLocations.length > 0}

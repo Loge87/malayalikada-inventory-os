@@ -29,7 +29,12 @@ export function CameraScanButton({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border p-2">
+    // w-full explicitly, not just relying on a flex-col parent's stretch —
+    // needed once this sits inside a flex-ROW layout (stock-out-lookup.tsx's
+    // input+button row), where a plain flex item has no reason to claim the
+    // full row's width on its own. Harmless here in /scan's flex-col layout,
+    // which already stretched this the same way by default.
+    <div className="flex w-full flex-col gap-2 rounded-lg border border-border p-2">
       <video
         ref={videoRef}
         className="aspect-video w-full rounded-md bg-black object-cover"

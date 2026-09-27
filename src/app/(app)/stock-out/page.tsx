@@ -57,33 +57,29 @@ export default async function StockOutPage({
   // every location in the org. `locations!inner` turns the embed into an
   // actual join so `.eq("locations.is_active", true)` filters at the DB
   // level, not just on the client.
-  const [
-    myLocationsRes,
-    activeClientsRes,
-    allClientsRes,
-    allLocationsRes,
-    allVariantsRes,
-  ] = await Promise.all([
-    supabase
-      .from("user_locations")
-      .select("location_id, locations!inner(id, name, is_active)")
-      .eq("user_id", user.id)
-      .eq("locations.is_active", true),
-    supabase.from("clients").select("id, name").eq("is_active", true).order("name"),
-    // History's own filters deliberately include inactive clients/locations
-    // — same "historical views still show soft-deleted data" principle as
-    // audit-log/movements: a past stock-out to a client who's since been
-    // deactivated must still be findable.
-    supabase.from("clients").select("id, name").order("name"),
-    supabase.from("locations").select("id, name").order("name"),
-    supabase
-      .from("product_variants")
-      .select("id, name, sku, products(name)")
-      .order("name"),
-  ]);
+  const [myLocationsRes, allClientsRes, allLocationsRes, allVariantsRes] =
+    await Promise.all([
+      supabase
+        .from("user_locations")
+        .select("location_id, locations!inner(id, name, is_active)")
+        .eq("user_id", user.id)
+        .eq("locations.is_active", true),
+      // One fetch, not two — this used to be a separate active-only query
+      // for the Record tab's picker plus this same unfiltered one for
+      // History's filter (which deliberately includes inactive clients,
+      // same "historical views still show soft-deleted data" principle as
+      // audit-log/movements: a past stock-out to a client who's since been
+      // deactivated must still be findable). The active subset below is
+      // just a JS filter over this one result now.
+      supabase.from("clients").select("id, name, is_active").order("name"),
+      supabase.from("locations").select("id, name").order("name"),
+      supabase
+        .from("product_variants")
+        .select("id, name, sku, products(name)")
+        .order("name"),
+    ]);
 
   if (myLocationsRes.error) throw myLocationsRes.error;
-  if (activeClientsRes.error) throw activeClientsRes.error;
   if (allClientsRes.error) throw allClientsRes.error;
   if (allLocationsRes.error) throw allLocationsRes.error;
   if (allVariantsRes.error) throw allVariantsRes.error;
@@ -92,9 +88,12 @@ export default async function StockOutPage({
     const location = row.locations as unknown as { id: string; name: string };
     return { id: location.id, name: location.name };
   });
-  const clients: ClientOption[] = activeClientsRes.data ?? [];
+  const allClients = allClientsRes.data ?? [];
+  const clients: ClientOption[] = allClients
+    .filter((c) => c.is_active)
+    .map((c) => ({ id: c.id, name: c.name }));
 
-  const clientOptions: FilterOption[] = (allClientsRes.data ?? []).map((c) => ({
+  const clientOptions: FilterOption[] = allClients.map((c) => ({
     id: c.id,
     label: c.name,
   }));

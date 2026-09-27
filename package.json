@@ -6,6 +6,7 @@
     "postinstall": "patch-package",
     "dev": "next dev",
     "build": "next build",
+    "analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "eslint",
     "cap": "cap",
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.1",
+    "@next/bundle-analyzer": "^16.3.6",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

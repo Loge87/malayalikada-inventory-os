@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withBundleAnalyzerFactory from "@next/bundle-analyzer";
 
 const nextConfig: NextConfig = {
   // Lets the dev server (HMR, RSC, etc.) be reached from a phone on the same
@@ -16,4 +17,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Off by default — `ANALYZE=true npm run build` opens the actual per-route
+// client bundle treemap in a browser tab after the build finishes. Next 16's
+// Turbopack build no longer prints the old per-route Size/First Load JS
+// table in the terminal, so this is the only way to get real numbers now.
+const withBundleAnalyzer = withBundleAnalyzerFactory({
+  enabled: process.env.ANALYZE === "true",
+});
+
+export default withBundleAnalyzer(nextConfig);

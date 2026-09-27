@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import {
   CURRENCIES,
   DEFAULT_CURRENCY,
@@ -16,13 +17,17 @@ import type { PriceSettingsRates } from "@/lib/price-calculation";
  * `organisation_id` to equal this value, so it must be set explicitly on insert.
  *
  * Returns `null` when there is no session or no role assignment.
+ *
+ * Resolves the user via getCurrentUser() (React cache()-memoized) rather
+ * than its own supabase.auth.getUser() call — same reasoning as
+ * getCurrentUserRole (lib/roles.ts): a real Auth API round trip, not a
+ * local decode, and nearly every caller already resolved the user once
+ * earlier in the same request.
  */
 export async function getCurrentOrganisationId(
   supabase: SupabaseClient
 ): Promise<string | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return null;

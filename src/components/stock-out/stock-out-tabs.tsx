@@ -62,10 +62,10 @@ export function StockOutTabs({
         <TabsTab value="history">History</TabsTab>
         <TabsIndicator />
       </TabsList>
-      <TabsPanel value="record" className="pt-4">
+      <TabsPanel value="record" className="pt-3 sm:pt-4">
         {recordContent}
       </TabsPanel>
-      <TabsPanel value="history" className="pt-4">
+      <TabsPanel value="history" className="pt-3 sm:pt-4">
         {historyContent}
       </TabsPanel>
     </Tabs>

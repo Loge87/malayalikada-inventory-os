@@ -162,28 +162,39 @@ export default async function StockOutPage({
   });
 
   return (
-    <div className="flex w-full flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
-      <div>
+    <div className="flex w-full flex-col gap-3 p-5 sm:gap-8 sm:p-8 md:p-12">
+      {/* Mobile: tabs first, page title/subtitle second — order-* only, DOM
+          order (and so tab/screen-reader order) is unchanged, this is a
+          purely visual reorder. Point is to get to the actual "Scan a
+          barcode" card with as little chrome above it as possible on a
+          small viewport; from sm: up this reverts to the natural title-
+          then-tabs order, where vertical space isn't the constraint. */}
+      <div className="order-2 sm:order-1">
         <h1 className="text-page-title">Stock Out</h1>
         <p className="text-page-subtitle">
-          Scan a product and hand it out to a client from one of your
-          assigned locations.
+          <span className="sm:hidden">Scan and hand out stock, or view history.</span>
+          <span className="hidden sm:inline">
+            Scan a product and hand it out to a client from one of your
+            assigned locations.
+          </span>
         </p>
       </div>
 
-      <StockOutTabs
-        activeTab={activeTab}
-        recordContent={<StockOutLookup myLocations={myLocations} clients={clients} />}
-        historyContent={
-          <StockOutHistory
-            stockOuts={stockOuts}
-            clientOptions={clientOptions}
-            productOptions={productOptions}
-            locationOptions={locationOptions}
-            filters={filters}
-          />
-        }
-      />
+      <div className="order-1 sm:order-2">
+        <StockOutTabs
+          activeTab={activeTab}
+          recordContent={<StockOutLookup myLocations={myLocations} clients={clients} />}
+          historyContent={
+            <StockOutHistory
+              stockOuts={stockOuts}
+              clientOptions={clientOptions}
+              productOptions={productOptions}
+              locationOptions={locationOptions}
+              filters={filters}
+            />
+          }
+        />
+      </div>
     </div>
   );
 }

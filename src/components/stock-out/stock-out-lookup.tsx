@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { XIcon } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { getStockStatus } from "@/lib/stock-status";
@@ -155,17 +156,31 @@ export function StockOutLookup({
 
   const found = lookup.state === "found" ? lookup : null;
 
+  // Back to the pre-scan state — "Scan with camera" is primary again, the
+  // Stock Out dialog's variant-keyed instance unmounts. Used both by the
+  // result card's own explicit "Clear" and by a completed stock-out (see
+  // StockOutDialog's onStockedOut below) — same reset either way.
+  function clearResult() {
+    setLookup({ state: "idle" });
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3 sm:pb-6">
           <CardTitle>Scan a barcode</CardTitle>
+          {/* Shorter on mobile — this is chrome competing with the actual
+              scan area for vertical space above the fold; the full
+              explanation still shows from sm: up, where there's room. */}
           <CardDescription>
-            The field is always focused — scan with a hardware reader, or type a
-            barcode and press Enter. On a phone, use the camera.
+            <span className="sm:hidden">Scan, or type a barcode and press Enter.</span>
+            <span className="hidden sm:inline">
+              The field is always focused — scan with a hardware reader, or
+              type a barcode and press Enter. On a phone, use the camera.
+            </span>
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-3 sm:gap-4">
           {/* Row on desktop (input takes the remaining space, the camera
               button sits beside it at its own natural width, not stretched
               full-width) — stacked, both full-width, on mobile (flex-col is
@@ -178,12 +193,17 @@ export function StockOutLookup({
             <div className="sm:min-w-64 sm:flex-1">
               <BarcodeInput onScan={handleScan} className="w-full" />
             </div>
-            <CameraScanButton onScan={handleScan} />
+            {/* Primary (solid) before anything's scanned — it's the only
+                meaningful action available; secondary once a result is
+                showing, since Stock Out (below) becomes the main action at
+                that point. */}
+            <CameraScanButton onScan={handleScan} emphasized={!found} />
           </div>
           <LookupResult
             lookup={lookup}
             canStockOut={myLocations.length > 0}
             onStockOut={() => setDialogOpen(true)}
+            onClear={clearResult}
           />
 
           {found && myLocations.length === 0 ? (
@@ -252,6 +272,7 @@ export function StockOutLookup({
           variantLabel={variantLabel(found.variant)}
           myLocations={myLocations}
           clients={clients}
+          onStockedOut={clearResult}
         />
       ) : null}
     </div>
@@ -291,6 +312,7 @@ function LookupResult({
   lookup,
   canStockOut,
   onStockOut,
+  onClear,
 }: {
   lookup: Lookup;
   /** False when the current user has no assigned locations at all (Stage 4
@@ -298,6 +320,10 @@ function LookupResult({
    *  would just immediately error on submit. */
   canStockOut: boolean;
   onStockOut: () => void;
+  /** Explicitly drops the current result back to the pre-scan state, so
+   *  "Scan with camera" goes back to being the primary action without
+   *  needing to actually scan something else first. */
+  onClear: () => void;
 }) {
   if (lookup.state === "idle") {
     return (
@@ -355,7 +381,7 @@ function LookupResult({
 
   return (
     <div className="flex flex-col gap-3 rounded-lg ring-1 ring-foreground/10 p-3">
-      <div className="flex items-baseline justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <span className="min-w-0">
           <span className="block font-medium">{variantLabel(variant)}</span>
           <span className="text-muted-foreground text-xs">
@@ -364,12 +390,23 @@ function LookupResult({
             {source !== "scan" ? ` · ${SOURCE_LABEL[source]}` : ""}
           </span>
         </span>
-        <span className="flex shrink-0 flex-col items-end gap-1">
-          <span className="text-lg font-semibold tabular-nums">
-            {total} <span className="text-sm font-normal text-muted-foreground">total</span>
+        <div className="flex shrink-0 items-start gap-1">
+          <span className="flex flex-col items-end gap-1">
+            <span className="text-lg font-semibold tabular-nums">
+              {total} <span className="text-sm font-normal text-muted-foreground">total</span>
+            </span>
+            <StockStatusPill status={totalStatus} />
           </span>
-          <StockStatusPill status={totalStatus} />
-        </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClear}
+            aria-label="Clear result"
+          >
+            <XIcon className="size-4" />
+          </Button>
+        </div>
       </div>
 
       {variant.inventory_levels.length > 0 ? (
@@ -418,7 +455,7 @@ function LookupResult({
         type="button"
         onClick={onStockOut}
         disabled={!canStockOut}
-        className="w-fit"
+        className="w-full sm:w-fit"
       >
         Stock Out
       </Button>

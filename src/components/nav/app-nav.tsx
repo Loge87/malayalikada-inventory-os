@@ -117,10 +117,14 @@ const NAV_LINKS: NavLink[] = [
 // four one tap away, as plain nav destinations; everything else (still in the
 // sidebar on desktop) lives behind the single "menu" button on mobile.
 //
+// Stock Out (not Scan) gets the primary slot — it's staff's main daily-use
+// action now; Scan is still a real, working destination, just one tap
+// further away in the overflow menu instead.
+//
 // TEMP: Movements swapped for Transfers here while Movements is demo-
 // disabled above — a quick-access tab has to be a real destination. Swap
 // back once Movements is re-enabled.
-const MOBILE_PRIMARY_HREFS = ["/dashboard", "/scan", "/products", "/transfers"];
+const MOBILE_PRIMARY_HREFS = ["/dashboard", "/stock-out", "/products", "/transfers"];
 
 function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);

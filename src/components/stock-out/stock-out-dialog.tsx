@@ -35,6 +35,7 @@ export function StockOutDialog({
   variantLabel,
   myLocations,
   clients,
+  onStockedOut,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,6 +45,10 @@ export function StockOutDialog({
    *  every location in the org. */
   myLocations: LocationOption[];
   clients: ClientOption[];
+  /** Fires after a successful stock-out — resets the scan flow back to its
+   *  pre-scan state (button prominence included), not just closing this
+   *  dialog. */
+  onStockedOut?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(recordStockOut, undefined);
   const router = useRouter();
@@ -62,8 +67,9 @@ export function StockOutDialog({
       router.refresh();
       toastManager.add({ title: `${variantLabel} stocked out`, type: "success" });
       onOpenChange(false);
+      onStockedOut?.();
     }
-  }, [state, router, variantLabel, onOpenChange]);
+  }, [state, router, variantLabel, onOpenChange, onStockedOut]);
 
   const locationItems: Record<string, string> = Object.fromEntries(
     myLocations.map((l) => [l.id, l.name])
@@ -97,14 +103,21 @@ export function StockOutDialog({
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor="stock-out-location">Location</FieldLabel>
-            <Combobox
-              id="stock-out-location"
-              items={locationItems}
-              value={locationId}
-              onValueChange={setLocationId}
-              placeholder="Search your locations…"
-              className="w-full"
-            />
+            {myLocations.length === 1 ? (
+              // Only one valid option — nothing to choose, so show it as a
+              // read-only fact rather than a dropdown that offers a choice
+              // that isn't really there.
+              <Input id="stock-out-location" value={myLocations[0].name} disabled readOnly />
+            ) : (
+              <Combobox
+                id="stock-out-location"
+                items={locationItems}
+                value={locationId}
+                onValueChange={setLocationId}
+                placeholder="Search your locations…"
+                className="w-full"
+              />
+            )}
           </Field>
           <Field>
             <FieldLabel htmlFor="stock-out-quantity">Quantity</FieldLabel>

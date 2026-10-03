@@ -10,8 +10,12 @@ import { formatMoney } from "@/lib/format";
 import { getStockStatus, type StockStatus } from "@/lib/stock-status";
 import { useIsWideDesktop } from "@/lib/use-media-query";
 import { usePagination } from "@/lib/use-pagination";
-import { applyPriceSettings, resolveWholesaleRates } from "@/lib/price-calculation";
-import type { OrganisationPriceSettings } from "@/lib/organisation";
+import {
+  computeDisplayPrice,
+  type FormulaChain,
+  type PricingContext,
+} from "@/lib/price-formula";
+import type { PriceVariable } from "@/lib/price-variable-types";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -96,6 +100,18 @@ function moneyCell(value: number | null | undefined, currency: string | undefine
   return <span className="tabular-nums">{formatMoney(value, currency)}</span>;
 }
 
+/** Retail/wholesale price cell — computed live from the active formula via
+ *  computeDisplayPrice, never a stale fallback. "No pricing formula set
+ *  yet" (not an em dash, not $0) when no formula of this type has ever
+ *  been applied for the organisation. */
+function formulaPriceCell(baseAmount: number | null, activeChain: FormulaChain | null, variables: PriceVariable[], currency: string | undefined) {
+  const computation = computeDisplayPrice(baseAmount, activeChain, variables);
+  if (computation.kind === "not_set") {
+    return <span className="text-caption">No pricing formula set yet</span>;
+  }
+  return moneyCell(computation.amount, currency);
+}
+
 function SortHeader({
   label,
   sortKey,
@@ -133,7 +149,7 @@ function SortHeader({
 export function ProductsTable({
   products,
   locations,
-  priceSettings,
+  pricing,
   initialStatusFilter = null,
   selectedLocationId = null,
   selectedProductId = null,
@@ -141,13 +157,14 @@ export function ProductsTable({
 }: {
   products: EditableProduct[];
   locations: LocationOption[];
-  /** The organisation's saved Price Settings, or null if it's never saved
-   *  any — drives the Retail Price / Wholesale Price columns
-   *  (src/lib/price-calculation.ts: retail from unit price using its own
-   *  rates, wholesale from pack/box price using its own rates unless "use
-   *  same as retail" is checked). null shows a "Set price settings" banner
-   *  instead of a broken calculation. */
-  priceSettings: OrganisationPriceSettings | null;
+  /** The organisation's active price formulas + the variables they
+   *  reference — drives the Retail Price / Wholesale Price columns (one
+   *  shared evaluateFormula call via computeDisplayPrice; see
+   *  src/lib/price-formula.ts). Retail from unit price, wholesale from
+   *  pack/box price. A formula_type with no active row yet (never applied)
+   *  shows "No pricing formula set yet" per product rather than a broken
+   *  calculation. */
+  pricing: PricingContext;
   /** From /products?status=... — e.g. a dashboard stat card linking to the
    *  low-stock or out-of-stock subset. */
   initialStatusFilter?: StockStatus | null;
@@ -485,12 +502,12 @@ export function ProductsTable({
         </p>
       ) : null}
 
-      {!priceSettings ? (
+      {!pricing.activeFormulas.retail && !pricing.activeFormulas.wholesale ? (
         <p className="mb-3 rounded-md bg-status-warning/10 px-3 py-2 text-xs text-status-warning">
-          Price settings haven&apos;t been saved yet, so Retail Price and
+          No pricing formula has been applied yet, so Retail Price and
           Wholesale Price can&apos;t be calculated below.{" "}
-          <Link href="/settings" className="font-medium underline">
-            Set price settings
+          <Link href="/settings?tab=price-settings" className="font-medium underline">
+            Set up pricing
           </Link>
         </p>
       ) : null}
@@ -568,10 +585,10 @@ export function ProductsTable({
         Scroll to see more →
       </p>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="table">
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-xs">
-              <th className="w-8 py-2 pl-1 font-medium">
+            <tr className="table-head">
+              <th className="w-8 py-2 pl-4 font-medium">
                 <Checkbox
                   checked={allVisibleSelected}
                   indeterminate={someVisibleSelected && !allVisibleSelected}
@@ -620,7 +637,7 @@ export function ProductsTable({
               <th className="hidden py-2 pr-2 text-right font-medium text-muted-foreground xl:table-cell">
                 Wholesale price
               </th>
-              <th className="py-2 pr-2 font-medium" aria-hidden />
+              <th className="py-2 pr-4 font-medium" aria-hidden />
             </tr>
           </thead>
           <tbody>
@@ -636,12 +653,9 @@ export function ProductsTable({
                   key={key}
                   onClick={() => openEdit(product.id)}
                   aria-selected={isSelected}
-                  className={cn(
-                    "cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50",
-                    isSelected && "bg-primary/5 hover:bg-primary/10"
-                  )}
+                  className="table-row"
                 >
-                  <td className="py-3 pl-1" onClick={(event) => event.stopPropagation()}>
+                  <td className="py-3 pl-4" onClick={(event) => event.stopPropagation()}>
                     <Checkbox
                       checked={selected.has(key)}
                       onCheckedChange={() => toggleRow(key)}
@@ -680,7 +694,7 @@ export function ProductsTable({
                       <span className="block font-mono">{variant.barcode}</span>
                     ) : null}
                   </td>
-                  <td className="py-3 pr-2 text-right">
+                  <td className="cell-number py-3 pr-2">
                     <span className="flex flex-col items-end gap-0.5">
                       <span className="font-semibold tabular-nums">
                         {variant ? variant.onHand : "—"}
@@ -688,36 +702,29 @@ export function ProductsTable({
                       <StockStatusPill status={status} />
                     </span>
                   </td>
-                  <td className="py-3 pr-2 text-right">
+                  <td className="cell-number py-3 pr-2">
                     {moneyCell(variant?.unitPrice, variant?.currency)}
                   </td>
-                  <td className="py-3 pr-2 text-right">
+                  <td className="cell-number py-3 pr-2">
                     {moneyCell(variant?.packPrice, variant?.currency)}
                   </td>
-                  <td className="hidden py-3 pr-2 text-right xl:table-cell">
-                    {priceSettings
-                      ? moneyCell(
-                          applyPriceSettings(variant?.unitPrice ?? null, priceSettings.retail),
-                          variant?.currency
-                        )
-                      : moneyCell(undefined, undefined)}
+                  <td className="cell-number hidden py-3 pr-2 xl:table-cell">
+                    {formulaPriceCell(
+                      variant?.unitPrice ?? null,
+                      pricing.activeFormulas.retail,
+                      pricing.variables,
+                      variant?.currency
+                    )}
                   </td>
-                  <td className="hidden py-3 pr-2 text-right xl:table-cell">
-                    {priceSettings
-                      ? moneyCell(
-                          applyPriceSettings(
-                            variant?.packPrice ?? null,
-                            resolveWholesaleRates(
-                              priceSettings.retail,
-                              priceSettings.wholesale,
-                              priceSettings.wholesaleUsesSameAsRetail
-                            )
-                          ),
-                          variant?.currency
-                        )
-                      : moneyCell(undefined, undefined)}
+                  <td className="cell-number hidden py-3 pr-2 xl:table-cell">
+                    {formulaPriceCell(
+                      variant?.packPrice ?? null,
+                      pricing.activeFormulas.wholesale,
+                      pricing.variables,
+                      variant?.currency
+                    )}
                   </td>
-                  <td className="py-3 pr-2 text-right">
+                  <td className="cell-number py-3 pr-4">
                     <button
                       type="button"
                       onClick={(event) => {

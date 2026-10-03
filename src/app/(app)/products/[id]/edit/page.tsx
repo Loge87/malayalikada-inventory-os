@@ -5,8 +5,8 @@ import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import {
   getCurrentOrganisationId,
   getOrganisationDefaultCurrency,
-  getOrganisationPriceSettings,
 } from "@/lib/organisation";
+import { loadPricingContext } from "@/lib/price-formula";
 import { DEFAULT_CURRENCY } from "@/app/(app)/products/constants";
 import { loadProducts } from "@/app/(app)/products/data";
 import { ProductEditPageContent } from "@/components/products/product-edit-page-content";
@@ -46,13 +46,11 @@ export default async function ProductEditPage({
     notFound();
   }
 
-  const [defaultCurrency, priceSettings] = await Promise.all([
+  const [defaultCurrency, pricing] = await Promise.all([
     organisationId
       ? getOrganisationDefaultCurrency(supabase, organisationId)
       : Promise.resolve(DEFAULT_CURRENCY),
-    organisationId
-      ? getOrganisationPriceSettings(supabase, organisationId)
-      : Promise.resolve(null),
+    loadPricingContext(supabase, organisationId),
   ]);
 
   return (
@@ -61,7 +59,7 @@ export default async function ProductEditPage({
         product={product}
         locations={locationsRes.data ?? []}
         defaultCurrency={defaultCurrency}
-        priceSettings={priceSettings}
+        pricing={pricing}
       />
       <ProductCreatedToast />
     </div>

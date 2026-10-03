@@ -1,23 +1,33 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./theme.css";
+/* ui.css's classes (.btn, .card, .pill, etc.) load into Tailwind's own
+   "components" layer — already declared, in order, by the "tailwindcss"
+   import above (theme, base, components, utilities) — so a plain
+   Tailwind utility on the same element always overrides a ui.css class,
+   never the other way around. */
+@import "./ui.css" layer(components);
 
 @custom-variant dark (&:is(.dark *));
 
+/* This block re-exposes theme.css's variable names to Tailwind's utility
+   classes — e.g. `--color-primary: var(--primary);` is what makes
+   `bg-primary`/`text-primary` classes read theme.css's --primary value.
+   The actual color/radius/shadow VALUES all live in theme.css now; this is
+   just the wiring so Tailwind utilities keep working. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-background: var(--sidebar-background);
   --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-sidebar-border: var(--sidebar-border);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -39,17 +49,16 @@
   --color-primary-active: var(--primary-active);
   --color-primary-hover-foreground: var(--primary-hover-foreground);
   --color-primary-active-foreground: var(--primary-active-foreground);
-  --color-primary-50: var(--primary-50);
-  --color-primary-100: var(--primary-100);
-  --color-primary-200: var(--primary-200);
-  --color-primary-300: var(--primary-300);
-  --color-primary-400: var(--primary-400);
-  --color-primary-500: var(--primary-500);
-  --color-primary-600: var(--primary-600);
-  --color-primary-700: var(--primary-700);
-  --color-primary-800: var(--primary-800);
-  --color-primary-900: var(--primary-900);
-  --color-primary-950: var(--primary-950);
+  /* The brand accent (indigo-blue) — everything that isn't the monochrome
+     action-button color: active tab, active/hover nav item, selected rows,
+     checked checkboxes, links, badge tints. See theme.css's BRAND group. */
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-hover: var(--brand-accent-hover);
+  --color-brand-accent-active: var(--brand-accent-active);
+  --color-brand-accent-foreground: var(--brand-accent-foreground);
+  --color-brand-accent-hover-foreground: var(--brand-accent-hover-foreground);
+  --color-brand-accent-active-foreground: var(--brand-accent-active-foreground);
+  --color-brand-accent-tint: var(--brand-accent-tint);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -60,16 +69,35 @@
      class, so the whole status vocabulary can be reskinned in one place —
      see StockStatusPill and BulkRowStatusPill. */
   --color-status-success: var(--status-success);
+  --color-status-success-bg: var(--status-success-bg);
   --color-status-warning: var(--status-warning);
+  --color-status-warning-bg: var(--status-warning-bg);
   --color-status-critical: var(--status-critical);
-  /* Reversed from an earlier, much heavier version (24-48px blur up to 18%
-     opacity, plus an inset glass-rim highlight that only made sense
-     alongside the gradient/blur treatment this app no longer uses). Opt-in
-     via Card's `elevated` prop — flat solid fill (no gradient, no
-     backdrop-blur), just a light, barely-there shadow: closer in weight to
-     shadow-sm than shadow-md, small blur radius, low opacity. */
-  --shadow-elevated: 0 1px 2px 0 rgb(0 0 0 / 0.04),
-    0 4px 10px -4px rgb(0 0 0 / 0.08);
+  --color-status-critical-bg: var(--status-critical-bg);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-neutral-bg: var(--status-neutral-bg);
+  /* Decorative icon-badge rotation (StatCard's tone prop) — see theme.css's
+     ICON BADGES group for why these mostly alias other tokens. */
+  --color-badge-blue: var(--badge-blue);
+  --color-badge-teal: var(--badge-teal);
+  --color-badge-amber: var(--badge-amber);
+  --color-badge-red: var(--badge-red);
+  --color-badge-purple: var(--badge-purple);
+  /* Two named shadow "weights" (see theme.css's Depth group). --shadow-
+     elevated is kept as a back-compat alias to the same --shadow-raised
+     value, since ui/card.tsx's existing `elevated` prop still emits a
+     literal `shadow-elevated` class — the two names point at one value. */
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-elevated: var(--shadow-raised);
+  /* Four semantic radii (see theme.css's Shape group), alongside the
+     pre-existing generic scale just below — unrelated components rounding
+     their own corners via rounded-sm/-md/-xl/etc keep doing so from that
+     scale, untouched. */
+  --radius-card: var(--radius-card);
+  --radius-input: var(--radius-input);
+  --radius-button: var(--radius-button);
+  --radius-pill: var(--radius-pill);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -77,179 +105,6 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-:root {
-  /* A barely-tinted off-white page plane with pure-white cards sitting on
-     top of it — the subtle layered-surface look of Linear/Vercel's
-     dashboards, rather than a flat single white. */
-  --background: oklch(0.985 0.003 247);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  /* Brand/interactive accent — reserved for primary actions, active nav,
-     links, and focus rings. Everything else (secondary/accent/muted) stays
-     neutral gray on purpose, so the accent still reads as "the one color
-     that means 'do this'" instead of tinting the whole UI.
-     --primary is step 600 of the scale below (same hue ~150°, constant
-     across every step; lightness/chroma follow Tailwind's own oklch
-     methodology — a light->dark L curve with chroma tapering at the
-     extremes, each step gamut-clamped back into sRGB). Hover/active read
-     from --primary-hover/--primary-active (real darker steps, not an
-     opacity dim) so they, and any --primary-* tinted background elsewhere,
-     always stay coherent with each other. */
-  --primary: #00ba58;
-  --primary-hover: #00813b; /* step 700 */
-  --primary-active: #00672d; /* step 800 */
-  /* The rest-state fill (step 600, L 0.69) is light enough that dark text
-     wins (7.70:1); the hover/active fills are darkened enough (steps 700/
-     800) that the SAME dark text drops to 3.96:1 / 2.81:1 — both fail AA.
-     White text on those two darker fills is 5.00:1 / 7.05:1, so the button
-     swaps foreground color together with the fill on hover/active rather
-     than reusing one static foreground for every state. */
-  --primary-hover-foreground: #ffffff;
-  --primary-active-foreground: #ffffff;
-  --primary-50: #e7ffeb;
-  --primary-100: #c2ffce;
-  --primary-200: #a4f2b5;
-  --primary-300: #7fdf97;
-  --primary-400: #51c875;
-  --primary-500: #44c26c;
-  --primary-600: #00ba58;
-  --primary-700: #00813b;
-  --primary-800: #00672d;
-  --primary-900: #005725;
-  --primary-950: #002f11;
-  /* White text on this primary fails WCAG contrast (2.6:1) — this vivid a
-     green needs a dark foreground (6.97:1 against --foreground) instead,
-     same as several real-world brands built on a similarly bright green. */
-  --primary-foreground: var(--foreground);
-  --secondary: oklch(0.97 0.002 247);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0.002 247);
-  /* neutral-600, not neutral-500 — neutral-500 measured only 4.53:1 against
-     --background (barely above the 4.5:1 floor, no real margin); neutral-600
-     clears both --background and --card at 7.4-7.8:1. */
-  --muted-foreground: oklch(0.439 0 0);
-  --accent: oklch(0.97 0.002 247);
-  --accent-foreground: oklch(0.205 0 0);
-  /* One step darker than red-600 — the un-tinted color already cleared
-     4.5:1 (4.83) but the actual rendered case (bg-destructive/10
-     text-destructive, the ghost destructive button and any plain
-     text-destructive on a tinted chip) measured 4.13:1, a real AA fail. */
-  --destructive: #c81e1e;
-  --border: oklch(0.914 0.003 247);
-  --input: oklch(0.914 0.003 247);
-  /* --primary itself (step 600) only reaches 2.57:1 against a white card
-     even fully opaque — nowhere near the 3:1 a focus ring needs as a
-     non-text UI indicator. Step 700 does, once opaque enough (button.tsx
-     and friends use it at 80% -> 3.54:1). */
-  --ring: var(--primary-700);
-  /* Status semantics (stock health) — intentionally their own tokens, not
-     aliases of --primary, so "brand color" and "this is low on stock" can
-     never be confused or accidentally reskinned together. --status-success
-     is deliberately hue-shifted teal-ward (~180° vs --primary's ~150°, a
-     30° separation) — both read as "green," but a glance tells "primary
-     action" apart from "in-stock status." Warning/critical sit in
-     amber/red, far enough from green that they need no such check. See
-     StockStatusPill / BulkRowStatusPill for the only two places these are
-     consumed. */
-  --status-success: #007667;
-  /* One step darker than amber-700 — the low-stock pill (bg-status-warning/10
-     text-status-warning) measured 4.39:1, just under the 4.5:1 floor. */
-  --status-warning: #a34d08;
-  --status-critical: var(--destructive);
-  /* Dashboard movement-type series — its own validated categorical palette
-     (blue/orange/violet/red; chosen and checked with the dataviz skill's
-     validator for CVD-safe adjacent contrast), deliberately independent of
-     --primary and --status-success so a chart bar is never mistaken for a
-     brand action or a stock-status color. Slot 5 is a neutral gray, used
-     only if a 5th series (e.g. an extra currency) ever appears. See
-     lib/movement-types.ts. */
-  --chart-1: #2a78d6; /* blue — received */
-  --chart-2: #eb6834; /* orange — sold */
-  --chart-3: #4a3aa7; /* violet — transferred */
-  --chart-4: #e34948; /* red — adjusted */
-  --chart-5: var(--muted-foreground);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.99 0.002 247);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0.002 247);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.914 0.003 247);
-  --sidebar-ring: var(--primary);
-}
-
-.dark {
-  /* Full reversal of the warm/glass direction — GitHub's actual dark theme
-     values, exact hex, flat solid fills. No gradient, no backdrop-blur:
-     background #0d1117, card #161b22, text #e6edf3, border #30363d.
-     Re-verified: 16.0:1 (text vs background), 14.6:1 (text vs card). */
-  --background: #0d1117;
-  --foreground: #e6edf3;
-  --card: #161b22;
-  --card-foreground: #e6edf3;
-  --popover: #161b22;
-  --popover-foreground: #e6edf3;
-  /* Step 500 of the same scale (:root) — lighter than light mode's 600
-     anchor for visibility on a dark surface, same hue. Hover/active step
-     one darker each time (500->600->700), same direction of travel as
-     light mode. Needs the same dark foreground text as light mode — a
-     light-mode-bright green fails just as badly with white text. */
-  --primary: #44c26c;
-  --primary-hover: #00ba58; /* step 600 */
-  --primary-active: #00813b; /* step 700 */
-  --primary-foreground: oklch(0.145 0 0);
-  /* Step 600 (the hover fill, L 0.69) is exactly light-mode's own base
-     shade, so dark text still wins there too (7.70:1) — only the active
-     fill (step 700, L 0.527) needs the swap to white (5.00:1). */
-  --primary-hover-foreground: oklch(0.145 0 0);
-  --primary-active-foreground: #ffffff;
-  /* One step lighter again than the new --card, same cool blue-gray family
-     GitHub's own border color (#30363d) sits in — keeps the ascending
-     background < card < secondary/muted/accent order. */
-  --secondary: #262c33;
-  --secondary-foreground: #e6edf3;
-  --muted: #262c33;
-  /* neutral-300 — re-verified against these flat surfaces: 12.8:1 vs
-     background, 11.7:1 vs card, 9.5:1 vs secondary/muted — all comfortable. */
-  --muted-foreground: oklch(0.87 0 0);
-  --accent: #262c33;
-  --accent-foreground: #e6edf3;
-  /* Unchanged from the last pass — re-verified against the new card:
-     12.58:1 (well past the 4.5:1 floor it was originally calibrated to
-     clear at 4.67:1 against a much lighter card). */
-  --destructive: #ffd1cf;
-  /* Exact requested value — a real solid border color now, not a
-     translucent white overlay. As a decorative divider (not the sole way
-     any control's boundary is conveyed) it's exempt from the 3:1 non-text
-     floor the same way the old translucent value was; measured 1.42:1
-     against the new card, consistent with that established carve-out. */
-  --border: #30363d;
-  --input: #30363d;
-  --ring: var(--primary);
-  /* Same +30° teal shift as light mode — re-checked against the new card:
-     9.85:1, still comfortable. */
-  --status-success: #22dbc0;
-  --status-warning: #fbbf24; /* amber-400 — re-checked, 10.36:1 against the new card */
-  --status-critical: var(--destructive);
-  --chart-1: #3987e5;
-  --chart-2: #d95926;
-  --chart-3: #9085e9;
-  --chart-4: #e66767;
-  --chart-5: var(--muted-foreground);
-  --sidebar: #161b22;
-  --sidebar-foreground: #e6edf3;
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: #e6edf3;
-  --sidebar-accent: #262c33;
-  --sidebar-accent-foreground: #e6edf3;
-  --sidebar-border: #30363d;
-  --sidebar-ring: var(--primary);
 }
 
 @layer base {
@@ -324,14 +179,14 @@
       transparent;
   }
   &::-webkit-scrollbar {
-    width: 8px;
+    width: var(--scrollbar-width);
   }
   &::-webkit-scrollbar-track {
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
     background-color: transparent;
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
   }
   &:hover::-webkit-scrollbar-thumb {
     background-color: color-mix(in oklch, var(--foreground) 25%, transparent);

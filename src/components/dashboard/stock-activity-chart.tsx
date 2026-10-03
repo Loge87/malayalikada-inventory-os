@@ -6,10 +6,12 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
+  Rectangle,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
+  type BarShapeProps,
 } from "recharts";
 
 import { formatShortDate } from "@/lib/format";
@@ -66,6 +68,29 @@ function ActivityTooltip({
   );
 }
 
+// recharts gives each <Bar> one fixed `radius` prop, not a per-datum one —
+// rounding only the LAST bucket ("adjusted") would leave most days flat-
+// topped, since adjusted is usually 0 and some earlier, nonzero bucket is
+// actually the visible top of that day's stack. This custom shape checks
+// each day's own payload and rounds the top corners only on whichever
+// segment is actually topmost (its first nonzero bucket scanning from the
+// end of MOVEMENT_BUCKET_ORDER) — every bar's true visible top is rounded,
+// every segment buried under another stays square, matching the standard
+// "rounded-top stacked bar" convention. 4 to match --radius-button, same
+// rounding weight as the rest of the rebrand rather than an arbitrary
+// chart-only value.
+function topRoundedBarShape(bucket: MovementBucket) {
+  return function BarShape(props: BarShapeProps) {
+    const payload = props.payload as ActivityDay | undefined;
+    const topVisibleBucket = payload
+      ? [...MOVEMENT_BUCKET_ORDER].reverse().find((b) => (payload[b] ?? 0) > 0)
+      : undefined;
+    const radius: [number, number, number, number] =
+      topVisibleBucket === bucket ? [4, 4, 0, 0] : [0, 0, 0, 0];
+    return <Rectangle {...props} radius={radius} />;
+  };
+}
+
 /**
  * Stock movement volume (not revenue) over time, grouped into the 4 buckets
  * a store owner thinks in (received/sold/transferred/adjusted — see
@@ -118,17 +143,13 @@ export function StockActivityChart({ data }: { data: ActivityDay[] }) {
               iconType="circle"
               iconSize={8}
             />
-            {MOVEMENT_BUCKET_ORDER.map((bucket, i) => (
+            {MOVEMENT_BUCKET_ORDER.map((bucket) => (
               <Bar
                 key={bucket}
                 dataKey={bucket}
                 stackId="activity"
                 fill={MOVEMENT_BUCKET_COLOR_VAR[bucket]}
-                radius={
-                  i === MOVEMENT_BUCKET_ORDER.length - 1
-                    ? [3, 3, 0, 0]
-                    : undefined
-                }
+                shape={topRoundedBarShape(bucket)}
                 maxBarSize={28}
               />
             ))}

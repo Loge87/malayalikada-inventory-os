@@ -292,7 +292,7 @@ export function StockOutHistory({
           <SlidersHorizontal className="size-3.5" />
           Filters
           {activeFilterCount > 0 ? (
-            <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+            <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-brand-accent text-[10px] font-semibold text-brand-accent-foreground">
               {activeFilterCount}
             </span>
           ) : null}
@@ -370,11 +370,11 @@ export function StockOutHistory({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-2 font-medium">Date</th>
+                    <th className="py-2 pr-2 pl-4 font-medium">Date</th>
                     <th className="py-2 pr-2 font-medium">Product</th>
                     <th className="py-2 pr-2 font-medium">Location</th>
                     <th className="py-2 pr-2 font-medium">Client</th>
-                    <th className="py-2 pr-2 text-right font-medium">Qty</th>
+                    <th className="py-2 pr-4 text-right font-medium">Qty</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -385,13 +385,13 @@ export function StockOutHistory({
                         "border-b border-border transition-colors last:border-0 hover:bg-muted/50"
                       )}
                     >
-                      <td className="py-2.5 pr-2 whitespace-nowrap text-muted-foreground">
+                      <td className="py-2.5 pr-2 pl-4 whitespace-nowrap text-muted-foreground">
                         {formatDateTime(row.createdAt)}
                       </td>
                       <td className="py-2.5 pr-2">{row.productLabel}</td>
                       <td className="py-2.5 pr-2">{row.locationName}</td>
                       <td className="py-2.5 pr-2">{row.clientName}</td>
-                      <td className="py-2.5 pr-2 text-right font-medium tabular-nums">
+                      <td className="py-2.5 pr-4 text-right font-medium tabular-nums">
                         {row.quantity}
                       </td>
                     </tr>

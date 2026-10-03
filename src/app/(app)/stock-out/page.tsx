@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/get-current-user";
+import { getCurrentOrganisationId } from "@/lib/organisation";
+import { loadPricingContext } from "@/lib/price-formula";
 import { StockOutLookup } from "@/components/stock-out/stock-out-lookup";
 import { StockOutTabs } from "@/components/stock-out/stock-out-tabs";
 import {
@@ -57,7 +59,9 @@ export default async function StockOutPage({
   // every location in the org. `locations!inner` turns the embed into an
   // actual join so `.eq("locations.is_active", true)` filters at the DB
   // level, not just on the client.
-  const [myLocationsRes, allClientsRes, allLocationsRes, allVariantsRes] =
+  const organisationId = await getCurrentOrganisationId(supabase);
+
+  const [myLocationsRes, allClientsRes, allLocationsRes, allVariantsRes, pricing] =
     await Promise.all([
       supabase
         .from("user_locations")
@@ -77,6 +81,7 @@ export default async function StockOutPage({
         .from("product_variants")
         .select("id, name, sku, products(name)")
         .order("name"),
+      loadPricingContext(supabase, organisationId),
     ]);
 
   if (myLocationsRes.error) throw myLocationsRes.error;
@@ -182,7 +187,9 @@ export default async function StockOutPage({
       <div className="order-1 sm:order-2">
         <StockOutTabs
           activeTab={activeTab}
-          recordContent={<StockOutLookup myLocations={myLocations} clients={clients} />}
+          recordContent={
+            <StockOutLookup myLocations={myLocations} clients={clients} pricing={pricing} />
+          }
           historyContent={
             <StockOutHistory
               stockOuts={stockOuts}

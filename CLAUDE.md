@@ -32,5 +32,10 @@ These rules are non-negotiable. Follow them in every change, no matter how small
 - No microservices, no Kubernetes, no AI/forecasting features yet.
 - No direct database triggers that silently mutate `inventory_levels` — all mutation goes through the one function.
 
+## Styling rules
+- New UI uses classes from `src/app/ui.css` and variables from `src/app/theme.css` — those two files are the single source of truth for every color, radius, shadow, font, and spacing value in the app.
+- No hard-coded hex, `rgb()`/`rgba()`, or raw Tailwind palette colors (`bg-emerald-600`, `text-red-500`, etc.) in components. Read from a theme.css variable (directly, or via a Tailwind utility that already maps to one — `bg-primary`, `text-muted-foreground`) instead.
+- If a needed element style doesn't exist yet, add a named class to `ui.css` instead of writing a one-off Tailwind string at the call site. See README.md's UI classes cheat sheet for what already exists before adding something new.
+
 ## When in doubt
 Ask before writing code that touches `inventory_levels` schema or RLS policies directly. Everything else, use best judgment and keep it simple — this is a 7-day MVP, not the final architecture.

@@ -5,8 +5,8 @@ import { getCurrentUser } from "@/lib/supabase/get-current-user";
 import {
   getCurrentOrganisationId,
   getOrganisationDefaultCurrency,
-  getOrganisationPriceSettings,
 } from "@/lib/organisation";
+import { loadPricingContext } from "@/lib/price-formula";
 import { DEFAULT_CURRENCY } from "@/app/(app)/products/constants";
 import { loadProducts } from "@/app/(app)/products/data";
 import { AddProductMenu } from "@/components/products/add-product-menu";
@@ -61,13 +61,11 @@ export default async function ProductsPage({
   }
 
   const locations: LocationOption[] = locationsRes.data ?? [];
-  const [defaultCurrency, priceSettings] = await Promise.all([
+  const [defaultCurrency, pricing] = await Promise.all([
     organisationId
       ? getOrganisationDefaultCurrency(supabase, organisationId)
       : Promise.resolve(DEFAULT_CURRENCY),
-    organisationId
-      ? getOrganisationPriceSettings(supabase, organisationId)
-      : Promise.resolve(null),
+    loadPricingContext(supabase, organisationId),
   ]);
 
   // Re-scope to one location's actual stock, not the cross-location
@@ -131,7 +129,7 @@ export default async function ProductsPage({
         products={products}
         locations={locations}
         defaultCurrency={defaultCurrency}
-        priceSettings={priceSettings}
+        pricing={pricing}
         initialStatusFilter={initialStatusFilter}
         selectedLocationId={location ?? null}
         emptyMessage={location ? "No stock at this location" : "No products yet"}

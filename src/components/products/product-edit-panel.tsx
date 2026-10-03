@@ -14,7 +14,7 @@ import { ProductEditContent } from "@/components/products/product-edit-content";
 import type { EditableProduct } from "@/components/products/products-table";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import type { Currency } from "@/app/(app)/products/constants";
-import type { OrganisationPriceSettings } from "@/lib/organisation";
+import type { PricingContext } from "@/lib/price-formula";
 
 /**
  * Desktop-width edit surface: a persistent panel that's part of the page's
@@ -30,19 +30,32 @@ export function ProductEditPanel({
   product,
   locations,
   defaultCurrency,
-  priceSettings,
+  pricing,
   onClose,
 }: {
   product: EditableProduct;
   locations: LocationOption[];
   defaultCurrency: Currency;
-  priceSettings: OrganisationPriceSettings | null;
+  pricing: PricingContext;
   onClose: () => void;
 }) {
   return (
     <Card
       elevated
-      className="sticky top-6 max-h-[calc(100vh-3rem)] animate-in overflow-y-auto fade-in slide-in-from-right-4 scrollbar-hover-thin duration-300"
+      // `.side-panel` (ui.css) sets overflow-y: auto, but ui.css loads into
+      // Tailwind's "components" layer (globals.css) — strictly LOWER
+      // priority than Tailwind's own "utilities" layer, so it can never
+      // override the base Card component's own `overflow-hidden` utility
+      // (ui/card.tsx). That made this panel silently uncappable-scroll
+      // (clipped, not scrollable) the moment its content ever grew past
+      // max-h-[calc(100vh-3rem)] — which it only recently started doing
+      // (Price Formula's calculated-price block, charm pricing, etc.).
+      // `overflow-y-auto` here is a genuine Tailwind utility, same layer as
+      // overflow-hidden, so it wins on the merits (Tailwind orders the
+      // longhand overflow-x/-y utilities after the overflow shorthand) —
+      // kept `.side-panel` for its documentation value, but the actual
+      // scroll behavior no longer depends on it.
+      className="side-panel sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto animate-in fade-in slide-in-from-right-4 scrollbar-hover-thin duration-300"
     >
       {/* Absolutely positioned against the panel's own corner (the same
           top-3 right-3 convention Dialog/Sheet's close button already
@@ -71,7 +84,7 @@ export function ProductEditPanel({
           product={product}
           locations={locations}
           defaultCurrency={defaultCurrency}
-          priceSettings={priceSettings}
+          pricing={pricing}
           onDeleted={onClose}
         />
       </CardContent>

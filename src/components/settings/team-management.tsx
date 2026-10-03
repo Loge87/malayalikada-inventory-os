@@ -49,8 +49,7 @@ const ROLE_ITEMS: Record<Role, string> = {
 
 /** A plain checkbox list, not a searchable combobox — an organisation's
  *  location count is small (a handful of stores), so search would be
- *  overhead without benefit. Fully controlled (checked/onCheckedChange),
- *  same convention as price-settings-form's "use same as retail" checkbox. */
+ *  overhead without benefit. Fully controlled (checked/onCheckedChange). */
 function LocationCheckboxes({
   idPrefix,
   locations,
@@ -65,12 +64,17 @@ function LocationCheckboxes({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+    <div className="flex flex-wrap gap-2">
       {locations.map((location) => (
         <label
           key={location.id}
           htmlFor={`${idPrefix}-${location.id}`}
-          className="flex items-center gap-2 text-sm"
+          // Real padding + a hover fill, not just the checkbox's own tiny
+          // box — the whole row is the click target (htmlFor already
+          // forwards a click anywhere in this label to the checkbox; this
+          // just makes that area visible and comfortably sized instead of
+          // being invisible and text-tight).
+          className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-muted"
         >
           <Checkbox
             id={`${idPrefix}-${location.id}`}
@@ -308,8 +312,8 @@ function MemberRow({
   }
 
   return (
-    <li className="flex flex-col gap-2 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <li className="flex flex-col gap-4 py-5 pr-4 pl-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0">
           <span className="block truncate font-medium">
             {member.email}
@@ -415,7 +419,10 @@ function MemberRow({
       ) : null}
 
       {canManageLocations && locations.length > 0 ? (
-        <div className="flex flex-col gap-1">
+        // A hairline top border + its own top padding (on top of the <li>'s
+        // own gap-4) — reads as a distinct section under the member-info/
+        // role row above, not just another line cramped into the same block.
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
           <span className="text-caption">
             Locations
             {/* Purely informational — never disables the checkboxes below,
@@ -460,7 +467,7 @@ export function TeamManagement({
   const ownerCount = members.filter((m) => m.role === "owner").length;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       {canManageRoles ? <InviteMemberForm locations={locations} /> : null}
 
       <Card>

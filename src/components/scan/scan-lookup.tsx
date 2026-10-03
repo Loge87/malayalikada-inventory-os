@@ -6,12 +6,11 @@ import { useCallback, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatMoney } from "@/lib/format";
 import { getStockStatus } from "@/lib/stock-status";
-import { applyPriceSettings, resolveWholesaleRates } from "@/lib/price-calculation";
+import { computeDisplayPrice, type PricingContext } from "@/lib/price-formula";
 import {
   findActiveVariantsByBarcode,
   type BarcodeMatchVariant,
 } from "@/lib/product-lookup";
-import type { OrganisationPriceSettings } from "@/lib/organisation";
 import { BarcodeInput } from "@/components/barcode/barcode-input";
 import { CameraScanButton } from "@/components/barcode/camera-scan-button";
 import type { ScanSource } from "@/components/barcode/types";
@@ -60,11 +59,12 @@ type HistoryEntry = {
 };
 
 export function ScanLookup({
-  priceSettings,
+  pricing,
 }: {
-  /** The organisation's saved Price Settings rates, or null if never saved
-   *  — drives the found variant's calculated Retail/Pack-box price. */
-  priceSettings: OrganisationPriceSettings | null;
+  /** The organisation's active price formulas + the variables they
+   *  reference — drives the found variant's calculated Retail/Wholesale
+   *  price (one shared evaluateFormula call via computeDisplayPrice). */
+  pricing: PricingContext;
 }) {
   const supabase = useRef(createClient()).current;
   const requestId = useRef(0);
@@ -140,7 +140,7 @@ export function ScanLookup({
         <CardContent className="flex flex-col gap-4">
           <BarcodeInput onScan={handleScan} />
           <CameraScanButton onScan={handleScan} />
-          <LookupResult lookup={lookup} priceSettings={priceSettings} />
+          <LookupResult lookup={lookup} pricing={pricing} />
         </CardContent>
       </Card>
 
@@ -235,10 +235,10 @@ function GroupHeadingRow({ label }: { label: string }) {
 
 function LookupResult({
   lookup,
-  priceSettings,
+  pricing,
 }: {
   lookup: Lookup;
-  priceSettings: OrganisationPriceSettings | null;
+  pricing: PricingContext;
 }) {
   if (lookup.state === "idle") {
     return (
@@ -290,24 +290,15 @@ function LookupResult({
   const isActive = true;
   const total = variant.inventory_levels.reduce((sum, l) => sum + l.on_hand, 0);
   const totalStatus = getStockStatus(total, isActive);
-  // Retail applies retail's own rates to unit_price (selling one at a
-  // time). Wholesale applies its own rates to pack_price (selling by the
-  // case) — unless "use same as retail" is checked, in which case
-  // resolveWholesaleRates() picks retail's rates instead, live. pack_price
-  // itself is shown as-is, not run through either multiplier.
-  const retailPrice = priceSettings
-    ? applyPriceSettings(variant.unit_price, priceSettings.retail)
-    : null;
-  const wholesalePrice = priceSettings
-    ? applyPriceSettings(
-        variant.pack_price,
-        resolveWholesaleRates(
-          priceSettings.retail,
-          priceSettings.wholesale,
-          priceSettings.wholesaleUsesSameAsRetail
-        )
-      )
-    : null;
+  // Retail computes live from unit_price using the active Retail formula;
+  // wholesale from pack_price using the active Wholesale formula — same
+  // shared evaluateFormula call path (computeDisplayPrice) every other
+  // price display uses. pack_price itself is shown as-is below, not run
+  // through either formula.
+  const retail = computeDisplayPrice(variant.unit_price, pricing.activeFormulas.retail, pricing.variables);
+  const wholesale = computeDisplayPrice(variant.pack_price, pricing.activeFormulas.wholesale, pricing.variables);
+  const retailPrice = retail.kind === "computed" ? retail.amount : null;
+  const wholesalePrice = wholesale.kind === "computed" ? wholesale.amount : null;
 
   const byType = (type: string) =>
     variant.inventory_levels
@@ -343,11 +334,13 @@ function LookupResult({
       wholesalePrice != null ||
       variant.unit_price != null ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
-          {retailPrice != null ? (
+          {retail.kind === "computed" ? (
             <span className="font-medium">
-              {formatMoney(retailPrice, variant.currency)} retail
+              {formatMoney(retail.amount, variant.currency)} retail
             </span>
-          ) : null}
+          ) : (
+            <span className="text-caption">No pricing formula set yet (retail)</span>
+          )}
           {variant.pack_price != null ? (
             <span>
               {formatMoney(variant.pack_price, variant.currency)} / pack
@@ -356,9 +349,11 @@ function LookupResult({
                 : ""}
             </span>
           ) : null}
-          {wholesalePrice != null ? (
-            <span>{formatMoney(wholesalePrice, variant.currency)} wholesale</span>
-          ) : null}
+          {wholesale.kind === "computed" ? (
+            <span>{formatMoney(wholesale.amount, variant.currency)} wholesale</span>
+          ) : (
+            <span className="text-caption">No pricing formula set yet (wholesale)</span>
+          )}
           {variant.unit_price != null ? (
             <span className="text-muted-foreground">
               {formatMoney(variant.unit_price, variant.currency)} /{" "}
@@ -367,10 +362,10 @@ function LookupResult({
           ) : null}
         </div>
       ) : null}
-      {!priceSettings ? (
+      {retail.kind === "not_set" && wholesale.kind === "not_set" ? (
         <p className="text-xs text-muted-foreground">
-          <Link href="/settings" className="underline">
-            Set price settings
+          <Link href="/settings?tab=price-settings" className="underline">
+            Set up pricing
           </Link>{" "}
           to see retail and wholesale price.
         </p>

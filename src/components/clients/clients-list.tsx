@@ -83,7 +83,7 @@ function ClientRow({
       aria-selected={isSelected}
       className={cn(
         "cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50",
-        isSelected && "bg-primary/5 hover:bg-primary/10"
+        isSelected && "bg-brand-accent/5 hover:bg-brand-accent/10"
       )}
     >
       <td className="py-3 pr-2">

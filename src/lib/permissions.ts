@@ -15,13 +15,15 @@ export type Permission =
   | "integrations:view"
   | "audit:view"
   | "roles:manage"
-  | "pricing:manage";
+  | "pricing:manage"
+  | "financials:view";
 
 // staff: view everything, record movements (sales/adjustments/transfers/
 //   receiving/stock counts), scan/add products.
 // admin: staff + delete products, manage locations, manage clients, view
 //   integration logs, view the audit log, manage price settings (CGST/SGST/
-//   margin/charges).
+//   margin/charges), view sensitive financial figures (landed cost, USD
+//   conversion — dashboard's Stock by Location table).
 // owner: admin + manage user roles (no UI for this yet — see roles.ts).
 const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   staff: new Set([]),
@@ -32,6 +34,7 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "integrations:view",
     "audit:view",
     "pricing:manage",
+    "financials:view",
   ]),
   owner: new Set([
     "products:delete",
@@ -41,6 +44,7 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "audit:view",
     "roles:manage",
     "pricing:manage",
+    "financials:view",
   ]),
 };
 

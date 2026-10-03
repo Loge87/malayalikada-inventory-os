@@ -19,7 +19,7 @@
 create or replace function public.is_org_owner_or_admin(p_organisation_id uuid)
 returns boolean
 language sql
-stable
+stable  
 security definer
 set search_path to 'public'
 as $$

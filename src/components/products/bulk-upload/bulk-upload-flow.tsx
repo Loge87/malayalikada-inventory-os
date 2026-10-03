@@ -125,7 +125,7 @@ export function BulkUploadFlow() {
                   className={cn(
                     "flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors",
                     isDraggingOver
-                      ? "border-primary bg-primary/5"
+                      ? "border-brand-accent bg-brand-accent/5"
                       : "border-border hover:bg-muted/50"
                   )}
                 >

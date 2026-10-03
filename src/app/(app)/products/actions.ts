@@ -133,7 +133,7 @@ type Pricing = {
 
 /** A non-negative-or-empty price field, shared by pack/unit price — both
  * are optional and validated identically. retail_price and wholesale_price
- * aren't among them: both are calculated (src/lib/price-calculation.ts),
+ * aren't among them: both are calculated (src/lib/price-formula.ts),
  * never entered. */
 function parseOptionalPrice(
   formData: FormData,

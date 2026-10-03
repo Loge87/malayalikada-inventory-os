@@ -133,13 +133,26 @@ export function RevenueChart({
               {currencies.map((currency, i) => (
                 <Area
                   key={currency}
+                  // monotone (not natural) deliberately kept — it can't
+                  // overshoot the data into a peak/dip that isn't really
+                  // there, which matters for a figure already labeled
+                  // "estimated" (see this component's own doc comment).
+                  // Still a smooth curve, just not an embellished one.
                   type="monotone"
                   dataKey={currency}
                   name={currency}
                   stroke={SERIES_COLOR_VARS[i % SERIES_COLOR_VARS.length]}
+                  strokeWidth={2}
+                  strokeLinecap="round"
                   fill={SERIES_COLOR_VARS[i % SERIES_COLOR_VARS.length]}
                   fillOpacity={0.2}
-                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{
+                    r: 4,
+                    strokeWidth: 2,
+                    stroke: "var(--card)",
+                    fill: SERIES_COLOR_VARS[i % SERIES_COLOR_VARS.length],
+                  }}
                 />
               ))}
             </AreaChart>

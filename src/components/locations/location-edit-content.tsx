@@ -92,10 +92,11 @@ export function LocationEditContent({ location }: { location: EditableLocation }
             />
             Active
           </label>
-          {/* A real, always-submitted checkbox input — see
-              price-settings-form.tsx's wholesaleUsesSameAsRetail for the same
-              pattern and its rationale: Base UI's Checkbox above isn't
-              guaranteed to expose a native input under this exact name. */}
+          {/* A real, always-submitted checkbox input, kept separate from
+              Base UI's Checkbox above — that's a controlled primitive, not
+              guaranteed to expose a native input under this exact name, so
+              this is what the form action's formData.get("isActive") === "on"
+              check actually relies on. */}
           <input
             type="checkbox"
             name="isActive"

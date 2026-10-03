@@ -31,6 +31,14 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/nav/theme-toggle";
 import { cn } from "@/lib/utils";
 
+type NavSection = "general" | "management" | "settings";
+
+const SECTION_LABEL: Record<NavSection, string> = {
+  general: "General",
+  management: "Management",
+  settings: "Settings",
+};
+
 type NavLink = {
   href: string;
   label: string;
@@ -44,6 +52,11 @@ type NavLink = {
    *  shows up at all; `disabled` only controls whether a shown item is
    *  clickable. See the TEMP block below. */
   disabled?: boolean;
+  /** Purely a visual grouping label (.sidebar-section-label) — doesn't
+   *  affect href, permission, or render order within NAV_LINKS itself;
+   *  only which heading a link falls under when the sidebar groups by
+   *  section. */
+  section: NavSection;
 };
 
 // Single source of truth for every authenticated route — the desktop sidebar,
@@ -53,55 +66,73 @@ type NavLink = {
 // Enabled items first, disabled ones grouped at the bottom (NavRow renders
 // the latter as inert with a "Soon" badge) — order here is render order.
 const NAV_LINKS: NavLink[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/scan", label: "Scan", icon: ScanLine },
-  { href: "/stock-out", label: "Stock Out", icon: PackageMinus },
-  { href: "/products", label: "Products", icon: Package },
-  { href: "/locations", label: "Locations", icon: MapPin },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "general" },
+  { href: "/scan", label: "Scan", icon: ScanLine, section: "general" },
+  { href: "/stock-out", label: "Stock Out", icon: PackageMinus, section: "general" },
+  { href: "/products", label: "Products", icon: Package, section: "general" },
+  { href: "/locations", label: "Locations", icon: MapPin, section: "management" },
   {
     href: "/clients",
     label: "Clients",
     icon: Handshake,
     permission: "clients:manage",
+    section: "management",
   },
-  { href: "/transfers", label: "Transfers", icon: ArrowRightLeft },
+  { href: "/transfers", label: "Transfers", icon: ArrowRightLeft, section: "management" },
   {
     href: "/settings/team",
     label: "Team",
     icon: Users,
     permission: "roles:manage",
+    section: "management",
   },
   {
     href: "/settings",
     label: "Settings",
     icon: SettingsIcon,
     permission: "pricing:manage",
+    section: "settings",
   },
 
   // --- TEMP: disabled for the client demo, not a permanent change ---
   // These are real, working, tested features — just held back so the demo's
   // first impression stays focused. Revert by deleting `disabled: true`
   // from each (and moving them back up wherever fits) once the demo's done.
-  { href: "/movements", label: "Movements", icon: History, disabled: true },
+  {
+    href: "/movements",
+    label: "Movements",
+    icon: History,
+    disabled: true,
+    section: "management",
+  },
   {
     href: "/purchase-orders",
     label: "Purchase Orders",
     icon: ClipboardList,
     disabled: true,
+    section: "management",
   },
   {
     href: "/stock-counts",
     label: "Stock Counts",
     icon: ClipboardCheck,
     disabled: true,
+    section: "management",
   },
-  { href: "/batches", label: "Batches", icon: Layers, disabled: true },
+  {
+    href: "/batches",
+    label: "Batches",
+    icon: Layers,
+    disabled: true,
+    section: "management",
+  },
   {
     href: "/integrations",
     label: "Integrations",
     icon: Plug,
     permission: "integrations:view",
     disabled: true,
+    section: "settings",
   },
   {
     href: "/audit-log",
@@ -109,6 +140,7 @@ const NAV_LINKS: NavLink[] = [
     icon: ScrollText,
     permission: "audit:view",
     disabled: true,
+    section: "settings",
   },
   // --- END TEMP ---
 ];
@@ -154,7 +186,7 @@ function NavRow({
         aria-disabled="true"
         title="Coming soon"
         className={cn(
-          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground/50 select-none",
+          "nav-item-disabled flex items-center gap-2.5 rounded-lg px-(--space-nav-item-padding-x) py-(--space-nav-item-padding-y) text-sm select-none",
           className
         )}
       >
@@ -173,16 +205,60 @@ function NavRow({
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-200 hover:translate-x-0.5",
-        active
-          ? "bg-primary/10 font-medium text-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        "group flex items-center gap-2.5 rounded-lg px-(--space-nav-item-padding-x) py-(--space-nav-item-padding-y) text-sm transition-all duration-200 hover:translate-x-0.5",
+        active ? "nav-item-active" : "nav-item",
         className
       )}
     >
       <Icon className="size-4 shrink-0 transition-transform duration-200 group-hover:scale-110" />
       {link.label}
     </Link>
+  );
+}
+
+const SECTION_ORDER: NavSection[] = ["general", "management", "settings"];
+
+/** Groups an already-filtered link list by `section`, fixed order, skipping
+ *  any section with nothing visible in it (e.g. a staff role with no
+ *  "settings" links) — so a label never renders over an empty group. */
+function groupBySection(links: NavLink[]): { section: NavSection; links: NavLink[] }[] {
+  return SECTION_ORDER.map((section) => ({
+    section,
+    links: links.filter((link) => link.section === section),
+  })).filter((group) => group.links.length > 0);
+}
+
+/** Renders a link list as labeled section groups (.sidebar-section-label
+ *  above each) — shared by the desktop sidebar and the mobile overflow
+ *  panel so the grouping itself isn't duplicated between the two. */
+function NavGroups({
+  links,
+  pathname,
+  onClick,
+  itemClassName,
+}: {
+  links: NavLink[];
+  pathname: string;
+  onClick?: () => void;
+  itemClassName?: string;
+}) {
+  return (
+    <>
+      {groupBySection(links).map((group) => (
+        <div key={group.section} className="flex flex-col gap-(--space-nav-gap)">
+          <span className="sidebar-section-label">{SECTION_LABEL[group.section]}</span>
+          {group.links.map((link) => (
+            <NavRow
+              key={link.href}
+              link={link}
+              active={isActivePath(pathname, link.href)}
+              onClick={onClick}
+              className={itemClassName}
+            />
+          ))}
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -203,7 +279,7 @@ function ProfileSection({
   role: string | null;
 }) {
   return (
-    <div className="flex flex-col gap-2 border-t border-border p-3">
+    <div className="profile-block flex flex-col gap-2 border-t p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-sm">{userEmail}</p>
@@ -251,20 +327,14 @@ export function AppNav({
       {/* Desktop sidebar — sticky + viewport-height, so it stays fixed to the
           screen and only the main content scrolls, rather than the sidebar
           scrolling away with a tall page. */}
-      <aside className="hidden shrink-0 flex-col border-r border-border bg-muted/30 md:sticky md:top-0 md:flex md:h-screen md:w-56 md:overflow-y-auto">
+      <aside className="sidebar hidden shrink-0 flex-col border-r md:sticky md:top-0 md:flex md:h-screen md:w-56 md:overflow-y-auto">
         <div className="p-4">
           <span className="font-heading text-sm font-semibold">
             Malayalikada
           </span>
         </div>
-        <nav className="flex flex-1 flex-col gap-1 px-2">
-          {visibleLinks.map((link) => (
-            <NavRow
-              key={link.href}
-              link={link}
-              active={isActivePath(pathname, link.href)}
-            />
-          ))}
+        <nav className="flex flex-1 flex-col gap-3 px-2">
+          <NavGroups links={visibleLinks} pathname={pathname} />
         </nav>
         <ProfileSection userEmail={userEmail} role={role} />
       </aside>
@@ -285,7 +355,7 @@ export function AppNav({
       </header>
 
       {/* Mobile bottom tab bar — plain destinations, no second menu trigger. */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="bottom-nav fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t pb-[env(safe-area-inset-bottom)] md:hidden">
         {primaryLinks.map((link) => {
           const active = isActivePath(pathname, link.href);
           const Icon = link.icon;
@@ -294,10 +364,7 @@ export function AppNav({
               key={link.href}
               href={link.href}
               aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex flex-col items-center gap-0.5 py-2 text-[11px]",
-                active ? "text-primary" : "text-muted-foreground"
-              )}
+              className="bottom-nav-item flex flex-col items-center gap-0.5 py-2 text-[11px]"
             >
               <Icon className="size-5" />
               {link.label}
@@ -320,16 +387,13 @@ export function AppNav({
               <X className="size-5" />
             </button>
           </div>
-          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
-            {overflowLinks.map((link) => (
-              <NavRow
-                key={link.href}
-                link={link}
-                active={isActivePath(pathname, link.href)}
-                onClick={() => setMenuOpen(false)}
-                className="px-3 py-2"
-              />
-            ))}
+          <nav className="flex flex-1 flex-col gap-3 overflow-y-auto p-2">
+            <NavGroups
+              links={overflowLinks}
+              pathname={pathname}
+              onClick={() => setMenuOpen(false)}
+              itemClassName="px-3 py-2"
+            />
           </nav>
           <ProfileSection userEmail={userEmail} role={role} />
         </div>

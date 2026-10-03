@@ -18,7 +18,7 @@ import {
 import { ProductEditPanel } from "@/components/products/product-edit-panel";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import type { Currency } from "@/app/(app)/products/constants";
-import type { OrganisationPriceSettings } from "@/lib/organisation";
+import type { PricingContext } from "@/lib/price-formula";
 
 /**
  * Owns the one piece of state ProductsTable and the edit panel both need to
@@ -35,7 +35,7 @@ export function ProductsPageContent({
   products,
   locations,
   defaultCurrency,
-  priceSettings,
+  pricing,
   initialStatusFilter,
   selectedLocationId,
   emptyMessage,
@@ -43,7 +43,7 @@ export function ProductsPageContent({
   products: EditableProduct[];
   locations: LocationOption[];
   defaultCurrency: Currency;
-  priceSettings: OrganisationPriceSettings | null;
+  pricing: PricingContext;
   initialStatusFilter: StockStatus | null;
   /** From /products?location=<id> — already applied server-side to
    *  `products` (page.tsx); passed through so ProductsTable's location
@@ -83,7 +83,7 @@ export function ProductsPageContent({
                 key={selectedLocationId ?? "all-locations"}
                 products={products}
                 locations={locations}
-                priceSettings={priceSettings}
+                pricing={pricing}
                 initialStatusFilter={initialStatusFilter}
                 selectedLocationId={selectedLocationId}
                 selectedProductId={selectedProduct?.id ?? null}
@@ -102,7 +102,7 @@ export function ProductsPageContent({
             product={selectedProduct}
             locations={locations}
             defaultCurrency={defaultCurrency}
-            priceSettings={priceSettings}
+            pricing={pricing}
             onClose={() => setSelectedProductId(null)}
           />
         </div>

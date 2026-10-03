@@ -25,9 +25,12 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 }
 
 const TYPE_ICON_CLASS: Record<string, string> = {
-  success: "text-status-success",
-  error: "text-destructive",
-  info: "text-primary",
+  success: "toast-success",
+  error: "toast-error",
+  // Not currently used anywhere (only success/error toasts exist today).
+  // Plain --foreground, not text-brand-accent — the current brand color
+  // reads at ~1.6:1 against the toast's light-mode surface, illegible.
+  info: "text-foreground",
 }
 
 /** Mount once, near the root — renders nothing visible until a toast is
@@ -62,7 +65,7 @@ function ToastList() {
         toast={toast}
         swipeDirection={["down", "right"]}
         className={cn(
-          "relative flex w-full items-start gap-3 rounded-xl bg-popover p-4 text-sm text-popover-foreground shadow-elevated ring-1 ring-foreground/10 transition-all select-none",
+          "toast relative flex w-full items-start gap-3 p-4 text-sm transition-all select-none",
           "data-starting-style:translate-y-2 data-starting-style:opacity-0",
           "data-ending-style:opacity-0",
           "data-[swipe-direction=right]:translate-x-(--toast-swipe-movement-x) data-[swipe-direction=down]:translate-y-(--toast-swipe-movement-y)"

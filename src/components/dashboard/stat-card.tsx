@@ -1,21 +1,38 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 
-export type StatTone = "primary" | "success" | "warning" | "critical";
+export type StatTrend = {
+  label: string;
+  direction: "up" | "down";
+};
 
-// The icon badge's tint and icon color both read from the same CSS variable
-// per tone, so the badge is always a muted (~12%) wash of the exact color
-// the icon itself uses — never a mismatched pair, and re-skinnable in one
-// place (globals.css) like every other status color in the app.
+// Renamed from "primary" — this never meant "the --primary button color"
+// even before this correction (it read --brand-accent), and the name was
+// actively misleading once --primary became a real hue again in the violet
+// rebrand. "blue" names what it actually resolves to.
+export type StatTone = "blue" | "success" | "warning" | "critical";
+
+// The icon badge's own gradient/shadow tint AND the icon glyph itself both
+// read from this one per-tone variable — a rotation of visually distinct
+// colors (theme.css's ICON BADGES group), not a wash of one brand color.
+// No --primary or --brand-accent reference anywhere here by design (see
+// CLAUDE.md-adjacent correction: icon badges stay out of the brand-wash
+// scope entirely now) — every value is --badge-*, itself mostly an alias
+// of an already-validated color elsewhere (chart/status tokens), re-
+// skinnable in one place. No separate icon-vs-badge split either (unlike
+// the prior pass): --badge-blue (the old "primary" tone's replacement)
+// reads fine directly against its own wash in both modes (3.5-4.0:1),
+// unlike the very light/bright green it replaced (1.4:1), so the darker-
+// step workaround that needed is no longer necessary.
 const TONE_VAR: Record<StatTone, string> = {
-  primary: "var(--primary)",
-  success: "var(--status-success)",
-  warning: "var(--status-warning)",
-  critical: "var(--status-critical)",
+  blue: "var(--badge-blue)",
+  success: "var(--badge-teal)",
+  warning: "var(--badge-amber)",
+  critical: "var(--badge-red)",
 };
 
 /**
@@ -28,7 +45,7 @@ export function StatCard({
   value,
   href,
   icon: Icon,
-  tone = "primary",
+  tone = "blue",
   trend,
   className,
 }: {
@@ -40,9 +57,13 @@ export function StatCard({
    *  category (this stat is "good news" vs "needs attention"), independent
    *  of any StockStatusPill on the same page. */
   tone?: StatTone;
-  /** A small, honestly-derived note — omitted rather than fabricated when
-   *  there's nothing meaningful to show (see dashboard/page.tsx). */
-  trend?: string;
+  /** A small, honestly-derived comparison chip — omitted rather than
+   *  fabricated when there's nothing meaningful to show (see
+   *  dashboard/page.tsx). `direction` picks the pill color/arrow; `label`
+   *  is whatever real figure backs it (a signed dollar delta today — not
+   *  necessarily a percentage, unlike the "12%" reference example, since
+   *  nothing here computes a percentage change to show honestly). */
+  trend?: StatTrend;
   className?: string;
 }) {
   const colorVar = TONE_VAR[tone];
@@ -59,22 +80,38 @@ export function StatCard({
           className="flex size-9 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 ease-out group-hover:scale-110"
           style={{
             backgroundImage: `radial-gradient(circle at 30% 25%, color-mix(in oklch, ${colorVar} 26%, transparent), color-mix(in oklch, ${colorVar} 10%, transparent))`,
-            boxShadow: `0 0 0 1px color-mix(in oklch, ${colorVar} 12%, transparent), 0 4px 12px -2px color-mix(in oklch, ${colorVar} 25%, transparent)`,
+            // Flat against its own tinted background by design — just the
+            // hairline 1px ring for shape definition, no drop-shadow layer
+            // (the old 2nd box-shadow layer, offset+blur, read as a raised
+            // shadow and has been removed).
+            boxShadow: `0 0 0 1px color-mix(in oklch, ${colorVar} 12%, transparent)`,
           }}
         >
           <Icon className="size-4.5" style={{ color: colorVar }} />
         </span>
       ) : null}
       <div>
-        <span className="block text-2xl font-bold tabular-nums break-words md:text-3xl">
+        <span className="stat-value block break-words md:text-3xl">
           {value}
         </span>
-        <span className="mt-0.5 block text-xs text-muted-foreground md:text-sm">
+        <span className="stat-label mt-0.5 block md:text-sm">
           {label}
         </span>
       </div>
       {trend ? (
-        <span className="text-xs text-muted-foreground">{trend}</span>
+        <span
+          className={cn(
+            "trend-pill",
+            trend.direction === "up" ? "trend-pill-up" : "trend-pill-down"
+          )}
+        >
+          {trend.direction === "up" ? (
+            <ArrowUpRight className="size-3" />
+          ) : (
+            <ArrowDownRight className="size-3" />
+          )}
+          {trend.label}
+        </span>
       ) : null}
     </CardContent>
   );
@@ -85,7 +122,7 @@ export function StatCard({
         <Card
           size="sm"
           elevated
-          className={cn("h-full hover:-translate-y-1", className)}
+          className={cn("stat-card hover:-translate-y-1", className)}
         >
           {content}
         </Card>
@@ -94,7 +131,7 @@ export function StatCard({
   }
 
   return (
-    <Card size="sm" elevated className={cn("h-full", className)}>
+    <Card size="sm" elevated className={cn("stat-card", className)}>
       {content}
     </Card>
   );

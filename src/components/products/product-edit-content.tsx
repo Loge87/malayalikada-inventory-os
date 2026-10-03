@@ -11,8 +11,7 @@ import {
 } from "@/app/(app)/products/actions";
 import { VARIANT_UNITS, type Currency } from "@/app/(app)/products/constants";
 import { formatMoney } from "@/lib/format";
-import { applyPriceSettings, resolveWholesaleRates } from "@/lib/price-calculation";
-import type { OrganisationPriceSettings } from "@/lib/organisation";
+import { computeDisplayPrice, type PricingContext } from "@/lib/price-formula";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -112,54 +111,54 @@ function ProductFieldsForm({ product }: { product: EditableProduct }) {
 
 function CalculatedPrices({
   variant,
-  priceSettings,
+  pricing,
 }: {
   variant: EditableVariant;
-  priceSettings: OrganisationPriceSettings | null;
+  pricing: PricingContext;
 }) {
-  if (!priceSettings) {
+  // Retail computes live from unit_price using the active Retail formula;
+  // wholesale from pack_price using the active Wholesale formula — each via
+  // the one shared evaluateFormula call path (computeDisplayPrice). A
+  // formula_type with no active row yet (never applied) renders its own
+  // "No pricing formula set yet" line rather than a broken calculation.
+  const retail = computeDisplayPrice(variant.unitPrice, pricing.activeFormulas.retail, pricing.variables);
+  const wholesale = computeDisplayPrice(variant.packPrice, pricing.activeFormulas.wholesale, pricing.variables);
+
+  if (retail.kind === "not_set" && wholesale.kind === "not_set") {
     return (
       <p className="rounded-md bg-status-warning/10 px-3 py-2 text-xs text-status-warning">
-        <Link href="/settings" className="font-medium underline">
-          Set price settings
+        <Link href="/settings?tab=price-settings" className="font-medium underline">
+          Set up pricing
         </Link>{" "}
         to calculate retail and wholesale price.
       </p>
     );
   }
 
-  // Retail applies its own Price Settings rates to unit_price (selling one
-  // at a time). Wholesale applies its own rates to pack_price (selling by
-  // the case) — unless "use same as retail" is checked, in which case
-  // resolveWholesaleRates() picks retail's rates instead, live. pack_price
-  // itself stays a plain editable input above, not run through either
-  // multiplier — see VariantPricingFields.
-  const retailPrice = applyPriceSettings(variant.unitPrice, priceSettings.retail);
-  const wholesalePrice = applyPriceSettings(
-    variant.packPrice,
-    resolveWholesaleRates(
-      priceSettings.retail,
-      priceSettings.wholesale,
-      priceSettings.wholesaleUsesSameAsRetail
-    )
-  );
-
   return (
     <div className="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2">
       <span className="text-xs font-medium text-muted-foreground">
-        Calculated from Price Settings
+        Calculated from active price formula
       </span>
       <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
         <span>
           Retail:{" "}
           <span className="font-medium tabular-nums">
-            {retailPrice != null ? formatMoney(retailPrice, variant.currency) : "—"}
+            {retail.kind === "computed" ? (
+              formatMoney(retail.amount, variant.currency)
+            ) : (
+              <span className="text-caption">No pricing formula set yet</span>
+            )}
           </span>
         </span>
         <span>
           Wholesale:{" "}
           <span className="font-medium tabular-nums">
-            {wholesalePrice != null ? formatMoney(wholesalePrice, variant.currency) : "—"}
+            {wholesale.kind === "computed" ? (
+              formatMoney(wholesale.amount, variant.currency)
+            ) : (
+              <span className="text-caption">No pricing formula set yet</span>
+            )}
           </span>
         </span>
       </div>
@@ -169,11 +168,11 @@ function CalculatedPrices({
 
 function VariantEditForm({
   variant,
-  priceSettings,
+  pricing,
   defaultCurrency,
 }: {
   variant: EditableVariant;
-  priceSettings: OrganisationPriceSettings | null;
+  pricing: PricingContext;
   /** The organisation's CURRENT Price Settings currency — not
    *  variant.currency. Saving this form re-syncs the variant's stored
    *  currency to this value regardless of what it was before (products/
@@ -258,7 +257,7 @@ function VariantEditForm({
         defaultUnitPrice={variant.unitPrice}
       />
 
-      <CalculatedPrices variant={variant} priceSettings={priceSettings} />
+      <CalculatedPrices variant={variant} pricing={pricing} />
 
       {/* After all the price fields, including retail/wholesale above —
           per the read-only currency display's own placement rule. */}
@@ -376,7 +375,7 @@ export function ProductEditContent({
   product,
   locations,
   defaultCurrency,
-  priceSettings,
+  pricing,
   onDeleted,
 }: {
   product: EditableProduct;
@@ -388,7 +387,7 @@ export function ProductEditContent({
   defaultCurrency: Currency;
   /** The organisation's saved Price Settings rates, or null if never saved
    *  — drives each variant's calculated Retail/Pack-box price display. */
-  priceSettings: OrganisationPriceSettings | null;
+  pricing: PricingContext;
   onDeleted?: (result: "deleted" | "deactivated") => void;
 }) {
   const { can } = usePermissions();
@@ -414,7 +413,7 @@ export function ProductEditContent({
           <VariantEditForm
             key={variant.id}
             variant={variant}
-            priceSettings={priceSettings}
+            pricing={pricing}
             defaultCurrency={defaultCurrency}
           />
         ))}

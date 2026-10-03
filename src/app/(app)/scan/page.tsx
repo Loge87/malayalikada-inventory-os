@@ -2,10 +2,8 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/get-current-user";
-import {
-  getCurrentOrganisationId,
-  getOrganisationPriceSettings,
-} from "@/lib/organisation";
+import { getCurrentOrganisationId } from "@/lib/organisation";
+import { loadPricingContext } from "@/lib/price-formula";
 import { ScanLookup } from "@/components/scan/scan-lookup";
 import { ProductCreatedToast } from "@/components/products/product-created-toast";
 
@@ -18,9 +16,7 @@ export default async function ScanPage() {
 
   const supabase = await createClient();
   const organisationId = await getCurrentOrganisationId(supabase);
-  const priceSettings = organisationId
-    ? await getOrganisationPriceSettings(supabase, organisationId)
-    : null;
+  const pricing = await loadPricingContext(supabase, organisationId);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
@@ -32,7 +28,7 @@ export default async function ScanPage() {
         </p>
       </div>
 
-      <ScanLookup priceSettings={priceSettings} />
+      <ScanLookup pricing={pricing} />
       <ProductCreatedToast />
     </div>
   );

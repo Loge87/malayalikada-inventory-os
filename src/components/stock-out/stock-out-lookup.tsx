@@ -3,8 +3,12 @@
 import { useCallback, useRef, useState } from "react";
 import { XIcon } from "lucide-react";
 
+import Link from "next/link";
+
 import { createClient } from "@/lib/supabase/client";
+import { formatMoney } from "@/lib/format";
 import { getStockStatus } from "@/lib/stock-status";
+import { computeDisplayPrice, type PricingContext } from "@/lib/price-formula";
 import {
   findActiveVariantsByBarcode,
   type BarcodeMatchVariant,
@@ -75,22 +79,24 @@ const SOURCE_LABEL: Record<ScanSource, string> = {
 /**
  * Same scan mechanics as ScanLookup (/scan) — barcode input, camera button,
  * lookup state machine, recent-scans history — with the read-only result
- * replaced by one that adds a "Stock Out" button. Deliberately a separate
- * component rather than ScanLookup+props: the result card's content
- * differs enough (no pricing here, an action button and its own dialog
- * state instead) that sharing would mean threading stock-out-specific
- * concerns through a component whose only job elsewhere is read-only
- * lookup.
+ * extended with a "Stock Out" button. Deliberately a separate component
+ * rather than ScanLookup+props: the result card's content differs enough
+ * (an action button and its own dialog state) that sharing would mean
+ * threading stock-out-specific concerns through a component whose only job
+ * elsewhere is read-only lookup. Price display itself (computeDisplayPrice)
+ * is still the one shared call path every other site uses.
  */
 export function StockOutLookup({
   myLocations,
   clients,
+  pricing,
 }: {
   /** Locations assigned to the CURRENT user (user_locations), active only —
    *  not every location in the org. Empty means this user can't stock out
    *  from anywhere yet. */
   myLocations: LocationOption[];
   clients: ClientOption[];
+  pricing: PricingContext;
 }) {
   const supabase = useRef(createClient()).current;
   const requestId = useRef(0);
@@ -201,6 +207,7 @@ export function StockOutLookup({
           </div>
           <LookupResult
             lookup={lookup}
+            pricing={pricing}
             canStockOut={myLocations.length > 0}
             onStockOut={() => setDialogOpen(true)}
             onClear={clearResult}
@@ -313,11 +320,13 @@ function GroupHeadingRow({ label }: { label: string }) {
 
 function LookupResult({
   lookup,
+  pricing,
   canStockOut,
   onStockOut,
   onClear,
 }: {
   lookup: Lookup;
+  pricing: PricingContext;
   /** False when the current user has no assigned locations at all (Stage 4
    *  point 4) — the button is disabled rather than opening a dialog that
    *  would just immediately error on submit. */
@@ -371,6 +380,11 @@ function LookupResult({
   const isActive = true;
   const total = variant.inventory_levels.reduce((sum, l) => sum + l.on_hand, 0);
   const totalStatus = getStockStatus(total, isActive);
+  // Same shared evaluateFormula call path (computeDisplayPrice) as every
+  // other price display — live from this variant's current unit_price/
+  // pack_price against the active formula, never a stale fallback.
+  const retail = computeDisplayPrice(variant.unit_price, pricing.activeFormulas.retail, pricing.variables);
+  const wholesale = computeDisplayPrice(variant.pack_price, pricing.activeFormulas.wholesale, pricing.variables);
 
   const byType = (type: string) =>
     variant.inventory_levels
@@ -411,6 +425,29 @@ function LookupResult({
           </Button>
         </div>
       </div>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
+        {retail.kind === "computed" ? (
+          <span className="font-medium">
+            {formatMoney(retail.amount, variant.currency)} retail
+          </span>
+        ) : (
+          <span className="text-caption">No pricing formula set yet (retail)</span>
+        )}
+        {wholesale.kind === "computed" ? (
+          <span>{formatMoney(wholesale.amount, variant.currency)} wholesale</span>
+        ) : (
+          <span className="text-caption">No pricing formula set yet (wholesale)</span>
+        )}
+      </div>
+      {retail.kind === "not_set" && wholesale.kind === "not_set" ? (
+        <p className="text-xs text-muted-foreground">
+          <Link href="/settings?tab=price-settings" className="underline">
+            Set up pricing
+          </Link>{" "}
+          to see retail and wholesale price.
+        </p>
+      ) : null}
 
       {variant.inventory_levels.length > 0 ? (
         <div className="overflow-x-auto border-t border-border pt-1">

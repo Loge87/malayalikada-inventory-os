@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Info } from "lucide-react";
 
 import { formatMoney } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -25,6 +26,9 @@ export type LocationSummaryRow = {
   totalSkus: number;
   outOfStockCount: number;
   lowStockCount: number;
+  /** financials:view only — see dashboard/page.tsx's own comment at the
+   *  calculation for why this currently equals Stock Value exactly. */
+  landedCostNzd: number;
 };
 
 /** The primary (largest) currency's amount — what the inline comparison bar
@@ -73,7 +77,24 @@ function ValueCell({
  *  card (grouped by currency, never converted), scoped to that location's
  *  own inventory_levels rows. Status counts reuse getStockStatus from
  *  lib/stock-status.ts (see dashboard/page.tsx), not a re-implementation. */
-export function LocationSummaryTable({ rows }: { rows: LocationSummaryRow[] }) {
+export function LocationSummaryTable({
+  rows,
+  showFinancials,
+  usdRate,
+}: {
+  rows: LocationSummaryRow[];
+  /** admin/owner only (financials:view) — when false, the Landed Cost and
+   *  USD columns aren't just hidden via CSS, they're not rendered into the
+   *  DOM at all (no <th>/<td> for either), so a staff account genuinely
+   *  never receives this markup. */
+  showFinancials: boolean;
+  /** NZD→USD, refreshed server-side at most once/hour (see
+   *  lib/exchange-rate.ts) — null means the rate fetch failed or wasn't
+   *  attempted; the USD column shows "Rate unavailable" per row instead of
+   *  a number. Always null when showFinancials is false (the page skips
+   *  fetching it for roles that can't see the column anyway). */
+  usdRate: number | null;
+}) {
   const router = useRouter();
   const [search, setSearch] = useState("");
 
@@ -117,10 +138,24 @@ export function LocationSummaryTable({ rows }: { rows: LocationSummaryRow[] }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                      <th className="py-2 pr-4 font-medium">Location</th>
+                      <th className="py-2 pr-4 pl-4 font-medium">Location</th>
                       <th className="py-2 pr-4 text-right font-medium">
                         Stock value
                       </th>
+                      {showFinancials ? (
+                        <>
+                          <th className="py-2 pr-4 text-right font-medium">
+                            <span
+                              className="inline-flex items-center gap-1"
+                              title="Currently the same calculation as Stock Value (unit_price × on_hand). Refinement pending — freight, duty, and similar costs aren't included yet."
+                            >
+                              Landed Cost (NZD)
+                              <Info className="size-3.5 shrink-0" aria-hidden />
+                            </span>
+                          </th>
+                          <th className="py-2 pr-4 text-right font-medium">USD</th>
+                        </>
+                      ) : null}
                       <th className="py-2 pr-4 text-right font-medium">
                         Total SKUs
                       </th>
@@ -128,7 +163,7 @@ export function LocationSummaryTable({ rows }: { rows: LocationSummaryRow[] }) {
                         Out of stock
                       </th>
                       <th className="py-2 pr-4 text-right font-medium">Low stock</th>
-                      <th className="py-2 font-medium" aria-hidden />
+                      <th className="py-2 pr-4 font-medium" aria-hidden />
                     </tr>
                   </thead>
                   <tbody>
@@ -138,13 +173,29 @@ export function LocationSummaryTable({ rows }: { rows: LocationSummaryRow[] }) {
                         onClick={() => router.push(`/products?location=${row.id}`)}
                         className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/50"
                       >
-                        <td className="py-3 pr-4 font-medium">{row.name}</td>
+                        <td className="py-3 pr-4 pl-4 font-medium">{row.name}</td>
                         <td className="py-3 pr-4">
                           <ValueCell
                             entries={row.valueByCurrency}
                             maxValue={maxValue}
                           />
                         </td>
+                        {showFinancials ? (
+                          <>
+                            <td className="py-3 pr-4 text-right tabular-nums">
+                              {formatMoney(row.landedCostNzd, "NZD")}
+                            </td>
+                            <td className="py-3 pr-4 text-right tabular-nums">
+                              {usdRate != null ? (
+                                formatMoney(row.landedCostNzd * usdRate, "USD")
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  Rate unavailable
+                                </span>
+                              )}
+                            </td>
+                          </>
+                        ) : null}
                         <td className="py-3 pr-4 text-right tabular-nums">
                           {row.totalSkus}
                         </td>
@@ -160,7 +211,7 @@ export function LocationSummaryTable({ rows }: { rows: LocationSummaryRow[] }) {
                         <td className="py-3 pr-4 text-right tabular-nums">
                           {row.lowStockCount}
                         </td>
-                        <td className="py-3 text-right">
+                        <td className="py-3 pr-4 text-right">
                           <Link
                             href={`/products?location=${row.id}`}
                             onClick={(event) => event.stopPropagation()}

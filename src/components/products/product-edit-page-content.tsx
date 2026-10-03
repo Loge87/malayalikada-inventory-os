@@ -8,7 +8,7 @@ import { ProductEditContent } from "@/components/products/product-edit-content";
 import type { EditableProduct } from "@/components/products/products-table";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import type { Currency } from "@/app/(app)/products/constants";
-import type { OrganisationPriceSettings } from "@/lib/organisation";
+import type { PricingContext } from "@/lib/price-formula";
 
 /**
  * The mobile-width full-page equivalent of ProductEditPanel — same fields,
@@ -19,12 +19,12 @@ export function ProductEditPageContent({
   product,
   locations,
   defaultCurrency,
-  priceSettings,
+  pricing,
 }: {
   product: EditableProduct;
   locations: LocationOption[];
   defaultCurrency: Currency;
-  priceSettings: OrganisationPriceSettings | null;
+  pricing: PricingContext;
 }) {
   const router = useRouter();
 
@@ -50,7 +50,7 @@ export function ProductEditPageContent({
         product={product}
         locations={locations}
         defaultCurrency={defaultCurrency}
-        priceSettings={priceSettings}
+        pricing={pricing}
         onDeleted={() => router.push("/products")}
       />
     </div>

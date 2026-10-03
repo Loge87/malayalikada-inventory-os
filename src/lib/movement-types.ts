@@ -36,7 +36,8 @@ export const MOVEMENT_BUCKET_LABELS: Record<MovementBucket, string> = {
 // gets its own validated categorical palette (blue/orange/violet/red)
 // instead of borrowing --status-success/warning/critical the way an earlier
 // version did. That keeps a chart bar from ever being mistaken for a stock
-// status pill or the --primary brand color, which are both greens too.
+// status pill, the --primary action-button color, or the --brand-accent
+// brand color.
 export const MOVEMENT_BUCKET_COLOR_VAR: Record<MovementBucket, string> = {
   received: "var(--chart-1)",
   sold: "var(--chart-2)",

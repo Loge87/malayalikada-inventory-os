@@ -1,14 +1,14 @@
 import { cn } from "@/lib/utils";
 import type { StockStatus } from "@/lib/stock-status";
 
-// Reads from the --status-* tokens in globals.css, not raw Tailwind color
-// classes — the CSS variable already swaps value in dark mode, so no
-// dark: prefix is needed here the way a hardcoded emerald-700 would.
+// One of ui.css's four pill color variants — each already reads from the
+// matching --status-*/--status-*-bg pair in theme.css, so no dark: prefix
+// is needed here the way a hardcoded emerald-700 would.
 const STYLES: Record<StockStatus, string> = {
-  in_stock: "bg-status-success/10 text-status-success",
-  low_stock: "bg-status-warning/10 text-status-warning",
-  out_of_stock: "bg-status-critical/10 text-status-critical",
-  inactive: "bg-muted text-muted-foreground",
+  in_stock: "pill-success",
+  low_stock: "pill-warning",
+  out_of_stock: "pill-critical",
+  inactive: "pill-neutral",
 };
 
 const LABELS: Record<StockStatus, string> = {
@@ -29,11 +29,7 @@ export function StockStatusPill({
 }) {
   return (
     <span
-      className={cn(
-        "inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
-        STYLES[status],
-        className
-      )}
+      className={cn("pill", STYLES[status], className)}
     >
       {LABELS[status]}
     </span>

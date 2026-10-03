@@ -52,7 +52,10 @@ function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 const fieldVariants = cva(
-  "group/field flex w-full gap-2 data-[invalid=true]:text-destructive",
+  // .field (ui.css) is the vertical-orientation default; the
+  // orientation="horizontal"/"responsive" variants below still override
+  // flex-direction/width as plain Tailwind utilities, which win regardless.
+  "field group/field data-[invalid=true]:text-destructive",
   {
     variants: {
       orientation: {
@@ -106,7 +109,10 @@ function FieldLabel({
     <Label
       data-slot="field-label"
       className={cn(
-        "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border has-[>[data-slot=field]]:not-has-[:disabled,[data-disabled]]:hover:bg-muted/50 has-[>[data-slot=field]]:has-[:focus-visible]:border-ring has-[>[data-slot=field]]:has-[:focus-visible]:ring-3 has-[>[data-slot=field]]:has-[:focus-visible]:ring-ring/80 *:data-[slot=field]:p-2.5 dark:has-data-checked:border-primary/20 dark:has-data-checked:bg-primary/10",
+        // .field-label (ui.css) carries the base type/spacing; the
+        // "checkbox wrapped in a bordered card" compound states stay as
+        // Tailwind utilities since they're specific to this one component.
+        "field-label group/field-label peer/field-label group-data-[disabled=true]/field:opacity-50 has-data-checked:border-brand-accent/30 has-data-checked:bg-brand-accent/5 has-[>[data-slot=field]]:rounded-lg has-[>[data-slot=field]]:border has-[>[data-slot=field]]:not-has-[:disabled,[data-disabled]]:hover:bg-muted/50 has-[>[data-slot=field]]:has-[:focus-visible]:border-ring has-[>[data-slot=field]]:has-[:focus-visible]:ring-3 has-[>[data-slot=field]]:has-[:focus-visible]:ring-ring/80 *:data-[slot=field]:p-2.5 dark:has-data-checked:border-brand-accent/20 dark:has-data-checked:bg-brand-accent/10",
         "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col",
         className
       )}
@@ -133,9 +139,15 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="field-description"
       className={cn(
-        "text-left text-sm leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
+        // field-hint (ui.css) carries the type/color; the rest is layout
+        // specific to how a hint sits among a field's other parts.
+        "field-hint text-left leading-normal group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
         "last:mt-0 nth-last-2:-mt-1",
-        "[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
+        // Underline alone (no hover color change) — the current brand
+        // color reads at ~1.6:1 on this field's light background
+        // (illegible), and the underline already signals "this is a
+        // link" without needing a color shift on hover too.
+        "[&>a]:underline [&>a]:underline-offset-4",
         className
       )}
       {...props}
@@ -216,7 +228,7 @@ function FieldError({
     <div
       role="alert"
       data-slot="field-error"
-      className={cn("text-sm font-normal text-destructive", className)}
+      className={cn("field-error", className)}
       {...props}
     >
       {content}

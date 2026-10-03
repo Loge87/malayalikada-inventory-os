@@ -47,8 +47,8 @@ export function ReadOnlyCurrencyField({
  *
  * No currency field here — see ReadOnlyCurrencyField above. No retail or
  * wholesale price field either — both are calculated
- * (src/lib/price-calculation.ts: retail from unit_price, wholesale from
- * pack_price, via the organisation's Price Settings), never entered
+ * (src/lib/price-formula.ts: retail from unit_price, wholesale from
+ * pack_price, via the organisation's active price formulas), never entered
  * manually. This hook only covers the cost-side inputs: unit price, units
  * per pack, and pack price.
  */

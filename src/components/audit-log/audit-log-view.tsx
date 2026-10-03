@@ -311,13 +311,13 @@ export function AuditLogView({
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                        <th className="py-2 pr-4 font-medium">When</th>
+                        <th className="py-2 pr-4 pl-4 font-medium">When</th>
                         <th className="py-2 pr-4 font-medium">Item</th>
                         <th className="py-2 pr-4 font-medium">Location</th>
                         <th className="py-2 pr-4 font-medium">Type</th>
                         <th className="py-2 pr-4 text-right font-medium">Qty</th>
                         <th className="py-2 pr-4 font-medium">Reference</th>
-                        <th className="py-2 font-medium">By</th>
+                        <th className="py-2 pr-4 font-medium">By</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -326,7 +326,7 @@ export function AuditLogView({
                           key={row.id}
                           className="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
                         >
-                          <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
+                          <td className="py-2 pr-4 pl-4 whitespace-nowrap text-muted-foreground">
                             {formatDateTime(row.created_at)}
                           </td>
                           <td className="py-2 pr-4">
@@ -351,7 +351,7 @@ export function AuditLogView({
                           <td className="py-2 pr-4 text-muted-foreground">
                             {row.reference_label ?? row.reference_type ?? "Manual entry"}
                           </td>
-                          <td className="py-2 text-muted-foreground">
+                          <td className="py-2 pr-4 text-muted-foreground">
                             {row.created_by_email ?? "—"}
                           </td>
                         </tr>

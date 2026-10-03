@@ -9,11 +9,14 @@ import {
 
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/get-current-user";
+import { getCurrentUserRole } from "@/lib/roles";
+import { hasPermission } from "@/lib/permissions";
+import { getNzdToUsdRate } from "@/lib/exchange-rate";
 import { loadProducts } from "@/app/(app)/products/data";
 import { formatMoney } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD, getStockStatus } from "@/lib/stock-status";
 import { movementBucket, type MovementBucket } from "@/lib/movement-types";
-import { StatCard } from "@/components/dashboard/stat-card";
+import { StatCard, type StatTrend } from "@/components/dashboard/stat-card";
 import {
   StockActivityChart,
   type ActivityDay,
@@ -93,6 +96,13 @@ export default async function DashboardPage() {
 
   const supabase = await createClient();
 
+  // Gates the two financial columns on the Stock by Location table
+  // (Landed Cost, USD) — admin/owner only, sensitive cost data, not just
+  // visually hidden for staff (see LocationSummaryTable below, which never
+  // renders the <th>/<td> cells at all when this is false).
+  const role = await getCurrentUserRole(supabase);
+  const canViewFinancials = hasPermission(role, "financials:view");
+
   const expiryCutoff = new Date();
   expiryCutoff.setUTCDate(expiryCutoff.getUTCDate() + EXPIRY_WINDOW_DAYS);
   const expiryCutoffDate = expiryCutoff.toISOString().slice(0, 10);
@@ -102,8 +112,13 @@ export default async function DashboardPage() {
     activityWindowStart.getUTCDate() - ACTIVITY_WINDOW_DAYS
   );
 
-  // Every read is RLS-scoped to the caller's organisation.
-  const [products, locationsRes, levelsRes, batchesRes, movementsRes] =
+  // Every read is RLS-scoped to the caller's organisation. The USD rate
+  // fetch only runs for roles that can actually see the column it feeds —
+  // no point spending even a cached external call on a session that can't
+  // view the result — and it's cached (Next.js Data Cache, see
+  // lib/exchange-rate.ts) so it doesn't add a real network round trip to
+  // most requests anyway.
+  const [products, locationsRes, levelsRes, batchesRes, movementsRes, usdRate] =
     await Promise.all([
       loadProducts(supabase),
       supabase
@@ -136,6 +151,7 @@ export default async function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(MOVEMENTS_FETCH_CAP)
         .returns<MovementRow[]>(),
+      canViewFinancials ? getNzdToUsdRate() : Promise.resolve(null),
     ]);
 
   const firstError =
@@ -222,6 +238,7 @@ export default async function DashboardPage() {
       totalSkus: number;
       outOfStockCount: number;
       lowStockCount: number;
+      landedCostNzd: number;
     }
   >();
   for (const location of locationList) {
@@ -230,6 +247,7 @@ export default async function DashboardPage() {
       totalSkus: 0,
       outOfStockCount: 0,
       lowStockCount: 0,
+      landedCostNzd: 0,
     });
   }
   for (const row of levels) {
@@ -254,6 +272,20 @@ export default async function DashboardPage() {
         (aggregate.valueByCurrency.get(variant.currency) ?? 0) +
           row.on_hand * variant.unit_price
       );
+
+      // PLACEHOLDER (financials:view only, dashboard/page.tsx): "Landed
+      // cost" is currently the exact same sum as Stock Value — unit_price ×
+      // on_hand, NZD-only (today that's every variant; this org has no
+      // other currency). Deliberately so, per the explicit decision to
+      // ship these as two distinct, intentionally-tracked metrics now
+      // rather than wait — see LocationSummaryTable's header tooltip for
+      // the planned refinement (freight, duty, etc.) that will make this
+      // diverge from Stock Value. Don't "fix" this to match Stock Value
+      // again later; the duplication is the known, current state, not a
+      // bug.
+      if (variant.currency === "NZD") {
+        aggregate.landedCostNzd += row.on_hand * variant.unit_price;
+      }
     }
   }
   const locationSummaryRows: LocationSummaryRow[] = locationList.map((location) => {
@@ -267,6 +299,7 @@ export default async function DashboardPage() {
       totalSkus: aggregate.totalSkus,
       outOfStockCount: aggregate.outOfStockCount,
       lowStockCount: aggregate.lowStockCount,
+      landedCostNzd: aggregate.landedCostNzd,
     };
   });
 
@@ -386,12 +419,15 @@ export default async function DashboardPage() {
   const netChangeForPrimary = primaryValueCurrency
     ? netStockValueChange7d.get(primaryValueCurrency)
     : undefined;
-  const stockValueTrend =
+  const stockValueTrend: StatTrend | undefined =
     netChangeForPrimary != null && Math.abs(netChangeForPrimary) >= 0.01
-      ? `Net ${netChangeForPrimary >= 0 ? "+" : ""}${formatMoney(
-          netChangeForPrimary,
-          primaryValueCurrency!
-        )} from ledger activity (7d)`
+      ? {
+          label: `Net ${netChangeForPrimary >= 0 ? "+" : ""}${formatMoney(
+            netChangeForPrimary,
+            primaryValueCurrency!
+          )} (7d)`,
+          direction: netChangeForPrimary >= 0 ? "up" : "down",
+        }
       : undefined;
 
   return (
@@ -408,7 +444,7 @@ export default async function DashboardPage() {
           value={String(totalSkus)}
           href="/products"
           icon={Package}
-          tone="primary"
+          tone="blue"
         />
         <StatCard
           label="Total stock value"
@@ -439,7 +475,11 @@ export default async function DashboardPage() {
 
       {/* Stock by location — one merged table (value bar + counts), not a
           separate chart repeating the same three numbers. */}
-      <LocationSummaryTable rows={locationSummaryRows} />
+      <LocationSummaryTable
+        rows={locationSummaryRows}
+        showFinancials={canViewFinancials}
+        usdRate={usdRate}
+      />
 
       {/* Low stock items */}
       <LowStockTable rows={lowStockRows} threshold={LOW_STOCK_THRESHOLD} />

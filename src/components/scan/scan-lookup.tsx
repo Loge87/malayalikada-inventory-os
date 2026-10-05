@@ -207,9 +207,9 @@ const SOURCE_LABEL: Record<ScanSource, string> = {
 /** One row of the store/warehouse breakdown table. */
 function LevelRow({ level, isActive }: { level: InventoryLevel; isActive: boolean }) {
   return (
-    <tr className="border-t border-border transition-colors hover:bg-muted/40">
+    <tr className="table-row">
       <td className="py-1.5 pr-4">{level.locations?.name ?? "Unknown location"}</td>
-      <td className="py-1.5 pr-4 text-right font-medium tabular-nums">
+      <td className="cell-number py-1.5 pr-4 font-medium tabular-nums">
         {level.on_hand}
       </td>
       <td className="py-1.5">
@@ -373,12 +373,14 @@ function LookupResult({
 
       {variant.inventory_levels.length > 0 ? (
         <div className="overflow-x-auto border-t border-border pt-1">
-          <table className="w-full text-sm">
+          {/* .table/.table-head/.table-row — not raw markup — see
+              expiring-soon-table.tsx's own note for why. */}
+          <table className="table">
             <thead>
-              <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                <th className="pt-2 pb-1 pr-4 font-medium">Location</th>
-                <th className="pt-2 pb-1 pr-4 text-right font-medium">On hand</th>
-                <th className="pt-2 pb-1 font-medium">Status</th>
+              <tr className="table-head">
+                <th className="pr-4 font-medium">Location</th>
+                <th className="cell-number pr-4 font-medium">On hand</th>
+                <th className="font-medium">Status</th>
               </tr>
             </thead>
             <tbody>

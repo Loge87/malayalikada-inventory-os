@@ -100,16 +100,18 @@ export default async function BatchesPage({
 
           {selectedLocationId && batches.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              {/* .table/.table-head/.table-row — not raw markup — see
+                  expiring-soon-table.tsx's own note for why. */}
+              <table className="table">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-4 font-medium">Variant</th>
-                    <th className="py-2 pr-4 font-medium">Batch</th>
-                    <th className="py-2 pr-4 font-medium">Expiry</th>
-                    <th className="py-2 pr-4 font-medium text-right">
+                  <tr className="table-head">
+                    <th className="pr-4 font-medium">Variant</th>
+                    <th className="pr-4 font-medium">Batch</th>
+                    <th className="pr-4 font-medium">Expiry</th>
+                    <th className="cell-number pr-4 font-medium">
                       Remaining
                     </th>
-                    <th className="py-2 font-medium text-right">Received</th>
+                    <th className="cell-number font-medium">Received</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -119,10 +121,7 @@ export default async function BatchesPage({
                         ? daysUntil(batch.expiry_date)
                         : null;
                     return (
-                      <tr
-                        key={batch.id}
-                        className="border-t border-border align-top transition-colors hover:bg-muted/40"
-                      >
+                      <tr key={batch.id} className="table-row align-top">
                         <td className="py-2 pr-4">
                           <span className="block">
                             {batch.product_variants?.products?.name

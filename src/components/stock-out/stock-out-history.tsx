@@ -30,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
 export type StockOutRow = {
   id: string;
@@ -367,31 +366,28 @@ export function StockOutHistory({
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              {/* .table/.table-head/.table-row, not raw markup — see
+                  expiring-soon-table.tsx's own note for why. */}
+              <table className="table">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-2 pl-4 font-medium">Date</th>
-                    <th className="py-2 pr-2 font-medium">Product</th>
-                    <th className="py-2 pr-2 font-medium">Location</th>
-                    <th className="py-2 pr-2 font-medium">Client</th>
-                    <th className="py-2 pr-4 text-right font-medium">Qty</th>
+                  <tr className="table-head">
+                    <th className="pr-2 font-medium">Date</th>
+                    <th className="pr-2 font-medium">Product</th>
+                    <th className="pr-2 font-medium">Location</th>
+                    <th className="pr-2 font-medium">Client</th>
+                    <th className="cell-number font-medium">Qty</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stockOuts.map((row) => (
-                    <tr
-                      key={row.id}
-                      className={cn(
-                        "border-b border-border transition-colors last:border-0 hover:bg-muted/50"
-                      )}
-                    >
-                      <td className="py-2.5 pr-2 pl-4 whitespace-nowrap text-muted-foreground">
+                    <tr key={row.id} className="table-row">
+                      <td className="py-2.5 pr-2 whitespace-nowrap text-muted-foreground">
                         {formatDateTime(row.createdAt)}
                       </td>
                       <td className="py-2.5 pr-2">{row.productLabel}</td>
                       <td className="py-2.5 pr-2">{row.locationName}</td>
                       <td className="py-2.5 pr-2">{row.clientName}</td>
-                      <td className="py-2.5 pr-4 text-right font-medium tabular-nums">
+                      <td className="cell-number py-2.5 font-medium tabular-nums">
                         {row.quantity}
                       </td>
                     </tr>

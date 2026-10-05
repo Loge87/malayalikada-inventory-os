@@ -45,7 +45,10 @@ function ActivityTooltip({
 }) {
   if (!active || !payload?.length || !label) return null;
   return (
-    <div className="rounded-lg bg-popover p-2.5 text-xs shadow-md ring-1 ring-foreground/10">
+    // animate-in fade-in only — see RevenueTooltip's identical comment
+    // (revenue-chart.tsx) for why the fade lives here now instead of on
+    // the Tooltip's own (position-coupled) animation.
+    <div className="animate-in fade-in rounded-lg bg-popover p-2.5 text-xs shadow-md ring-1 ring-foreground/10 duration-(--duration-fast)">
       <p className="mb-1 font-medium">{formatShortDate(label)}</p>
       <ul className="flex flex-col gap-0.5">
         {payload.map((entry) => (
@@ -133,7 +136,20 @@ export function StockActivityChart({ data }: { data: ActivityDay[] }) {
               width={32}
               allowDecimals={false}
             />
-            <Tooltip content={<ActivityTooltip />} cursor={{ fill: "var(--muted)" }} />
+            <Tooltip
+              content={<ActivityTooltip />}
+              // CORRECTED — see RevenueTooltip's identical comment
+              // (revenue-chart.tsx) for why both of these are here now.
+              isAnimationActive={false}
+              wrapperStyle={{ transition: "none" }}
+              // A custom cursor ELEMENT, not the plain {fill} object form
+              // the default rectangle cursor used — that form has no way
+              // to pass a corner radius, so the hover highlight was a
+              // sharp-cornered box even though the bars themselves are
+              // top-rounded. Same radius as the bars' own (4, matching
+              // --radius-button — see topRoundedBarShape above).
+              cursor={<Rectangle fill="var(--muted)" radius={[4, 4, 0, 0]} />}
+            />
             <Legend
               formatter={(value) => (
                 <span className="text-xs text-muted-foreground">

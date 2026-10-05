@@ -139,21 +139,20 @@ export default async function IntegrationsPage() {
         <CardContent>
           {events.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              {/* .table/.table-head/.table-row — not raw markup — see
+                  expiring-soon-table.tsx's own note for why. */}
+              <table className="table">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-4 font-medium">Event</th>
-                    <th className="py-2 pr-4 font-medium">Reference</th>
-                    <th className="py-2 pr-4 font-medium">Status</th>
-                    <th className="py-2 font-medium">Received</th>
+                  <tr className="table-head">
+                    <th className="pr-4 font-medium">Event</th>
+                    <th className="pr-4 font-medium">Reference</th>
+                    <th className="pr-4 font-medium">Status</th>
+                    <th className="font-medium">Received</th>
                   </tr>
                 </thead>
                 <tbody>
                   {events.map((event) => (
-                    <tr
-                      key={event.id}
-                      className="border-t border-border align-top transition-colors hover:bg-muted/40"
-                    >
+                    <tr key={event.id} className="table-row align-top">
                       <td className="py-2 pr-4 whitespace-nowrap">
                         {event.source_system} · {event.event_type}
                       </td>

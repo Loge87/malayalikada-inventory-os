@@ -45,21 +45,21 @@ export function ThemeToggle({ className }: { className?: string }) {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={mounted ? `Switch to ${isDark ? "light" : "dark"} mode` : "Toggle theme"}
       className={cn(
-        "relative flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground",
+        "relative flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-(--duration-fast) ease-(--ease-out) hover:bg-muted hover:text-foreground",
         className
       )}
     >
       <Sun
         aria-hidden
         className={cn(
-          "absolute size-4 transition-all duration-300 ease-out",
+          "absolute size-4 transition-[transform,opacity] duration-(--duration-base) ease-(--ease-out)",
           isDark ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"
         )}
       />
       <Moon
         aria-hidden
         className={cn(
-          "absolute size-4 transition-all duration-300 ease-out",
+          "absolute size-4 transition-[transform,opacity] duration-(--duration-base) ease-(--ease-out)",
           mounted && !isDark
             ? "rotate-0 scale-100 opacity-100"
             : "rotate-90 scale-0 opacity-0"

@@ -113,24 +113,23 @@ export function LowStockTable({
                 Scroll to see more →
               </p>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                {/* .table/.table-head/.table-row — not raw markup — see
+                    expiring-soon-table.tsx's own note for why. */}
+                <table className="table">
                   <thead>
-                    <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                      <th className="w-10 py-2 font-medium" aria-hidden />
-                      <th className="py-2 pr-4 font-medium">Item</th>
-                      <th className="py-2 pr-4 font-medium">Category</th>
-                      <th className="py-2 pr-4 text-right font-medium">Qty</th>
-                      <th className="py-2 pr-4 text-right font-medium">Price</th>
-                      <th className="py-2 pr-4 font-medium">Status</th>
-                      <th className="py-2 font-medium" aria-hidden />
+                    <tr className="table-head">
+                      <th className="w-10 font-medium" aria-hidden />
+                      <th className="pr-4 font-medium">Item</th>
+                      <th className="pr-4 font-medium">Category</th>
+                      <th className="cell-number pr-4 font-medium">Qty</th>
+                      <th className="cell-number pr-4 font-medium">Price</th>
+                      <th className="pr-4 font-medium">Status</th>
+                      <th className="font-medium" aria-hidden />
                     </tr>
                   </thead>
                   <tbody>
                     {pageItems.map((row) => (
-                      <tr
-                        key={row.variantId}
-                        className="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
-                      >
+                      <tr key={row.variantId} className="table-row">
                         <td className="py-3 pr-2">
                           {row.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -153,10 +152,10 @@ export function LowStockTable({
                         <td className="py-3 pr-4 text-muted-foreground">
                           {row.category}
                         </td>
-                        <td className="py-3 pr-4 text-right font-semibold tabular-nums">
+                        <td className="cell-number py-3 pr-4 font-semibold tabular-nums">
                           {row.onHand}
                         </td>
-                        <td className="py-3 pr-4 text-right tabular-nums text-muted-foreground">
+                        <td className="cell-number py-3 pr-4 tabular-nums text-muted-foreground">
                           {row.unitPrice != null
                             ? formatMoney(row.unitPrice, row.currency)
                             : "—"}
@@ -164,7 +163,7 @@ export function LowStockTable({
                         <td className="py-3 pr-4">
                           <StockStatusPill status={row.status} />
                         </td>
-                        <td className="py-3 text-right">
+                        <td className="cell-number py-3">
                           <Link
                             href={`/products/${row.productId}/edit`}
                             className="rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"

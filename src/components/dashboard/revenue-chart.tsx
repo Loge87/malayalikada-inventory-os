@@ -44,7 +44,15 @@ function RevenueTooltip({
 }) {
   if (!active || !payload?.length || !label) return null;
   return (
-    <div className="rounded-lg bg-popover p-2.5 text-xs shadow-md ring-1 ring-foreground/10">
+    // animate-in fade-in only — the position itself is never animated
+    // (Tooltip below has isAnimationActive={false} + a no-transition
+    // wrapperStyle, which is what used to make this slide in from the
+    // chart's top-left corner on every new hover point: recharts'
+    // position AND opacity animation are one coupled thing, so turning it
+    // off kills the slide but also the fade — this re-adds JUST the fade,
+    // as a plain CSS entrance animation on this content div, with no idea
+    // of where the tooltip previously was positioned to animate FROM.
+    <div className="animate-in fade-in rounded-lg bg-popover p-2.5 text-xs shadow-md ring-1 ring-foreground/10 duration-(--duration-fast)">
       <p className="mb-1 font-medium">{formatShortDate(label)}</p>
       <ul className="flex flex-col gap-0.5">
         {payload.map((entry) => (
@@ -126,7 +134,21 @@ export function RevenueChart({
                 tickLine={false}
                 width={48}
               />
-              <Tooltip content={<RevenueTooltip />} />
+              <Tooltip
+                content={<RevenueTooltip />}
+                // CORRECTED: recharts animates the tooltip's position by
+                // default, tweening from wherever it last was (often (0,0)
+                // on the first hover of a session) to the new point — the
+                // "slides in from the corner" bug. isAnimationActive
+                // disables that entirely; wrapperStyle explicitly strips
+                // any transition recharts' own wrapper div might still
+                // carry, so the position itself genuinely snaps instead of
+                // easing there. The opacity fade now comes from
+                // RevenueTooltip's own animate-in class instead (see its
+                // comment) — decoupled from position on purpose.
+                isAnimationActive={false}
+                wrapperStyle={{ transition: "none" }}
+              />
               {currencies.length > 1 ? (
                 <Legend iconType="circle" iconSize={8} />
               ) : null}

@@ -130,7 +130,7 @@ function SortHeader({
   const active = activeKey === sortKey;
   const Icon = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
   return (
-    <th className={cn("py-2 font-medium", align === "right" && "text-right")}>
+    <th className={cn("font-medium", align === "right" && "text-right")}>
       <button
         type="button"
         onClick={() => onSort(sortKey)}
@@ -512,70 +512,97 @@ export function ProductsTable({
         </p>
       ) : null}
 
-      {selected.size > 0 ? (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-muted/50 p-2 text-sm">
-          <span className="px-1 font-medium">{selected.size} selected</span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setMoveStockOpen(true)}
-            disabled={selectedMoveVariants.length === 0}
+      {/* Push-down, not pop: the bar is ALWAYS mounted now (was a plain
+          {selected.size > 0 ? ... : null} conditional, so it popped in/
+          out instantly) — a grid row animated between 0fr and 1fr instead,
+          the standard technique for animating toward/away from an
+          intrinsic ("auto") height, which a plain height/max-height
+          transition can't do smoothly. overflow-hidden on the inner
+          wrapper is what actually clips the content as the row collapses;
+          min-height: 0 on it stops the grid item from refusing to shrink
+          below its own content's natural height (the same "flex child
+          needs min-height: 0 to actually shrink" issue as the product
+          edit panel's scroll area, just the grid-row equivalent).
+          inert + aria-hidden when collapsed: the buttons inside genuinely
+          can't be tabbed to or found by assistive tech while the bar is
+          visually gone, not just dimmed. Reduced motion collapses this to
+          near-instant automatically via ui.css's global prefers-reduced-
+          motion rule (transition-duration: 0.01ms on every element) —
+          nothing extra needed here for that. */}
+      <div
+        className="grid transition-[grid-template-rows] duration-(--duration-base) ease-(--ease-out)"
+        style={{ gridTemplateRows: selected.size > 0 ? "1fr" : "0fr" }}
+        aria-hidden={selected.size > 0 ? undefined : true}
+        inert={selected.size > 0 ? undefined : true}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div
+            className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-muted/50 p-2 text-sm transition-opacity duration-(--duration-base) ease-(--ease-out)"
+            style={{ opacity: selected.size > 0 ? 1 : 0 }}
           >
-            Move stock
-          </Button>
-          {can("products:delete") ? (
-            !confirmingDelete ? (
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => setConfirmingDelete(true)}
-              >
-                Delete selected
-              </Button>
-            ) : (
-              <form action={deleteAction} className="flex items-center gap-2">
-                <input type="hidden" name="productIds" value={productIdsJson} />
-                <span className="text-muted-foreground">
-                  Delete {selectedProductIds.length} product
-                  {selectedProductIds.length === 1 ? "" : "s"}?
-                </span>
-                <Button
-                  type="submit"
-                  variant="destructive"
-                  size="sm"
-                  disabled={deletePending}
-                >
-                  {deletePending ? "Deleting…" : "Confirm"}
-                </Button>
+            <span className="px-1 font-medium">{selected.size} selected</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setMoveStockOpen(true)}
+              disabled={selectedMoveVariants.length === 0}
+            >
+              Move stock
+            </Button>
+            {can("products:delete") ? (
+              !confirmingDelete ? (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="destructive"
                   size="sm"
-                  disabled={deletePending}
-                  onClick={() => setConfirmingDelete(false)}
+                  onClick={() => setConfirmingDelete(true)}
                 >
-                  Cancel
+                  Delete selected
                 </Button>
-              </form>
-            )
-          ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              setSelected(new Set());
-              setConfirmingDelete(false);
-            }}
-            className="ml-auto text-xs text-muted-foreground hover:text-foreground"
-          >
-            Clear selection
-          </button>
-          {deleteState && "error" in deleteState ? (
-            <p className="w-full text-xs text-destructive">{deleteState.error}</p>
-          ) : null}
+              ) : (
+                <form action={deleteAction} className="flex items-center gap-2">
+                  <input type="hidden" name="productIds" value={productIdsJson} />
+                  <span className="text-muted-foreground">
+                    Delete {selectedProductIds.length} product
+                    {selectedProductIds.length === 1 ? "" : "s"}?
+                  </span>
+                  <Button
+                    type="submit"
+                    variant="destructive"
+                    size="sm"
+                    disabled={deletePending}
+                  >
+                    {deletePending ? "Deleting…" : "Confirm"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={deletePending}
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    Cancel
+                  </Button>
+                </form>
+              )
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setSelected(new Set());
+                setConfirmingDelete(false);
+              }}
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear selection
+            </button>
+            {deleteState && "error" in deleteState ? (
+              <p className="w-full text-xs text-destructive">{deleteState.error}</p>
+            ) : null}
+          </div>
         </div>
-      ) : null}
+      </div>
 
       {sorted.length === 0 ? (
         <p className="text-muted-foreground">No products match your filters</p>
@@ -588,7 +615,13 @@ export function ProductsTable({
         <table className="table">
           <thead>
             <tr className="table-head">
-              <th className="w-8 py-2 pl-4 font-medium">
+              {/* w-8 + an explicit pr-3 (on top of the left-edge padding
+                  every first column gets from .table-head's shared rule) —
+                  a genuinely fixed-width column with its own right padding,
+                  so the checkbox never crowds the thumbnail/name that
+                  follows it, rather than relying on the next column's own
+                  left edge (it has none — interior columns aren't padded). */}
+              <th className="w-8 pr-3 font-medium">
                 <Checkbox
                   checked={allVisibleSelected}
                   indeterminate={someVisibleSelected && !allVisibleSelected}
@@ -596,7 +629,7 @@ export function ProductsTable({
                   aria-label="Select all rows"
                 />
               </th>
-              <th className="w-10 py-2 font-medium" aria-hidden />
+              <th className="w-10 font-medium" aria-hidden />
               <SortHeader
                 label="Product"
                 sortKey="name"
@@ -604,7 +637,7 @@ export function ProductsTable({
                 dir={sortDir}
                 onSort={toggleSort}
               />
-              <th className="py-2 font-medium text-muted-foreground">
+              <th className="font-medium text-muted-foreground">
                 SKU / barcode
               </th>
               <SortHeader
@@ -623,7 +656,7 @@ export function ProductsTable({
                 onSort={toggleSort}
                 align="right"
               />
-              <th className="py-2 pr-2 text-right font-medium text-muted-foreground">
+              <th className="pr-2 text-right font-medium text-muted-foreground">
                 Pack/box price
               </th>
               {/* Retail/wholesale stay hidden below xl (1280px) — with the
@@ -631,13 +664,13 @@ export function ProductsTable({
                   columns without cramping. Still editable any time via the
                   side panel's pricing section; visible here again once
                   there's room. */}
-              <th className="hidden py-2 pr-2 text-right font-medium text-muted-foreground xl:table-cell">
+              <th className="hidden pr-2 text-right font-medium text-muted-foreground xl:table-cell">
                 Retail price
               </th>
-              <th className="hidden py-2 pr-2 text-right font-medium text-muted-foreground xl:table-cell">
+              <th className="hidden pr-2 text-right font-medium text-muted-foreground xl:table-cell">
                 Wholesale price
               </th>
-              <th className="py-2 pr-4 font-medium" aria-hidden />
+              <th className="font-medium" aria-hidden />
             </tr>
           </thead>
           <tbody>
@@ -653,9 +686,12 @@ export function ProductsTable({
                   key={key}
                   onClick={() => openEdit(product.id)}
                   aria-selected={isSelected}
-                  className="table-row"
+                  className="table-row cursor-pointer"
                 >
-                  <td className="py-3 pl-4" onClick={(event) => event.stopPropagation()}>
+                  <td
+                    className="w-8 pr-3 py-3"
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     <Checkbox
                       checked={selected.has(key)}
                       onCheckedChange={() => toggleRow(key)}
@@ -724,7 +760,7 @@ export function ProductsTable({
                       variant?.currency
                     )}
                   </td>
-                  <td className="cell-number py-3 pr-4">
+                  <td className="cell-number py-3">
                     <button
                       type="button"
                       onClick={(event) => {

@@ -85,25 +85,24 @@ export function CountEntryForm({
             <input type="hidden" name="counts" value={serialized} />
 
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              {/* .table/.table-head/.table-row — not raw markup — see
+                  expiring-soon-table.tsx's own note for why. */}
+              <table className="table">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-4 font-medium">Variant</th>
-                    <th className="py-2 pr-4 font-medium text-right">
+                  <tr className="table-head">
+                    <th className="pr-4 font-medium">Variant</th>
+                    <th className="cell-number pr-4 font-medium">
                       Expected
                     </th>
-                    <th className="py-2 pr-4 font-medium">Counted</th>
-                    <th className="py-2 font-medium text-right">Difference</th>
+                    <th className="pr-4 font-medium">Counted</th>
+                    <th className="cell-number font-medium">Difference</th>
                   </tr>
                 </thead>
                 <tbody>
                   {parsed.map(({ item, diff }) => (
-                    <tr
-                      key={item.id}
-                      className="border-t border-border transition-colors hover:bg-muted/40"
-                    >
+                    <tr key={item.id} className="table-row">
                       <td className="py-1.5 pr-4">{item.label}</td>
-                      <td className="py-1.5 pr-4 text-right tabular-nums text-muted-foreground">
+                      <td className="cell-number py-1.5 pr-4 tabular-nums text-muted-foreground">
                         {item.expected}
                       </td>
                       <td className="py-1.5 pr-4">
@@ -122,7 +121,7 @@ export function CountEntryForm({
                           }
                         />
                       </td>
-                      <td className="py-1.5 text-right tabular-nums">
+                      <td className="cell-number py-1.5 tabular-nums">
                         {diff == null || diff === 0 ? (
                           <span className="text-muted-foreground">–</span>
                         ) : (

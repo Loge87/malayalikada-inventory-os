@@ -16,7 +16,7 @@ import { loadProducts } from "@/app/(app)/products/data";
 import { formatMoney } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD, getStockStatus } from "@/lib/stock-status";
 import { movementBucket, type MovementBucket } from "@/lib/movement-types";
-import { StatCard, type StatTrend } from "@/components/dashboard/stat-card";
+import { StatCard } from "@/components/dashboard/stat-card";
 import {
   StockActivityChart,
   type ActivityDay,
@@ -303,7 +303,7 @@ export default async function DashboardPage() {
     };
   });
 
-  // --- 90-day activity + revenue series, and the net 7-day value trend ----
+  // --- 90-day activity + revenue series -------------------------------
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   const dayKeys = Array.from({ length: ACTIVITY_WINDOW_DAYS }, (_, i) => {
@@ -322,9 +322,6 @@ export default async function DashboardPage() {
     dayKeys.map((key) => [key, new Map()])
   );
   const currencySet = new Set<string>();
-  const netStockValueChange7d = new Map<string, number>();
-  const sevenDaysAgo = new Date(today);
-  sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
 
   for (const movement of movements) {
     const dateKey = new Date(movement.created_at).toISOString().slice(0, 10);
@@ -346,17 +343,6 @@ export default async function DashboardPage() {
           (dayRevenue.get(variant.currency) ?? 0) + revenue
         );
       }
-    }
-
-    if (
-      variant?.unit_price != null &&
-      new Date(movement.created_at) >= sevenDaysAgo
-    ) {
-      netStockValueChange7d.set(
-        variant.currency,
-        (netStockValueChange7d.get(variant.currency) ?? 0) +
-          movement.quantity * variant.unit_price
-      );
     }
   }
 
@@ -415,21 +401,6 @@ export default async function DashboardPage() {
       "—"
     );
 
-  const primaryValueCurrency = currencyValueEntries[0]?.[0];
-  const netChangeForPrimary = primaryValueCurrency
-    ? netStockValueChange7d.get(primaryValueCurrency)
-    : undefined;
-  const stockValueTrend: StatTrend | undefined =
-    netChangeForPrimary != null && Math.abs(netChangeForPrimary) >= 0.01
-      ? {
-          label: `Net ${netChangeForPrimary >= 0 ? "+" : ""}${formatMoney(
-            netChangeForPrimary,
-            primaryValueCurrency!
-          )} (7d)`,
-          direction: netChangeForPrimary >= 0 ? "up" : "down",
-        }
-      : undefined;
-
   return (
     <div className="flex w-full flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
       <div>
@@ -449,7 +420,6 @@ export default async function DashboardPage() {
         <StatCard
           label="Total stock value"
           value={stockValueNode}
-          trend={stockValueTrend}
           icon={Wallet}
           tone="success"
         />

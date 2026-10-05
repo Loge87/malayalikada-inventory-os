@@ -135,16 +135,18 @@ export function LocationSummaryTable({
             />
             {pageItems.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                {/* .table/.table-head/.table-row, not raw markup — see
+                    expiring-soon-table.tsx's own note for why. */}
+                <table className="table">
                   <thead>
-                    <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                      <th className="py-2 pr-4 pl-4 font-medium">Location</th>
-                      <th className="py-2 pr-4 text-right font-medium">
+                    <tr className="table-head">
+                      <th className="pr-4 font-medium">Location</th>
+                      <th className="cell-number pr-4 font-medium">
                         Stock value
                       </th>
                       {showFinancials ? (
                         <>
-                          <th className="py-2 pr-4 text-right font-medium">
+                          <th className="cell-number pr-4 font-medium">
                             <span
                               className="inline-flex items-center gap-1"
                               title="Currently the same calculation as Stock Value (unit_price × on_hand). Refinement pending — freight, duty, and similar costs aren't included yet."
@@ -153,17 +155,17 @@ export function LocationSummaryTable({
                               <Info className="size-3.5 shrink-0" aria-hidden />
                             </span>
                           </th>
-                          <th className="py-2 pr-4 text-right font-medium">USD</th>
+                          <th className="cell-number pr-4 font-medium">USD</th>
                         </>
                       ) : null}
-                      <th className="py-2 pr-4 text-right font-medium">
+                      <th className="cell-number pr-4 font-medium">
                         Total SKUs
                       </th>
-                      <th className="py-2 pr-4 text-right font-medium">
+                      <th className="cell-number pr-4 font-medium">
                         Out of stock
                       </th>
-                      <th className="py-2 pr-4 text-right font-medium">Low stock</th>
-                      <th className="py-2 pr-4 font-medium" aria-hidden />
+                      <th className="cell-number pr-4 font-medium">Low stock</th>
+                      <th className="font-medium" aria-hidden />
                     </tr>
                   </thead>
                   <tbody>
@@ -171,10 +173,10 @@ export function LocationSummaryTable({
                       <tr
                         key={row.id}
                         onClick={() => router.push(`/products?location=${row.id}`)}
-                        className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/50"
+                        className="table-row cursor-pointer"
                       >
-                        <td className="py-3 pr-4 pl-4 font-medium">{row.name}</td>
-                        <td className="py-3 pr-4">
+                        <td className="py-3 pr-4 font-medium">{row.name}</td>
+                        <td className="cell-number py-3 pr-4">
                           <ValueCell
                             entries={row.valueByCurrency}
                             maxValue={maxValue}
@@ -182,10 +184,10 @@ export function LocationSummaryTable({
                         </td>
                         {showFinancials ? (
                           <>
-                            <td className="py-3 pr-4 text-right tabular-nums">
+                            <td className="cell-number py-3 pr-4 tabular-nums">
                               {formatMoney(row.landedCostNzd, "NZD")}
                             </td>
-                            <td className="py-3 pr-4 text-right tabular-nums">
+                            <td className="cell-number py-3 pr-4 tabular-nums">
                               {usdRate != null ? (
                                 formatMoney(row.landedCostNzd * usdRate, "USD")
                               ) : (
@@ -196,10 +198,10 @@ export function LocationSummaryTable({
                             </td>
                           </>
                         ) : null}
-                        <td className="py-3 pr-4 text-right tabular-nums">
+                        <td className="cell-number py-3 pr-4 tabular-nums">
                           {row.totalSkus}
                         </td>
-                        <td className="py-3 pr-4 text-right tabular-nums">
+                        <td className="cell-number py-3 pr-4 tabular-nums">
                           {row.outOfStockCount > 0 ? (
                             <span className="text-destructive">
                               {row.outOfStockCount}
@@ -208,10 +210,10 @@ export function LocationSummaryTable({
                             row.outOfStockCount
                           )}
                         </td>
-                        <td className="py-3 pr-4 text-right tabular-nums">
+                        <td className="cell-number py-3 pr-4 tabular-nums">
                           {row.lowStockCount}
                         </td>
-                        <td className="py-3 pr-4 text-right">
+                        <td className="cell-number py-3">
                           <Link
                             href={`/products?location=${row.id}`}
                             onClick={(event) => event.stopPropagation()}

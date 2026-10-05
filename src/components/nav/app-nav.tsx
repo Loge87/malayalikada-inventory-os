@@ -205,7 +205,7 @@ function NavRow({
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-2.5 rounded-lg px-(--space-nav-item-padding-x) py-(--space-nav-item-padding-y) text-sm transition-all duration-200 hover:translate-x-0.5",
+        "group flex items-center gap-2.5 rounded-lg px-(--space-nav-item-padding-x) py-(--space-nav-item-padding-y) text-sm transition-[transform,background-color,color] duration-(--duration-fast) ease-(--ease-out) hover:translate-x-0.5",
         active ? "nav-item-active" : "nav-item",
         className
       )}
@@ -327,7 +327,7 @@ export function AppNav({
       {/* Desktop sidebar — sticky + viewport-height, so it stays fixed to the
           screen and only the main content scrolls, rather than the sidebar
           scrolling away with a tall page. */}
-      <aside className="sidebar hidden shrink-0 flex-col border-r md:sticky md:top-0 md:flex md:h-screen md:w-56 md:overflow-y-auto">
+      <aside className="sidebar hidden shrink-0 flex-col md:sticky md:top-0 md:flex md:h-screen md:w-56 md:overflow-y-auto">
         <div className="p-4">
           <span className="font-heading text-sm font-semibold">
             Malayalikada

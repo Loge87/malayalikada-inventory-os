@@ -28,6 +28,11 @@
   --color-sidebar-active: var(--sidebar-active);
   --color-sidebar-active-foreground: var(--sidebar-active-foreground);
   --color-sidebar-border: var(--sidebar-border);
+  /* Every tab control's own colorless token family (theme.css's TABS
+     group) — only --tab-active needs a Tailwind mapping (TabsIndicator in
+     tabs.tsx reads it via a bg-tab-active utility class); the rest are
+     consumed directly as plain CSS vars inside ui.css's .tabs/.tab rules. */
+  --color-tab-active: var(--tab-active);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -49,9 +54,16 @@
   --color-primary-active: var(--primary-active);
   --color-primary-hover-foreground: var(--primary-hover-foreground);
   --color-primary-active-foreground: var(--primary-active-foreground);
-  /* The brand accent (indigo-blue) — everything that isn't the monochrome
-     action-button color: active tab, active/hover nav item, selected rows,
-     checked checkboxes, links, badge tints. See theme.css's BRAND group. */
+  /* The brand green pulled to a shade safe to use AS text/icons/links
+     (the raw --primary fill fails AA as text) and a pale/deep wash of the
+     fill for selected-state backgrounds — see theme.css's BRAND group. */
+  --color-primary-text: var(--primary-text);
+  --color-primary-tint: var(--primary-tint);
+  /* --brand-accent-* now just aliases --primary-* (plain green, same hue
+     as the action-button fill) — kept as its own named set of Tailwind
+     utilities so every existing bg-brand-accent/text-brand-accent-
+     foreground/etc. class site keeps working unchanged. See theme.css's
+     BRAND group for why these are aliases rather than a second color. */
   --color-brand-accent: var(--brand-accent);
   --color-brand-accent-hover: var(--brand-accent-hover);
   --color-brand-accent-active: var(--brand-accent-active);
@@ -82,7 +94,7 @@
   --color-badge-teal: var(--badge-teal);
   --color-badge-amber: var(--badge-amber);
   --color-badge-red: var(--badge-red);
-  --color-badge-purple: var(--badge-purple);
+  --color-badge-rose: var(--badge-rose);
   /* Two named shadow "weights" (see theme.css's Depth group). --shadow-
      elevated is kept as a back-compat alias to the same --shadow-raised
      value, since ui/card.tsx's existing `elevated` prop still emits a

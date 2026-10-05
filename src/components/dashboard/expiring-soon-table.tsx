@@ -96,14 +96,22 @@ export function ExpiringSoonTable({
 
             {pageItems.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                {/* .table/.table-head/.table-row — CORRECTED: this table used
+                    to be raw markup (a plain <table> + manually-styled <tr>s,
+                    duplicating border/background/hover CSS .table-head/
+                    .table-row already provide) instead of the shared classes
+                    every other table in the app uses. That's the specific
+                    reason this was the one table edge-padding missed earlier
+                    — a per-table Tailwind patch never reaches a table that
+                    isn't opted into the shared class in the first place. */}
+                <table className="table">
                   <thead>
-                    <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                      <th className="py-2 pr-4 font-medium">Variant</th>
-                      <th className="py-2 pr-4 font-medium">Batch</th>
-                      <th className="py-2 pr-4 font-medium">Location</th>
-                      <th className="py-2 pr-4 font-medium">Expiry</th>
-                      <th className="py-2 font-medium text-right">Remaining</th>
+                    <tr className="table-head">
+                      <th className="pr-4 font-medium">Variant</th>
+                      <th className="pr-4 font-medium">Batch</th>
+                      <th className="pr-4 font-medium">Location</th>
+                      <th className="pr-4 font-medium">Expiry</th>
+                      <th className="cell-number font-medium">Remaining</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -115,8 +123,8 @@ export function ExpiringSoonTable({
                           key={row.id}
                           className={
                             expired
-                              ? "border-t border-border bg-destructive/10 transition-colors hover:bg-destructive/15"
-                              : "border-t border-border transition-colors hover:bg-muted/40"
+                              ? "table-row bg-destructive/10 hover:bg-destructive/15"
+                              : "table-row"
                           }
                         >
                           <td className="py-3 pr-4">{row.variantLabel}</td>
@@ -136,7 +144,7 @@ export function ExpiringSoonTable({
                               {expired ? `expired ${-days}d ago` : `in ${days}d`}
                             </span>
                           </td>
-                          <td className="py-3 text-right tabular-nums">
+                          <td className="cell-number py-3 tabular-nums">
                             {row.quantityRemaining}
                           </td>
                         </tr>

@@ -19,9 +19,11 @@ function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
         // -inset-y-3 tap target was never actually rendering; every
         // checkbox in the app (not just Team's) was click-only on its
         // literal 1rem/1.125rem box until this fix.
-        // border-brand-accent/bg-brand-accent here (not -primary) — a
-        // checked checkbox is a selection state, not an action button;
-        // --primary is monochrome and reserved for .btn-primary now.
+        // border-brand-accent/bg-brand-accent here — brand-accent is a
+        // plain alias of --primary now (theme.css's BRAND group), kept as
+        // its own class name since "a checked checkbox" and "the action
+        // button" read as different concepts even though they currently
+        // share one color.
         "checkbox peer group-has-disabled/field:opacity-50 group-has-[:focus-visible]/field-label:ring-0 group-has-[:focus-visible]/field-label:not-data-checked:border-input after:content-[''] after:absolute after:-inset-x-3 after:-inset-y-3 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 aria-invalid:aria-checked:border-brand-accent dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 group-has-[:focus-visible]/field-label:data-checked:border-brand-accent dark:data-checked:bg-brand-accent",
         className
       )}

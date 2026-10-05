@@ -31,13 +31,15 @@ function TabsIndicator({ className, ...props }: TabsPrimitive.Indicator.Props) {
     <TabsPrimitive.Indicator
       data-slot="tabs-indicator"
       className={cn(
-        // bg-sidebar-active — CORRECTED from bg-brand-accent (and, before
-        // that, bg-primary): the reference image's active tab is a neutral
-        // light/near-white pill, not any brand hue. Reuses the exact same
-        // token the sidebar's active-nav pill reads (theme.css), since the
-        // image treats both identically — one shared "neutral active pill"
-        // concept, not a tab-specific color.
-        "absolute top-1/2 left-0 z-0 h-8 w-(--active-tab-width) -translate-y-1/2 translate-x-(--active-tab-left) rounded-md bg-sidebar-active shadow-sm transition-[translate,width] duration-150 ease-in-out",
+        // bg-tab-active + shadow-(--tab-active-ring) + a 1px border-
+        // (--tab-active-border) — CORRECTED: every tab control is now
+        // deliberately white/grey/black only (theme.css's TABS group),
+        // fully decoupled from --primary/--sidebar-active (both still
+        // green). The border is NEW this pass — a decisive edge so the
+        // active pill reads as visible even where the fill/track contrast
+        // alone is comparatively weak (dark mode), rather than visibility
+        // depending on that one number.
+        "absolute top-1/2 left-0 z-0 h-8 w-(--active-tab-width) -translate-y-1/2 translate-x-(--active-tab-left) rounded-md border border-(--tab-active-border) bg-tab-active shadow-(--tab-active-ring) transition-[translate,width] duration-(--duration-base) ease-(--ease-out)",
         className
       )}
       {...props}

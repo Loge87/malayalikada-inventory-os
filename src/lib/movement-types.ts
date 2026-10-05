@@ -33,7 +33,7 @@ export const MOVEMENT_BUCKET_LABELS: Record<MovementBucket, string> = {
 
 // CSS custom properties defined in globals.css (--chart-1..4) — a movement
 // type is a *category* (which kind of change), not a good/bad status, so it
-// gets its own validated categorical palette (blue/orange/violet/red)
+// gets its own validated categorical palette (blue/orange/teal/red)
 // instead of borrowing --status-success/warning/critical the way an earlier
 // version did. That keeps a chart bar from ever being mistaken for a stock
 // status pill, the --primary action-button color, or the --brand-accent

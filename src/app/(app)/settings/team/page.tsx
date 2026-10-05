@@ -73,7 +73,7 @@ export default async function TeamSettingsPage() {
   const locations: LocationOption[] = locationsRes.data ?? [];
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
+    <div className="flex w-full flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
       <div>
         <h1 className="text-page-title">Team</h1>
         <p className="text-page-subtitle">

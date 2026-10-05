@@ -42,26 +42,34 @@ export function ProductEditPanel({
   return (
     <Card
       elevated
-      // `.side-panel` (ui.css) sets overflow-y: auto, but ui.css loads into
-      // Tailwind's "components" layer (globals.css) — strictly LOWER
-      // priority than Tailwind's own "utilities" layer, so it can never
-      // override the base Card component's own `overflow-hidden` utility
-      // (ui/card.tsx). That made this panel silently uncappable-scroll
-      // (clipped, not scrollable) the moment its content ever grew past
-      // max-h-[calc(100vh-3rem)] — which it only recently started doing
-      // (Price Formula's calculated-price block, charm pricing, etc.).
-      // `overflow-y-auto` here is a genuine Tailwind utility, same layer as
-      // overflow-hidden, so it wins on the merits (Tailwind orders the
-      // longhand overflow-x/-y utilities after the overflow shorthand) —
-      // kept `.side-panel` for its documentation value, but the actual
-      // scroll behavior no longer depends on it.
-      className="side-panel sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto animate-in fade-in slide-in-from-right-4 scrollbar-hover-thin duration-300"
+      // CORRECTED: this used to be one single scroll container — the
+      // whole card (title/close button included) scrolled as one unit,
+      // so the header scrolled out of view along with the form on a long
+      // product. Now only CardContent below scrolls; this outer element
+      // stays a fixed-height flex column (Card's own base class already
+      // supplies flex flex-col overflow-hidden — see ui/card.tsx) so the
+      // header stays pinned and the rounded corners stay genuinely
+      // rounded (a scrolling element's own corner can get a square-edged
+      // "flash" at the scroll boundary in some browsers; a non-scrolling
+      // outer frame avoids that entirely).
+      //
+      // h-[97dvh] + top-[1.5dvh]: a fixed height (not max-height — sticky
+      // positioning with "bottom edge always on-screen" needs a KNOWN
+      // height to position against, not a cap that only sometimes
+      // applies), dvh instead of vh so a mobile browser's address-bar
+      // show/hide doesn't leave a few pixels of the panel's own bottom
+      // edge off-screen the way vh's "largest possible viewport" can.
+      // relative, explicitly — the close button below needs a positioned
+      // ancestor to pin against.
+      className="side-panel relative sticky top-[1.5dvh] flex h-[97dvh] flex-col animate-in fade-in slide-in-from-right-4 duration-(--duration-base)"
     >
       {/* Absolutely positioned against the panel's own corner (the same
           top-3 right-3 convention Dialog/Sheet's close button already
           uses), not inline in the header's flex row — so it stays pinned
           to the panel's actual top-right edge regardless of how tall the
-          title/description block gets. */}
+          title/description block gets. shrink-0 alongside it on the
+          header below keeps both out of the flex-sizing calculation that
+          only CardContent (flex-1) should participate in. */}
       <Button
         type="button"
         variant="ghost"
@@ -72,13 +80,25 @@ export function ProductEditPanel({
       >
         <XIcon className="size-4" />
       </Button>
-      <CardHeader className="pr-12">
+      <CardHeader className="shrink-0 pr-12">
         <CardTitle className="truncate">{product.name}</CardTitle>
         <CardDescription>
           Product details, pricing, and variants.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      {/* The actual scroll container — flex-1 to claim the remaining
+          height after the header's own; min-h-0 is the part that's easy
+          to miss (a flex child's default min-height is `auto`, which
+          means "at least as tall as my content," not 0 — without this,
+          the flex item refuses to shrink below its content's natural
+          height at all, so it just grows the whole panel/page instead of
+          ever actually scrolling internally). pb-10, inside the scroll
+          region, is deliberate too: the LAST field/button needs real
+          clearance from the panel's own bottom edge, not just from
+          whatever's rendered after it — padding on a later, uncrossed
+          sibling wouldn't help once that sibling is the thing being
+          scrolled past. */}
+      <CardContent className="min-h-0 flex-1 overflow-y-auto scrollbar-hover-thin pb-10">
         <ProductEditContent
           key={product.id}
           product={product}

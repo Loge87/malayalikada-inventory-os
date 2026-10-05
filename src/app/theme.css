@@ -21,97 +21,125 @@
 
 :root {
   /* ============================================================
-     BRAND — CORRECTED scope, narrowing an over-broad first pass at the
-     violet rebrand. --primary is restricted to ONLY the solid-fill action
-     button (.btn-primary) and the universal focus ring — nothing else on
-     the page should read as "this is purple," including the sidebar/tab
-     active-pill, which the first pass incorrectly derived from --primary
-     and has now been moved to a genuinely neutral, hue-less token instead
-     (see SIDEBAR-ACTIVE / ACTIVE-TAB below). --brand-accent (green,
-     unrelated to this correction) still covers links, selected-row and
-     selected-checkbox highlights — it was NEVER applied to tabs/nav either
-     by this point, just flagged here since the previous pass's comment
-     here described a different, now-corrected split.
+     BRAND — a single green brand hue, REPLACING the violet primary
+     entirely (no purple/violet/indigo left anywhere in this file —
+     the exact hex has moved twice since (#28c169, then this pass's
+     #4eb46c — see --primary's own comment below for the current value
+     and why), but the one-hue, two-shade (fill + text) structure this
+     comment describes hasn't changed.
+     see CHARTS and ICON BADGES below for the other two spots that used to
+     carry violet). One hue now covers both roles the app needs a brand
+     color for: --primary is the solid FILL (action buttons, and anywhere
+     else a saturated green block is appropriate), --primary-text is the
+     same hue pulled to a shade that's actually safe to use AS TEXT/ICONS/
+     LINKS on a plain surface (a fill-safe color and a text-safe color are
+     never the same shade at a fixed saturation — see each token's own
+     comment below for why). --brand-accent-* (the OLD second green, a
+     separate #2fed4d, kept alive through the last few passes as "links/
+     selected-row/checkbox" duty) is RETIRED as its own color this pass —
+     every --brand-accent-* token below is now a plain alias of its
+     --primary-* counterpart, so every existing bg-brand-accent/text-
+     brand-accent-foreground/etc. class across the app keeps working
+     unchanged (zero component edits needed) but now resolves to a shade of
+     the SAME green instead of a second, slightly-different one. Having one
+     brand hue, not two, is the point of this consolidation.
      ============================================================ */
 
-  /* The one solid-fill action button color — and ONLY that; no tint, no
-     wash, no "sidebar uses a pale version of this" anymore (that pattern
-     is what this correction removes — see --primary-tint's removal note
-     below). Requested range #7C6FF0-#6C5CE7; used the darker end — #7C6FF0
-     only clears 3.90:1 against white text (fails AA), while #6C5CE7
-     clears 4.86:1 cleanly with no nudge needed. */
-  --primary: #6c5ce7;
-  /* Real room to move in either direction at this lightness — hover/active
-     darken (same convention as the indigo-blue brand before it), each step
-     clearing white text more comfortably than the last (7.13:1 / 9.57:1). */
-  --primary-hover: #4b37e2;
-  --primary-active: #321ecc;
-  --primary-foreground: #ffffff;
+  /* The one solid-fill brand color — action buttons, and any other spot
+     that wants a saturated green block (see --brand-accent-* aliases
+     below), AND the left menu's active-item fill (see LEFT MENU below —
+     that used to be a pale tint, now a solid fill of this same color per
+     this pass's explicit instruction). Given directly this pass: #4eb46c,
+     replacing the previous #28c169 — same hue family, slightly lighter/
+     less saturated. White text still fails here (2.60:1) — needs a dark
+     foreground instead, see --primary-foreground. */
+  --primary: #4eb46c;
+  /* Hover/pressed fills — given directly this pass (not re-derived), both
+     checked against the new --primary-foreground below: #5CC07A clears
+     7.60:1, #43A05F clears 5.27:1 — both comfortably past the 4.5:1 floor
+     even at the darker pressed step. */
+  --primary-hover: #5cc07a;
+  --primary-active: #43a05f;
+  /* CORRECTED this pass: #0B1F14, given directly (white fails at 2.60:1
+     against the new, lighter fill — see --primary's own comment). 6.61:1
+     at rest, 7.60:1 on hover, 5.27:1 on pressed — all clear AA at every
+     state, including the faded "disabled-looking" state (a plain opacity
+     fade on the whole button per .btn:disabled in ui.css — fill and text
+     dim together, so the ratio BETWEEN them is unchanged by opacity and
+     stays 6.61:1 even disabled). Also reused directly as the left menu's
+     active-item text color in dark mode — see LEFT MENU below. */
+  --primary-foreground: #0b1f14;
   --primary-hover-foreground: var(--primary-foreground);
   --primary-active-foreground: var(--primary-foreground);
-  /* The focus ring for every interactive element — deliberately tied to
-     --primary, not --brand-accent, same reasoning as before: a focus
-     outline should read clearly regardless of what's behind it. */
+  /* The focus ring for every interactive element — tied to the fill color,
+     same reasoning as every prior rebrand: a focus outline should read
+     clearly regardless of what's behind it, and --primary is vivid enough
+     (non-text 3:1 UI-component floor) against both page surfaces. */
   --ring: var(--primary);
-  /* --primary-tint REMOVED by this correction (was: a translucent wash of
-     --primary, used only by the sidebar-active pill). With --primary
-     restricted to buttons, nothing needs a "pale version of the button
-     color" anymore — grep confirmed this was its only consumer. */
+  /* The green used AS TEXT, an icon glyph, a link, OR a border/outline that
+     needs to read on its own against a light surface — a darker shade of
+     the same hue than the fill above (the raw fill color, #28c169, only
+     reaches 2.35:1 as text — nowhere near enough). Given directly this
+     pass: 5.02:1 on --card (white), 4.79:1 on --background, 4.57:1 on
+     --primary-tint (the tightest of the three, since the tint is a pale
+     wash close in lightness to white, but still clears). See .dark below
+     for the lighter shade dark mode needs instead (reversed direction:
+     dark mode's surfaces are near-black, so the readable shade there is
+     LIGHTER than the fill, not darker). */
+  /* CORRECTED this pass: #2F7F47, given directly, replacing the old
+     #15803d — 4.94:1 against --card, 4.73:1 against --background, both
+     still clearing 4.5:1 (the --primary-tint-background case isn't
+     recomputed here since this pass's primary use of --primary-text is as
+     plain text/link/icon color on the two surfaces above, not on the tint).
+     --primary itself (#4eb46c) is explicitly NOT reused as text here on a
+     light surface — only 2.60:1, far under the floor. */
+  --primary-text: #2f7f47;
+  /* A pale wash of the fill color — "this is selected/active" backgrounds
+     (table rows, a highlighted filter, the left nav's active row — see
+     SIDEBAR-ACTIVE below) without a solid block. A flat given value this
+     pass, not a color-mix formula — still reads correctly as "pale green"
+     regardless of what's under it since it's fully opaque. See .dark below
+     for the different flat value dark mode needs instead. */
+  --primary-tint: #dcfce7;
 
-  /* THE one brand color — swap this single value (and its dark-mode
-     counterpart below) to re-skin the whole app for a different brand;
-     every other --brand-accent-* token here is derived FROM this base, so
-     nothing else needs to change. Currently a vivid green, hue ~130°, used
-     exactly as requested (#2fed4d) — no AA nudge needed, unlike the
-     previous indigo-blue brand: dark text already clears 12.58:1 against
-     it (white fails badly at 1.57:1, since this is a light, highly
-     saturated fill — dark text is the correct foreground choice here, the
-     reverse of the old blue). Selected table rows, checked checkboxes,
-     links. NOT active tab or active nav item — those are a neutral pill
-     now, see SIDEBAR-ACTIVE / ACTIVE-TAB below. */
-  --brand-accent: #2fed4d;
-  /* Darkens on hover/active (the direction a fill this light/vivid has
-     real room to move in) — same hue/saturation, stepped down in
-     lightness. Dark text stays the right foreground at every step (11.17:1
-     / 7.78:1), so unlike the old blue, no separate active-foreground
-     override is needed. */
-  --brand-accent-hover: #13e134;
-  --brand-accent-active: #10bc2b;
-  --brand-accent-foreground: oklch(0.145 0 0);
-  --brand-accent-hover-foreground: var(--brand-accent-foreground);
-  --brand-accent-active-foreground: var(--brand-accent-foreground);
-  /* A translucent, low-strength wash of --brand-accent — "this row/item is
-     selected or active" backgrounds (table rows, the active nav item, a
-     highlighted filter) without a solid fill. */
-  --brand-accent-tint: color-mix(in oklab, var(--brand-accent) 10%, transparent);
+  /* --brand-accent-* — plain aliases of the --primary-* family above (see
+     this group's opening comment for why). Every component class that
+     reads these (checked checkboxes, selected table rows, links, the
+     price-formula chain's StartBox, drag-and-drop highlights) keeps
+     working unchanged, now in the one brand green instead of a second one. */
+  --brand-accent: var(--primary);
+  --brand-accent-hover: var(--primary-hover);
+  --brand-accent-active: var(--primary-active);
+  --brand-accent-foreground: var(--primary-foreground);
+  --brand-accent-hover-foreground: var(--primary-hover-foreground);
+  --brand-accent-active-foreground: var(--primary-active-foreground);
+  --brand-accent-tint: var(--primary-tint);
 
   /* ============================================================
      ICON BADGES — a small rotation of distinct colors for decorative
      stat-card/icon badges (StatCard's tone prop), so different metrics
      read as visually distinct at a glance instead of every badge being a
-     wash of the single brand color (the exact thing point 1/3 of this
-     correction asks to stop doing). Deliberately NOT a copy of --primary
+     wash of the single brand color. Deliberately NOT a copy of --primary
      anywhere, and deliberately mostly ALIASES of already-validated colors
      elsewhere in this file rather than new raw hex — --badge-teal/-amber/
      -red are literally --status-success/-warning/-critical under a
      badge-scoped name (same values, same already-proven contrast; a
      warning-tone stat badge should still look like "amber" everywhere
      else amber means warning), and --badge-blue reuses --chart-1 (the
-     dashboard's own validated categorical blue). Only --badge-purple is a
-     genuinely new value — picked at a different hue (~272°) from
-     --primary (~247°) specifically so it doesn't read as "the button
-     color again" if it's ever actually assigned to a badge; it isn't
-     currently (see stat-card.tsx — none of today's 4 stat cards call for
-     "purple"), kept defined for a future one. */
+     dashboard's own validated categorical blue). --badge-purple REMOVED
+     this pass (no purple/violet/indigo anywhere in this file anymore) and
+     replaced with --badge-rose — a genuinely new value, a pink-red
+     distinct enough in hue (~345°) from --status-critical/--chart-4's red
+     (~0°) that it won't read as "the same red" if it's ever assigned to a
+     badge; it isn't currently (see stat-card.tsx — none of today's 4 stat
+     cards call for a 5th tone), kept defined for a future one. */
   --badge-blue: var(--chart-1);
   --badge-teal: var(--status-success);
   --badge-amber: var(--status-warning);
   --badge-red: var(--status-critical);
-  /* Icon-on-own-badge-wash contrast is the softest of the five (3.13:1
-     light / 2.70:1 dark, vs. 3.5-8.5:1 for the others) — acceptable for a
-     decorative, currently-unused badge, but worth a second pass if this
-     ever gets assigned to a real stat card. */
-  --badge-purple: #8a35d4;
+  /* 7.22:1 on white as icon-on-own-wash text/glyph contrast — comfortably
+     within the rest of the family's range (3.1-8.5:1). */
+  --badge-rose: #aa183d;
 
   /* ============================================================
      SURFACES — the background colors pages and components sit on, from
@@ -119,60 +147,95 @@
      secondary/accent fills used for subtler panels and hover states.
      ============================================================ */
 
-  /* The page itself — a soft violet tint (not pure white/gray), so white
-     cards sitting on top of it read as a distinct, "floating" layer. No
-     light reference in the image this rebrand is matching, so this is
-     derived, not copied — same relationship as the prior (blue) rebrand's
-     background, just re-tinted to --primary's hue (~247°) instead of
-     blue's. 18.53:1 against --foreground, 7.31:1 against
-     --muted-foreground — both comfortably clear AA (and AAA). */
-  --background: #f7f7fb;
+  /* CORRECTED this pass — a new palette, given directly (Tailwind's slate
+     scale): the page is slate-50, barely a step off white, so a white
+     card still reads as a distinct "floating" layer even though the two
+     are close in lightness (1.05:1 to each other) — the card's border +
+     shadow (see DEPTH below) carries most of that separation, not the
+     background-color difference alone. 17.06:1 against --foreground,
+     7.24:1 against --muted-foreground — both comfortably clear AA (AAA
+     too). */
+  --background: #f8fafc;
   /* Cards, panels, and dialogs — pure white, one layer up from the page. */
-  --card: oklch(1 0 0);
+  --card: #ffffff;
   /* Dropdown menus, comboboxes, and other floating popover surfaces. */
-  --popover: oklch(1 0 0);
+  --popover: #ffffff;
   /* A secondary, still-mostly-neutral fill — used sparingly, where a
      control needs to look one step more "filled in" than plain/transparent
-     without reaching for --accent or --muted. */
-  --secondary: oklch(0.97 0.002 247);
+     without reaching for --accent or --muted. Same slate-100 as --muted
+     (see its own comment) — the two have always shared one value here. */
+  --secondary: #f1f5f9;
   /* The standard muted/subtle fill — hover backgrounds on nav rows and
      ghost buttons, disabled-looking chips, table header rows, and the
-     "neutral" stock-status pill background. */
-  --muted: oklch(0.97 0.002 247);
+     "neutral" stock-status pill background. Given directly this pass
+     (slate-100). */
+  --muted: #f1f5f9;
   /* A slightly different neutral fill used by a handful of shadcn
      primitives (focus/hover backgrounds inside menus, selects) — visually
      close to --muted but kept distinct so those components can be
      retuned independently later. */
-  --accent: oklch(0.97 0.002 247);
+  --accent: #f1f5f9;
 
   /* ============================================================
      TEXT — foreground/ink colors, one per surface above so every surface
      has a color guaranteed to read clearly on top of it.
      ============================================================ */
 
-  /* The default body text color, used on --background and --card alike. */
-  --foreground: oklch(0.145 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  /* The default body text color, used on --background and --card alike —
+     given directly this pass (slate-900). 17.06:1 against --background,
+     17.85:1 against --card. */
+  --foreground: #0f172a;
+  --card-foreground: #0f172a;
+  --popover-foreground: #0f172a;
+  /* One step lighter than --foreground (slate-800) — a softer heading/
+     label tone for the secondary/accent surfaces above, same relationship
+     as the previous palette had. */
+  --secondary-foreground: #1e293b;
   /* Secondary/de-emphasized text (subtitles, captions, table meta text) —
-     specifically neutral-600, not neutral-500: neutral-500 only just
-     cleared 4.5:1 against --background (4.53:1, no real margin);
-     neutral-600 clears both --background and --card at 7.4-7.8:1. */
-  --muted-foreground: oklch(0.439 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+     given directly this pass (slate-600). 7.24:1 against --background,
+     7.58:1 against --card — both comfortably clear AA. */
+  --muted-foreground: #475569;
+  --accent-foreground: #1e293b;
 
   /* ============================================================
      LINES — borders, dividers, and the neutral outline every input/select/
      card uses at rest (before focus).
      ============================================================ */
 
-  --border: oklch(0.914 0.003 247);
+  /* Given directly this pass (slate-200). A hairline, not meant to clear
+     any text-contrast floor on its own — 1.18:1 against --background,
+     1.23:1 against --card, both modest; --shadow-card's drop shadow (see
+     DEPTH below) is what actually separates a card from the page, same as
+     before this palette change. */
+  --border: #e2e8f0;
   /* The resting border color for text inputs, selects, and textareas
-     specifically (kept as its own token from --border in case a future
-     design wants form controls to look subtly different from a plain
-     divider — today they're the same value). */
-  --input: oklch(0.914 0.003 247);
+     specifically — given directly this pass (slate-300), one step darker
+     than the plain divider --border above so a form control's own edge
+     reads a little more deliberately than a passive divider line. */
+  --input: #cbd5e1;
+
+  /* ============================================================
+     BORDER WIDTHS — a prior pass removed every card's border, relying on
+     shadow/surface-step alone for separation; THIS pass restores a real
+     1px card border ("subtle but visible"), while the left menu panel
+     stays borderless (its own --sidebar-background surface-step already
+     carries that separation — see LEFT MENU below — and this pass only
+     asked to restore CARD borders, not the sidebar's). --card-border-
+     color is its own token (not a bare re-use of --border) so a card's
+     edge can be tuned independently of every other hairline divider in
+     the app — same neutral family as the surfaces either way (see each
+     mode's own comment below). Deliberately NOT applied to input/select/
+     textarea borders, table row dividers, the tab track hairline, or any
+     focus ring — none of those were asked to change.
+     ============================================================ */
+
+  --card-border-width: 1px;
+  /* Re-uses --border's own value this pass (same neutral slate family the
+     request asked for) rather than a new literal — 1.233:1 contrast
+     against --card (#ffffff), a deliberately subtle hairline, not a bold
+     line. See .dark below for the (also --border-aliased) dark value. */
+  --card-border-color: var(--border);
+  --sidebar-border-width: 0;
 
   /* ============================================================
      DANGER — destructive actions and validation errors: delete buttons,
@@ -195,10 +258,11 @@
      pill never needs a one-off opacity trick.
      ============================================================ */
 
-  /* "In stock" — a distinct teal-green, independent of both --primary
-     (monochrome) and --brand-accent (blue), so "this item is healthy
-     stock" never reads as either the action-button color or the brand
-     accent. */
+  /* "In stock" — its own distinct teal-green, deliberately a different
+     shade from --primary/--brand-accent's green (they're the same hue
+     family now, but this one is darker/more teal) so "this item is
+     healthy stock" still reads as its own status color, not a reuse of
+     the brand/action-button green. */
   --status-success: #007667;
   --status-success-bg: color-mix(in oklab, var(--status-success) 10%, transparent);
   /* "Low stock" — one step darker than a standard amber-700; the
@@ -218,73 +282,99 @@
 
   /* ============================================================
      CHARTS — the dashboard's movement-type series colors (received/sold/
-     transferred/adjusted). Its own validated categorical palette (chosen
-     and CVD-checked with the dataviz skill's validator), deliberately
-     independent of --primary, --brand-accent, and the status colors above
-     so a chart bar is never mistaken for a button, the brand accent, or a
-     stock-status color.
+     transferred/adjusted). Its own categorical palette, deliberately
+     independent of --primary/--brand-accent and the status colors above so
+     a chart bar is never mistaken for a button, the brand accent, or a
+     stock-status color. --chart-3 was violet — REPLACED this pass (no
+     purple/violet/indigo anywhere in this file anymore) with a teal, hue
+     ~178°, picked far enough from --chart-1's blue (~213°) and from
+     --status-success's own teal (~172°, close in hue but a completely
+     different UI context — a chart bar series vs. a stock-status pill —
+     so the two are never seen competing for the same meaning) to stay a
+     clearly distinct 4th series.
      ============================================================ */
 
   --chart-1: #2a78d6; /* blue — received */
   --chart-2: #eb6834; /* orange — sold */
-  --chart-3: #4a3aa7; /* violet — transferred */
+  --chart-3: #169c98; /* teal — transferred */
   --chart-4: #e34948; /* red — adjusted */
   /* A neutral gray, used only if a 5th series (e.g. an extra currency)
      ever appears. */
   --chart-5: var(--muted-foreground);
 
   /* ============================================================
-     LEFT MENU (SIDEBAR) / ACTIVE TAB — the desktop sidebar + mobile nav's
-     own surface/row colors, AND the active-tab pill (.tab[data-active] /
-     TabsIndicator, ui.css + tabs.tsx both read --sidebar-active directly
-     rather than duplicating this value) — one shared pair of tokens, not
-     two, so the sidebar's active nav row and any tab group's active pill
-     (Settings' General/Price Settings/Notifications, Retail/Wholesale,
-     Audit Log's two sub-tabs, Stock Out's Record/History, etc.) always
-     look identical. CORRECTED TWICE now: first from a brand-color wash
-     (violet, then would-have-been-green) to a neutral near-white pill;
-     this pass corrects THAT — the near-white pill read as a bright,
-     "selected by brightness" fill rather than a surface that belongs to
-     either mode's own palette. --sidebar-active is still a per-mode
-     literal/formula (light mode's "12% dark-on-background" neutral wash
-     and dark mode's own hand-picked navy-gray are two different values by
-     necessity, restated in .dark below), but --sidebar-active-foreground
-     no longer needs a per-mode override at all: each mode's own plain
-     --foreground is simply correct against its own active surface now
-     (dark text on a light wash in light mode, light text on a dark
-     surface in dark mode) — see .dark's comment on this token for the
-     mobile bottom-nav bug that fell out of fixing this.
+     LEFT MENU (SIDEBAR) — the desktop sidebar + mobile nav's own surface/
+     row colors. --sidebar-active/-foreground stay fully separate from the
+     TABS group right below (deliberately colorless) — the sidebar keeps
+     the brand green, no tab control carries any hue.
      ============================================================ */
 
-  /* The sidebar's own background — same as the page (= var(--background)),
-     not a separate white card. This is the one explicit visual signature
-     of the new reference image ("the sidebar blends into the page") and
-     is applied in both modes for a consistent feel, even though the image
-     only shows dark mode directly — the prior (blue) rebrand's "sidebar is
-     a distinct white card" treatment is gone. */
-  --sidebar-background: var(--background);
+  /* CORRECTED this pass: with the sidebar's own border gone (see BORDERS
+     above), it needed its own visible surface instead of borrowing
+     --card/--background wholesale — a flat alias to either one would now
+     make the sidebar invisible as its own panel (no border to mark where
+     it ends). A deliberately SUBTLE step off the page, not a big jump:
+     6% of --foreground mixed into --background, measured at 1.13:1
+     against the page (light mode's own number — dark mode's is restated
+     in .dark below with a different mix, since "6% of white" and "6% of
+     foreground" land in very different places against a near-black vs.
+     near-white base). 15.08:1 for --foreground text on it. */
+  --sidebar-background: color-mix(in oklab, var(--foreground) 6%, var(--background));
   /* The nav's default (non-active) text color, used on hover — the same
      shade as ordinary body text, one step bolder than the resting label. */
   --sidebar-foreground: var(--foreground);
-  /* A nav row's background on hover, before it's the active page — solid
-     --muted, the same fill used for hover states elsewhere in the app. */
-  --sidebar-hover: var(--muted);
-  /* The CURRENT page's nav row (and active tab's) background, light mode —
-     a neutral 12% dark-on-background wash, NOT a tint of either brand color
-     (see the group comment above). CORRECTED this pass: was 8%, strengthened
-     to read more clearly as "selected" at a glance (1.38:1 against plain
-     --card/white, up from 1.19:1) rather than relying on the viewer to
-     notice a very subtle gray step — still a soft neutral wash, not a loud
-     fill. 14.33:1 for dark text against it. */
-  --sidebar-active: color-mix(in oklab, var(--foreground) 12%, var(--background));
-  /* Dark text — correct in both modes now (see .dark's comment on this same
-     token for why the OLD dark-mode pill needed a special override and the
-     NEW one doesn't): light mode's own --foreground IS dark text, matching
-     this pale neutral wash. */
+  /* CORRECTED this pass: was a plain alias of --muted — now its own
+     formula, a further step in the same direction as --sidebar-background
+     above (12% vs. 6%), so hovering a nav row reads as a clear, deliberate
+     deepening from the sidebar's own surface rather than "the generic
+     muted fill used everywhere else" landing suspiciously close to it.
+     1.13:1 against --sidebar-background, 1.28:1 against the page. */
+  --sidebar-hover: color-mix(in oklab, var(--foreground) 12%, var(--background));
+  /* CORRECTED this pass: was --primary-tint (a pale green wash) — now a
+     SOLID fill of --primary itself, per this pass's explicit instruction
+     ("Left menu active item: solid #4eb46c fill with dark text"). */
+  --sidebar-active: var(--primary);
+  /* CORRECTED this pass: was a dedicated given hex (#166534, calibrated to
+     read on the pale tint above) — now --foreground itself ("light mode:
+     black text (menu text is black)"), since the active row is a solid
+     fill now, not a tint, and plain body-text black is what the rest of
+     the sidebar already uses. 6.86:1 against the new solid --sidebar-
+     active. See .dark below for the dark-mode value (explicitly #0B1F14,
+     not --foreground — dark mode's near-white body text would fail
+     against this same vivid green fill). */
   --sidebar-active-foreground: var(--foreground);
   /* The hairline border separating the sidebar (and the mobile top/bottom
      bars) from the rest of the page. */
   --sidebar-border: var(--border);
+
+  /* ============================================================
+     TABS — every tab control in the app (.tabs / .tab / TabsIndicator in
+     ui.css + tabs.tsx): Settings' General/Price Settings/Notifications,
+     Stock Out's Record/History, Audit Log's two sub-tabs. Deliberately its
+     own white/grey/black-only token family, fully decoupled from
+     --primary/--brand-accent/--sidebar-active (no hue anywhere in a tab
+     control, on purpose). RE-DERIVED this pass from the new palette's own
+     slate scale rather than carried over from the old, unrelated grey
+     family — every token below is either a literal slate step or a direct
+     alias of a SURFACES/TEXT/LINES token above that already IS that same
+     slate step, so the tab system stays visibly "part of" the new palette
+     instead of a leftover grey that happens to still pass contrast. */
+  --tab-track: var(--border); /* slate-200 — already --border's own value */
+  --tab-track-border: var(--input); /* slate-300 — already --input's own value */
+  --tab-foreground: var(--muted-foreground); /* slate-600 */
+  --tab-hover: var(--muted); /* slate-100 — lighter than the track, same "lifting toward selected" direction as before */
+  /* A literal slate-800 — coincidentally the same step as dark mode's own
+     --card, but that's cross-mode and not a real relationship, so this
+     stays a literal rather than a confusing alias. 14.63:1 text contrast,
+     11.87:1 against the track, 13.98:1 against the page. */
+  --tab-active: #1e293b;
+  --tab-active-foreground: #ffffff;
+  /* A literal slate-400 — forms a real edge on both sides: 2.08:1 against
+     the track, 5.71:1 against the fill. */
+  --tab-active-border: #94a3b8;
+  /* A full box-shadow value (same convention as --shadow-card/-raised
+     below), not a bare color — the "lifted" look on the active pill. */
+  --tab-active-ring: 0 1px 2px 0 rgb(15 23 42 / 0.08);
 
   /* ============================================================
      DEPTH (SHADOWS) — the two drop-shadow "weights" a surface can have.
@@ -292,17 +382,36 @@
      shadow reads fine on both), so neither is restated in .dark.
      ============================================================ */
 
-  /* The default card's resting shadow — a hairline ring (so a white card
-     still has a visible edge on a barely-different white page) plus a
-     very soft drop shadow underneath it. */
-  --shadow-card: 0 0 0 1px color-mix(in oklab, var(--foreground) 4%, transparent),
-    0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  /* CORRECTED this pass: the default card's own edge used to be a FAKE
+     border (a 0 0 0 1px box-shadow layer bundled in here) plus a soft
+     drop shadow. Now .card (ui.css) sets a real `border: 1px solid
+     var(--border)` instead, so this token is ONLY the drop-shadow part —
+     very soft, light-mode only (see .dark below, which sets this to
+     `none`: a shadow doesn't read against a dark page the way it does
+     against a light one, so dark mode relies on the border plus --card
+     already being one step lighter than --background instead). */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   /* A more pronounced shadow for a surface that should look deliberately
      "lifted" above the page (a card's `elevated` variant, a popover, a
      dialog) — reversed from an earlier, much heavier version (24-48px
      blur up to 18% opacity, plus an inset glass-rim highlight) down to
-     something closer in weight to shadow-sm than shadow-md. */
+     something closer in weight to shadow-sm than shadow-md. Deliberately
+     NOT part of this pass's "no shadow in dark mode" change — `elevated`
+     is an opt-in, used by only a few components that specifically want
+     MORE lift than the default card; zeroing it in dark mode would make
+     that prop a silent no-op there instead of just restyling the default
+     card the way this request asked for. Still shared across both modes,
+     unchanged. */
   --shadow-raised: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 4px 10px -4px rgb(0 0 0 / 0.08);
+  /* NEW this pass — the clickable top-row stat cards' own hover shadow:
+     softer (lower opacity per layer) AND larger (wider blur/spread) than
+     --shadow-raised, so hovering one of those cards reads as "lifting
+     further," not just "the same elevated shadow it already had." Shared
+     across both modes, same reasoning as --shadow-raised above (an
+     opt-in, hover-only effect on a handful of cards, not the default
+     card's own at-rest shadow — the thing the "no shadow in dark mode"
+     correction was actually about). */
+  --shadow-hover: 0 2px 4px 0 rgb(0 0 0 / 0.03), 0 16px 32px -12px rgb(0 0 0 / 0.12);
 
   /* ============================================================
      SHAPE (CORNER RADII) — how rounded each kind of surface is. Buttons
@@ -372,119 +481,280 @@
   --space-section-gap: 1.75rem; /* vertical gap between stacked page sections, was 1.25rem */
   --space-card-padding: 1.5rem; /* inner padding of a card/panel, was 1.25rem */
   --space-table-row-height: 2.75rem; /* a data table row's resting height */
-  --space-control-height: 2.5rem; /* buttons, inputs, and selects, at rest */
+  /* REMOVED this pass — --table-row-height-compact (the Team table's own
+     denser row height) was the single biggest source of Team looking
+     visibly different from Clients/Locations (this session's own request):
+     a shorter row with less cell padding, on its own token, used nowhere
+     else. Team now reads the same --space-table-row-height every other
+     table does — see team-management.tsx. */
+  /* RENAMED this pass to --control-height (the name this request asks
+     for) — --space-control-height kept as a plain alias below so nothing
+     that already reads the old name breaks. Every single-line interactive
+     control (.input, .select and every other dropdown/combobox/multi-
+     select trigger built from it, and a default/lg-size .btn) now reads
+     THIS token for its height, with box-sizing: border-box made explicit
+     on each so padding can never push the rendered box taller than this
+     value the way .input's old (buggy) 1.25rem vertical padding used to.
+     .btn-sm/.btn-icon (and the button component's own xs/icon-xs/icon-sm/
+     icon-lg sizes) are deliberately EXCLUDED — they're intentionally
+     smaller/square variants, not meant to match a text control's height. */
+  --control-height: 2.5rem;
+  --space-control-height: var(--control-height); /* back-compat alias */
+  /* NEW this pass — the shared horizontal padding for the same control
+     family above (.input/.select/multi-select trigger/default-lg .btn),
+     so a button's padding and an input's padding are the same measured
+     number, not just happening to look similar. Same exclusions as
+     --control-height just above. */
+  --control-padding-x: 1rem;
+  /* NEW this pass — header row height target ~3rem: --text-xs (0.75rem)
+     at the browser's default line-height (~1.2, so ~0.9rem/14.4px of
+     actual line box) plus 2x this padding lands at roughly 0.9rem +
+     2*1.0625rem = 3.025rem — "about 3rem" as asked, verified live via
+     Playwright (see this pass's VERIFY section for the measured before/
+     after numbers). Read by ui.css's .table-head > th, so every table
+     sharing that class gets it for free — the per-table `py-2` Tailwind
+     utilities that used to set this locally were removed from every <th>
+     across the app this pass specifically so this shared rule can
+     actually win (a Tailwind utility on the th itself would otherwise
+     override this components-layer rule for the same longhand property,
+     same reasoning as --space-table-cell-x below). */
+  --table-header-padding-y: 1.0625rem;
+  /* NEW this pass — left/right padding on a table's OUTERMOST column only
+     (first header/body cell gets it on the left, last gets it on the
+     right); interior columns keep whatever per-table gap they already
+     use (pr-2, pr-4, etc). Read by ui.css's .table-head/.table-row so
+     every table using those shared classes gets edge padding for free —
+     see ui.css's TABLES group comment for why this had to be a shared-
+     class fix, not another per-table patch. */
+  --space-table-cell-x: 1rem;
   /* New this pass — the left menu's own spacing, split out from what used
      to be plain hardcoded Tailwind utilities (gap-1, px-3, py-2) directly
      in app-nav.tsx, so it's a real shared token like everything else here. */
   --space-nav-gap: 0.375rem; /* vertical gap BETWEEN nav items, was 0.25rem */
   --space-nav-item-padding-x: 1rem; /* internal horizontal padding within one nav item, was 0.75rem */
   --space-nav-item-padding-y: 0.75rem; /* internal vertical padding within one nav item, was 0.5rem */
-  /* New this pass — a button's horizontal padding, split out from what
-     used to be a literal value inside ui.css's .btn rule. */
-  --space-button-padding-x: 1.125rem; /* was 0.875rem */
   --scrollbar-width: 8px; /* the thin, hover-only scrollbar (see globals.css) */
+  /* NEW this pass — the Teams invite row's email field, ~17% narrower
+     than the flexible min-width it used to grow from (min-w-48/12rem ->
+     10rem, roughly a 17% cut, within the requested 15-20% band). A fixed
+     min-width, not a fixed width — the field still grows to fill
+     available space in the flex row, this just lowers its floor so the
+     role/locations controls beside it get more of the row by default. */
+  --invite-email-width: 10rem;
+  /* NEW this pass — fixed per-column widths for the Teams and Clients
+     tables (table-layout: fixed + a <colgroup>, so a long email/name
+     never reflows a sibling column's width — see item 8's own VERIFY
+     section for the measured zero-delta proof). Percentages, not fixed
+     rem values, so each table's own total width (it's full-page-width
+     now, not a fixed px container) is split proportionally rather than
+     leaving dead space or overflowing on a narrow viewport. Each table
+     gets its own named set (they sum to 100% independently) rather than
+     sharing generic names — the two tables' columns don't line up 1:1
+     (Clients has an Address column Teams doesn't, Teams has Role/
+     Locations Clients doesn't), so a shared "secondary"/"status"-style
+     token would just invite the wrong value in the wrong table. */
+  --team-col-member: 34%;
+  --team-col-role: 14%;
+  --team-col-locations: 20%;
+  --team-col-added: 12%;
+  --team-col-actions: 20%;
+  --client-col-name: 32%;
+  --client-col-contact: 20%;
+  --client-col-address: 24%;
+  --client-col-status: 12%;
+  --client-col-actions: 12%;
+  /* NEW this pass — Locations now matches Team/Clients' fixed-column
+     architecture too (this session's "make Team match Clients AND
+     Locations" request standardised all three on this shared pattern —
+     see locations-list.tsx and this file's own note on which version
+     won and why). */
+  --location-col-name: 40%;
+  --location-col-type: 20%;
+  --location-col-status: 20%;
+  --location-col-actions: 20%;
+  /* NEW this pass — Transfers' own "Recent transfers" table (item 9/10:
+     a compact fixed-column table, same architecture as Teams/Clients,
+     replacing the old plain <ul> list). */
+  --transfer-col-variant: 32%;
+  --transfer-col-source: 18%;
+  --transfer-col-destination: 18%;
+  --transfer-col-qty: 12%;
+  --transfer-col-date: 20%;
+
+  /* ============================================================
+     MOTION — the timing vocabulary every hover/press/enter transition in
+     ui.css (and the handful of .tsx files that still carry their own
+     Tailwind transition utilities) reads from, so an icon swap, a button
+     press, and a dialog's fade-in all move at one of two consistent
+     speeds instead of each spot picking its own number. Same in both
+     modes, not restated in .dark. Every consumer is wrapped in a
+     prefers-reduced-motion guard (see ui.css's own MOTION section, right
+     after this file's class definitions begin) — these tokens set HOW
+     FAST something moves, not WHETHER it's allowed to.
+     ============================================================ */
+
+  --duration-fast: 120ms; /* hover/press feedback — color, background, border, small transforms */
+  --duration-base: 180ms; /* enter/exit — dropdowns, dialogs, toasts, the side panel, the tab indicator */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1); /* one decelerating curve, used everywhere */
 }
 
 .dark {
-  /* Matches the new dark-fintech reference image directly (this rebrand's
-     primary reference, unlike light mode below which has none): background
-     #0A0B14 (near-black navy, not pure black), card #13141F (one step up —
-     deliberately subtle, 1.09:1 on its own; card separation here comes
-     mostly from --shadow-card's hairline ring + drop shadow, not a big
-     background jump — see CARD AND SURFACE below). Was GitHub-dark
-     (#0d1117/#161b22) under the indigo-blue and green rebrands; replaced
-     outright, not nudged, since the image specifies its own exact values.
-     Foreground #EDEEF7: 16.97:1 against background, 15.84:1 against card. */
+  /* RESTORED this pass — the slate background/card/popover/muted above
+     were replaced back out to the black/near-black shades from the dark-
+     fintech rebrand two passes before slate, found via `git log -p --
+     src/app/theme.css` (one commit touches this file — 3860853, "Add
+     Price Formula Builder, rebrand to a token-driven design system, and
+     polish dashboard/tables" — which happened to land between the violet
+     rebrand and the later green/slate ones, so its .dark block is exactly
+     this request's "before the slate change" state for these specific
+     tokens; confirmed against this session's own history that nothing
+     else touched background/card/popover/muted between that commit and
+     the slate pass). --secondary/--accent restored alongside --muted,
+     even though only --muted was named explicitly — all three have been
+     one shared value in every version of this file including the one
+     being restored (git confirms secondary: #1d1e2b; muted: #1d1e2b;
+     accent: #1d1e2b at that commit too), so reverting muted alone would
+     have newly split a trio that's never been split. --foreground/
+     --border/--input/--muted-foreground are NOT part of this restoration
+     (not named, and not "black shades" in the first place) — still the
+     slate values from the previous pass. 16.97:1 against --foreground,
+     15.84:1 against --card-foreground. */
   --background: #0a0b14;
   --card: #13141f;
   --popover: #13141f;
   --secondary: #1d1e2b;
-  /* One step lighter again than --card, in the same cool navy family as
-     the border color below — keeps the ascending
-     background < card < secondary/muted/accent order. */
   --muted: #1d1e2b;
   --accent: #1d1e2b;
 
-  --foreground: #ededf7;
-  --card-foreground: #ededf7;
-  --popover-foreground: #ededf7;
-  --secondary-foreground: #ededf7;
-  /* Unchanged value from the prior two rebrands (oklch(0.87 0 0) = #d4d4d4)
-     — re-verified against the new, slightly different background/card:
-     13.23:1 / 12.35:1, both still comfortable, no change needed. */
-  --muted-foreground: oklch(0.87 0 0);
-  --accent-foreground: #ededf7;
+  /* Unrestored — kept at the slate value from the previous pass (not a
+     "black shade," and not named in this request). 17.90:1 against the
+     restored --background, 16.70:1 against the restored --card. */
+  --foreground: #f1f5f9;
+  --card-foreground: #f1f5f9;
+  --popover-foreground: #f1f5f9;
+  --secondary-foreground: var(--foreground);
+  /* Given directly this pass (slate-400). 6.96:1 against --background,
+     5.71:1 against --card — both clear AA. */
+  --muted-foreground: #94a3b8;
+  --accent-foreground: var(--foreground);
 
-  /* Unchanged — not part of this request, and re-verified it's still the
-     better choice: 1.61:1 against the new (darker) background vs. 1.35:1
-     for a navy-tinted alternative I'd drafted and discarded. */
-  --border: #30363d;
-  --input: #30363d;
+  /* Given directly the previous pass (slate-700), unrestored — re-verified
+     against the restored --background/--card: 1.89:1 / 1.77:1, both still
+     modest but real, same "the shadow/border-as-definition pattern
+     carries this" situation as light mode's --border. */
+  --border: #334155;
+  /* Given directly the previous pass (slate-600), unrestored. Re-verified:
+     2.59:1 against --background, 2.41:1 against --card. */
+  --input: #475569;
 
-  /* Unchanged from the last two passes — 13.31:1 against the new dark
-     card, well past the 4.5:1 floor it was originally calibrated to
-     clear. */
+  /* CORRECTED this pass (see :root's own comment on this token for the
+     light-mode reasoning) — dark mode needs ITS OWN mix direction: 6% of
+     plain white into --background, not 6% of --foreground (dark mode's
+     --foreground is near-white already, so "6% of foreground into
+     background" and "6% of white into background" land almost the same
+     place here — white is used explicitly for clarity). Chose LIGHTER
+     over darker deliberately: --background is already very close to
+     pure black, and mixing black INTO it moves the measured contrast by
+     a few thousandths at best (verified: 7% black only reaches 1.006:1,
+     not a usable step at all) — there's no room left to go darker. 10%
+     white: 1.26:1 against the page, 14.22:1 for --foreground text on it. */
+  --sidebar-background: color-mix(in oklab, white 10%, var(--background));
+  /* 18% white — a further step in the same direction as the 10% above,
+     same "a visible step beyond the sidebar's own surface" reasoning as
+     light mode's --sidebar-hover. 1.32:1 against --sidebar-background,
+     1.66:1 against the page. */
+  --sidebar-hover: color-mix(in oklab, white 18%, var(--background));
+
+  /* Unchanged from the last several passes — re-verified against the
+     restored dark card: 13.31:1, still well past the 4.5:1 floor it was
+     originally calibrated to clear. */
   --destructive: #ffd1cf;
 
-  /* Same violet as light mode, unchanged — unlike the old indigo-blue
-     (which was too dark at its light-mode lightness to read against a
-     near-black surface and needed a separate, lifted dark-mode value),
-     this violet is vivid enough to work directly: 4.04:1 against the new
-     background and 3.77:1 against the new card as a solid fill (both
-     clear the 3:1 non-text/UI-component floor), and white text on it is
-     mode-independent — still 4.86:1 / 7.13:1 / 9.57:1 at base/hover/active,
-     so no active-foreground override is needed either (unlike the old
-     blue, which needed one). One violet, one set of hover/active steps,
-     both modes. */
-  --primary: #6c5ce7;
-  --primary-hover: #4b37e2;
-  --primary-active: #321ecc;
-  --primary-foreground: #ffffff;
-  --primary-hover-foreground: var(--primary-foreground);
-  --primary-active-foreground: var(--primary-foreground);
-  /* CORRECTED this pass: the near-white pill above (#e2e2e3) read as a
-     bright, stark fill against the dark navy page — "selected" by
-     brightness-jump rather than by sitting naturally in the established
-     dark palette. Replaced with a genuinely dark, subdued surface instead:
-     a literal hand-picked navy-gray, one clear step up from --muted/
-     --accent (#1d1e2b, used for hover) toward --border (#30363d) without
-     landing exactly on either — distinguishable from both at rest (1.58:1
-     vs. the muted/hover fill, 1.75:1 vs. --card) so "hovered" and
-     "selected" never look the same, while staying inside the same cool
-     navy family as every other dark-mode surface (--card/--muted/
-     --border) rather than jumping to brightness. Still no brand hue —
-     point 1/2 of the EARLIER correction (no --primary wash on nav/tabs)
-     stands; this is a lightness/greyscale change only, not a reversal. */
-  --sidebar-active: #3a3e58;
-  /* No override needed anymore — unlike the old light pill (which forced
-     dark text here specifically because the pill itself was pale), this
-     new pill is dark, so dark mode's own --foreground (light text) is
-     simply correct again: 8.98:1 against #3a3e58, comfortably past AA
-     (and AAA's 7:1). This also fixes a latent bug this token shared with
-     the mobile bottom-nav's active icon (.bottom-nav-item[aria-current]
-     in ui.css reads this same --sidebar-active-foreground with NO pill
-     behind it, directly against --background) — the old forced dark-text
-     override was illegible there (dark-on-dark, ~1:1); inheriting :root's
-     var(--foreground) formula instead is correct in both places now. */
+  /* --primary itself (the fill) is UNCHANGED in dark mode — #28c169 reads
+     fine directly against the dark navy surfaces (it's a mid-lightness,
+     vivid color, not calibrated to either background), and its fixed dark
+     foreground text is a literal hex pair, so the contrast ratio between
+     them doesn't depend on which mode is active. Not restated here —
+     :root's --primary/--primary-hover/--primary-active/--primary-foreground
+     apply directly, same one green and one set of hover/active steps in
+     both modes. --brand-accent-* likewise needs no restatement (plain
+     aliases of the above, see :root's BRAND comment).
 
-  /* Same brand green as light mode, unchanged — not part of this rebrand's
-     request (see the BRAND group comment in :root). Re-verified against
-     the new background/card regardless: 10.42:1 / trend-pill text-on-own-
-     tint 8.69:1 (success) and 10.63:1 (critical) — both comfortably clear
-     AA against the new, slightly lighter dark card. */
-  --brand-accent: #2fed4d;
-  --brand-accent-hover: #13e134;
-  --brand-accent-active: #10bc2b;
-  --brand-accent-foreground: oklch(0.145 0 0);
-  --brand-accent-hover-foreground: var(--brand-accent-foreground);
-  --brand-accent-active-foreground: var(--brand-accent-foreground);
+     --primary-text and --primary-tint DO need their own dark-mode values
+     below — both are specifically calibrated to a near-black surface
+     (light mode's versions are calibrated to a near-white one), which is
+     the whole reason they're separate per-mode tokens in the first place. */
 
-  /* Re-verified against the new dark card: 10.42:1. */
+  /* CORRECTED this pass: given directly as the SAME value as --primary
+     itself (#4eb46c) — dark mode's near-black surfaces are dark enough
+     that the plain fill color already reads clearly as text too (7.03:1
+     against --card, 7.53:1 against --background), so unlike light mode
+     (where the fill and the text-safe shade have to diverge) dark mode
+     doesn't need a separate, lighter shade here. */
+  --primary-text: #4eb46c;
+  /* A genuinely substantial dark surface this time (not a translucent
+     wash like light mode's, which would barely register against an
+     already-dark page) — a flat given value, not a color-mix formula, so
+     unlike --card/--background this pass's restoration doesn't move it at
+     all. Still 1.22:1 against the restored --card (a real, visibly-green-
+     tinted step) while --primary-text still clears 5.23:1 against it. */
+  --primary-tint: #14532d;
+  /* CORRECTED this pass: :root now sets --sidebar-active-foreground to
+     var(--foreground) (near-black, for the light-mode solid fill) — that
+     would be near-WHITE in dark mode, which fails against the same vivid
+     green fill, so this restates it as the explicit #0B1F14 the request
+     calls for ("dark mode: #0B1F14"), same value as --primary-foreground.
+     6.61:1 against --sidebar-active (= --primary, #4eb46c). */
+  --sidebar-active-foreground: #0b1f14;
+
+  /* Re-verified against the restored dark card: 10.42:1. */
   --status-success: #22dbc0;
-  --status-warning: #fbbf24; /* amber-400 — 10.96:1 against the new dark card */
+  --status-warning: #fbbf24; /* amber-400 — 10.96:1 against the restored dark card */
 
-  --chart-1: #3987e5;
-  --chart-2: #d95926;
-  --chart-3: #9085e9;
-  --chart-4: #e66767;
+  --chart-1: #3987e5; /* 5.03:1 against the restored dark card */
+  --chart-2: #d95926; /* 4.71:1 */
+  /* Teal, not violet — see :root's CHARTS comment. Re-verified against the
+     restored dark card: 8.31:1. */
+  --chart-3: #29c2bc;
+  --chart-4: #e66767; /* 5.66:1 */
+
+  /* TABS, dark mode — see :root's TABS group comment. RE-VERIFIED this
+     pass against the restored --muted (#1d1e2b, navy, not slate) that
+     --tab-track aliases: every number below moved when the background/
+     card/muted restoration landed, even though none of these tab tokens'
+     own definitions changed. --tab-active is a literal mid-grey, NOT
+     white — a white active pill would read as a bright, stark fill
+     against the dark page, the exact "selected by brightness-jump"
+     problem an earlier pass already fixed once for the sidebar and
+     shouldn't come back here; it's also deliberately NOT too close to the
+     track (a much earlier pass's #414857 measured a weak 1.75:1 there and
+     read as "blending in" to an actual viewer even though the ratio
+     technically passed a loose floor). --tab-track-border/--tab-
+     foreground/--tab-hover/--tab-active-border stay slate (--input/
+     --muted-foreground/--border weren't part of this restoration), so
+     only --tab-track and --tab-active's OWN numbers actually changed. */
+  --tab-track: var(--muted); /* navy, restored — #1d1e2b */
+  --tab-track-border: var(--input); /* slate-600, unrestored — 2.18:1 against the restored track */
+  --tab-foreground: var(--muted-foreground); /* slate-400, unrestored — 6.43:1 on the restored track */
+  --tab-hover: var(--border); /* slate-700, unrestored — 1.59:1 against the restored track */
+  /* A literal custom mid-grey, unchanged — re-verified against the
+     restored track: 2.87:1 (was 2.18:1 against the old slate track), 3.41:1
+     against the restored page — both still a confidently visible step, not
+     a marginal one — while still clearing 5.26:1 for the light text on it. */
+  --tab-active: #566780;
+  --tab-active-foreground: var(--foreground);
+  /* var(--muted-foreground) (slate-400, unrestored) — re-verified against
+     the restored track: 6.43:1, a solid edge on its own even before the
+     fill color is considered. */
+  --tab-active-border: var(--muted-foreground);
+  /* A soft light ring instead of light mode's dark shadow — a dark shadow
+     would be invisible against an already-dark track. */
+  --tab-active-ring: 0 0 0 1px rgb(241 245 249 / 0.08);
+
+  /* NEW this pass — see :root's own comment on this token. No drop shadow
+     at all in dark mode: .card's real `border: 1px solid var(--border)`
+     plus --card already sitting one step lighter than --background
+     (#1e293b vs. #0f172a) carries the "this is a raised surface" read
+     instead. */
+  --shadow-card: none;
 }

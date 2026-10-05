@@ -10,11 +10,10 @@ import {
   updateMemberRole,
 } from "@/app/(app)/settings/team/actions";
 import { formatDate } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import type { Role } from "@/lib/permissions";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toastManager } from "@/components/ui/toast";
 import {
   Card,
   CardContent,
@@ -22,7 +21,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { toastManager } from "@/components/ui/toast";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { TablePagination } from "@/components/dashboard/table-pagination";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -47,44 +49,68 @@ const ROLE_ITEMS: Record<Role, string> = {
   owner: "Owner",
 };
 
-/** A plain checkbox list, not a searchable combobox — an organisation's
- *  location count is small (a handful of stores), so search would be
- *  overhead without benefit. Fully controlled (checked/onCheckedChange). */
-function LocationCheckboxes({
+const MEMBERS_PAGE_SIZE = 25;
+
+/**
+ * The Locations control for one member table row — a MultiSelect (see
+ * ui/multi-select.tsx), the exact same component/trigger shape the
+ * invite row's own Locations field uses. A fixed-width wrapper plus a
+ * reserved slot for "Saving…"/the warning/the error keeps the column's
+ * own rendered width unaffected by any of those transient states.
+ */
+function LocationsCell({
   idPrefix,
   locations,
   selectedIds,
   onToggle,
+  pending,
+  warning,
+  error,
   disabled,
 }: {
   idPrefix: string;
   locations: LocationOption[];
   selectedIds: string[];
   onToggle: (locationId: string, checked: boolean) => void;
+  pending?: boolean;
+  warning?: string;
+  error?: string;
   disabled?: boolean;
 }) {
+  if (locations.length === 0) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {locations.map((location) => (
-        <label
-          key={location.id}
-          htmlFor={`${idPrefix}-${location.id}`}
-          // Real padding + a hover fill, not just the checkbox's own tiny
-          // box — the whole row is the click target (htmlFor already
-          // forwards a click anywhere in this label to the checkbox; this
-          // just makes that area visible and comfortably sized instead of
-          // being invisible and text-tight).
-          className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-muted"
-        >
-          <Checkbox
-            id={`${idPrefix}-${location.id}`}
-            checked={selectedIds.includes(location.id)}
-            disabled={disabled}
-            onCheckedChange={(checked) => onToggle(location.id, checked === true)}
-          />
-          {location.name}
-        </label>
-      ))}
+    <div className="relative">
+      <MultiSelect
+        idPrefix={idPrefix}
+        options={locations.map((l) => ({ id: l.id, label: l.name }))}
+        selectedIds={selectedIds}
+        onToggle={onToggle}
+        disabled={disabled}
+        placeholder="None"
+        triggerClassName="h-8 w-full px-2 text-xs"
+      />
+      {/* CORRECTED this pass — used to be a sibling line below the trigger,
+          which added its own height to this cell's natural content height
+          and was the single biggest reason Team's row measured taller than
+          Clients'/Locations' (this session's "make the tables match"
+          request). absolute + top-full takes it OUT of layout entirely —
+          it still never reflows the column's WIDTH (the original item 8
+          concern, still true), and now never grows the row's HEIGHT either.
+          It floats just under the trigger when something's actually
+          showing, same as a validation hint under a field elsewhere in
+          the app. */}
+      <span className="absolute top-full left-0 block text-[11px] leading-[14px] whitespace-nowrap">
+        {pending ? (
+          <span className="text-muted-foreground">Saving…</span>
+        ) : error ? (
+          <span className="text-destructive">{error}</span>
+        ) : warning ? (
+          <span className="text-status-warning">{warning}</span>
+        ) : null}
+      </span>
     </div>
   );
 }
@@ -118,95 +144,92 @@ function InviteMemberForm({ locations }: { locations: LocationOption[] }) {
   }, [state, router]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Invite member</CardTitle>
-        <CardDescription>
-          Only works if the person already has an account — there&apos;s no
-          email-invite system yet.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form action={formAction} className="flex flex-col gap-4">
-          <input type="hidden" name="locationIds" value={JSON.stringify(locationIds)} />
-          <FieldGroup>
-            <Field orientation="responsive">
-              <Field>
-                <FieldLabel htmlFor="invite-email">Email</FieldLabel>
-                <Input
-                  id="invite-email"
-                  name="email"
-                  type="email"
-                  placeholder="colleague@example.com"
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="invite-role">Role</FieldLabel>
-                <Select
-                  name="role"
-                  value={role}
-                  items={ROLE_ITEMS}
-                  onValueChange={(value) => {
-                    if (value == null) return;
-                    setRole(value as Role);
-                  }}
-                >
-                  <SelectTrigger id="invite-role" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(ROLE_ITEMS).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </Field>
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 rounded-lg bg-muted/30 p-3"
+    >
+      <input type="hidden" name="locationIds" value={JSON.stringify(locationIds)} />
+      <div className="flex flex-wrap items-end gap-3">
+        {/* min-w-(--invite-email-width): a fixed, ~17%-narrower floor than
+            the previous min-w-48 (12rem -> 10rem) — see theme.css's own
+            comment on --invite-email-width for the exact math. Still
+            flex-1, so it grows to fill the row same as before; this only
+            lowers how small it's allowed to get before the role/locations
+            controls beside it start losing space. */}
+        <Field className="min-w-(--invite-email-width) flex-1">
+          <FieldLabel htmlFor="invite-email">Email</FieldLabel>
+          <Input
+            id="invite-email"
+            name="email"
+            type="email"
+            placeholder="colleague@example.com"
+            required
+          />
+        </Field>
+        <Field className="w-32">
+          <FieldLabel htmlFor="invite-role">Role</FieldLabel>
+          <Select
+            name="role"
+            value={role}
+            items={ROLE_ITEMS}
+            onValueChange={(value) => {
+              if (value == null) return;
+              setRole(value as Role);
+            }}
+          >
+            <SelectTrigger id="invite-role" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(ROLE_ITEMS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
 
-            {locations.length > 0 ? (
-              <Field>
-                <FieldLabel>
-                  Locations{role === "staff" ? " (required for staff)" : " (optional)"}
-                </FieldLabel>
-                <LocationCheckboxes
-                  idPrefix="invite-location"
-                  locations={locations}
-                  selectedIds={locationIds}
-                  onToggle={(locationId, checked) =>
-                    setLocationIds((current) =>
-                      checked
-                        ? [...current, locationId]
-                        : current.filter((id) => id !== locationId)
-                    )
-                  }
-                />
-              </Field>
-            ) : null}
+        {locations.length > 0 ? (
+          <Field className="w-56">
+            <FieldLabel>
+              Locations{role === "staff" ? " (required)" : " (optional)"}
+            </FieldLabel>
+            <MultiSelect
+              idPrefix="invite-location"
+              options={locations.map((l) => ({ id: l.id, label: l.name }))}
+              selectedIds={locationIds}
+              onToggle={(locationId, checked) =>
+                setLocationIds((current) =>
+                  checked
+                    ? [...current, locationId]
+                    : current.filter((id) => id !== locationId)
+                )
+              }
+              triggerClassName="w-full"
+            />
+          </Field>
+        ) : null}
 
-            {state && "error" in state ? <FieldError>{state.error}</FieldError> : null}
-            {state && "needsSignup" in state ? (
-              <p className="rounded-md bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
-                This person needs to sign up first at{" "}
-                <span className="font-medium break-all">{state.signupUrl}</span>
-                , then you can add them here.
-              </p>
-            ) : null}
-            {state && "ok" in state ? (
-              <p className="rounded-md bg-status-success/10 px-3 py-2 text-sm text-status-success">
-                Member added.
-              </p>
-            ) : null}
+        <Button type="submit" disabled={pending} className="w-fit">
+          {pending ? "Checking…" : "Invite"}
+        </Button>
+      </div>
 
-            <Button type="submit" disabled={pending} className="w-fit">
-              {pending ? "Checking…" : "Invite"}
-            </Button>
-          </FieldGroup>
-        </form>
-      </CardContent>
-    </Card>
+      {state && "error" in state ? <FieldError>{state.error}</FieldError> : null}
+      {state && "needsSignup" in state ? (
+        <p className="rounded-md bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
+          This person needs to sign up first at{" "}
+          <span className="font-medium break-all">{state.signupUrl}</span>, then
+          you can add them here.
+        </p>
+      ) : null}
+      {state && "ok" in state ? (
+        <p className="rounded-md bg-status-success/10 px-3 py-2 text-sm text-status-success">
+          Member added.
+        </p>
+      ) : null}
+    </form>
   );
 }
 
@@ -255,16 +278,26 @@ function MemberRow({
   const pendingLocationIds = useRef(member.locationIds);
 
   useEffect(() => {
-    if (roleState && "ok" in roleState) {
+    if (!roleState) return;
+    if ("ok" in roleState) {
       router.refresh();
       toastManager.add({ title: `Role updated for ${member.email}`, type: "success" });
+    } else {
+      // CORRECTED this pass — item 8: a fixed-column table can't let an
+      // error message grow a cell, so this goes to a toast instead of the
+      // inline FieldError this used to render in the Role column.
+      toastManager.add({ title: roleState.error, type: "error" });
     }
   }, [roleState, member.email, router]);
 
   useEffect(() => {
-    if (removeState && "ok" in removeState) {
+    if (!removeState) return;
+    if ("ok" in removeState) {
       router.refresh();
       toastManager.add({ title: `${member.email} removed`, type: "success" });
+    } else {
+      // CORRECTED this pass — same reasoning as roleState's error above.
+      toastManager.add({ title: removeState.error, type: "error" });
     }
   }, [removeState, member.email, router]);
 
@@ -311,143 +344,133 @@ function MemberRow({
     });
   }
 
+  const locationsWarning =
+    member.role === "staff" && checkedLocationIds.length === 0
+      ? "No location assigned — this member can't use Stock Out yet."
+      : undefined;
+  const locationsError =
+    locationsState && "error" in locationsState ? locationsState.error : undefined;
+
   return (
-    <li className="flex flex-col gap-4 py-5 pr-4 pl-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0">
-          <span className="block truncate font-medium">
-            {member.email}
-            {isSelf ? (
-              <span className="ml-1 text-xs text-muted-foreground">(you)</span>
-            ) : null}
-          </span>
-          <span className="text-caption">
-            Added {formatDate(member.createdAt)}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {canManageRoles ? (
-            // Not a <form>+requestSubmit() — Base UI's Select calls
-            // onValueChange *before* it updates its own internal value/hidden
-            // field (see SelectRoot's setValue()), so requestSubmit() would
-            // submit the previous role, not the one just picked. Building the
-            // FormData from the callback's own `value` argument and calling
-            // the action directly sidesteps that race entirely.
-            <Select
-              items={ROLE_ITEMS}
-              defaultValue={member.role}
-              disabled={isSoleOwner || rolePending}
-              onValueChange={(value) => {
-                if (value == null) return;
-                const formData = new FormData();
-                formData.set("userId", member.userId);
-                formData.set("role", value);
-                // roleAction is a useActionState action — calling it
-                // directly (not via a <form action=.../formAction prop)
-                // requires startTransition, same as locationsAction above.
-                startTransition(() => {
-                  roleAction(formData);
-                });
-              }}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(ROLE_ITEMS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <span className="text-sm text-muted-foreground">
-              {ROLE_ITEMS[member.role as Role] ?? member.role}
-            </span>
-          )}
-
-          {canManageRoles ? (
-            !confirmingRemove ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={isSoleOwner}
-                onClick={() => setConfirmingRemove(true)}
-              >
-                Remove
-              </Button>
-            ) : (
-              <form action={removeAction} className="flex items-center gap-2">
-                <input type="hidden" name="userId" value={member.userId} />
-                <Button
-                  type="submit"
-                  variant="destructive"
-                  size="sm"
-                  disabled={removePending}
-                >
-                  {removePending ? "Removing…" : "Confirm"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={removePending}
-                  onClick={() => setConfirmingRemove(false)}
-                >
-                  Cancel
-                </Button>
-              </form>
-            )
+    <tr className="table-row" style={{ height: "var(--space-table-row-height)" }}>
+      <td className="py-3 pr-2">
+        <span className="block truncate font-medium" title={member.email}>
+          {member.email}
+          {isSelf ? (
+            <span className="ml-1 text-xs text-muted-foreground">(you)</span>
           ) : null}
-        </div>
-      </div>
-
-      {isSoleOwner ? (
-        <p className="text-caption">
-          The only owner — add another owner before changing or removing this
-          one.
-        </p>
-      ) : null}
-      {roleState && "error" in roleState ? (
-        <FieldError>{roleState.error}</FieldError>
-      ) : null}
-      {removeState && "error" in removeState ? (
-        <FieldError>{removeState.error}</FieldError>
-      ) : null}
-
-      {canManageLocations && locations.length > 0 ? (
-        // A hairline top border + its own top padding (on top of the <li>'s
-        // own gap-4) — reads as a distinct section under the member-info/
-        // role row above, not just another line cramped into the same block.
-        <div className="flex flex-col gap-2 border-t border-border pt-4">
-          <span className="text-caption">
-            Locations
-            {/* Purely informational — never disables the checkboxes below,
-                which stay clickable the whole time the save is in flight. */}
-            {locationsPending ? (
-              <span className="ml-1 text-muted-foreground">Saving…</span>
-            ) : null}
+        </span>
+      </td>
+      <td className="py-3 pr-2">
+        {canManageRoles ? (
+          // Not a <form>+requestSubmit() — Base UI's Select calls
+          // onValueChange *before* it updates its own internal value/hidden
+          // field (see SelectRoot's setValue()), so requestSubmit() would
+          // submit the previous role, not the one just picked. Building the
+          // FormData from the callback's own `value` argument and calling
+          // the action directly sidesteps that race entirely.
+          <Select
+            items={ROLE_ITEMS}
+            defaultValue={member.role}
+            disabled={isSoleOwner || rolePending}
+            onValueChange={(value) => {
+              if (value == null) return;
+              const formData = new FormData();
+              formData.set("userId", member.userId);
+              formData.set("role", value);
+              // roleAction is a useActionState action — calling it
+              // directly (not via a <form action=.../formAction prop)
+              // requires startTransition, same as locationsAction above.
+              startTransition(() => {
+                roleAction(formData);
+              });
+            }}
+          >
+            <SelectTrigger className="h-8 w-28 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(ROLE_ITEMS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <span className="text-sm text-muted-foreground">
+            {ROLE_ITEMS[member.role as Role] ?? member.role}
           </span>
-          <LocationCheckboxes
+        )}
+      </td>
+      <td className="py-3 pr-2">
+        {canManageLocations ? (
+          <LocationsCell
             idPrefix={`member-${member.userId}-location`}
             locations={locations}
             selectedIds={checkedLocationIds}
             onToggle={toggleLocation}
+            pending={locationsPending}
+            warning={locationsWarning}
+            error={locationsError}
           />
-          {member.role === "staff" && checkedLocationIds.length === 0 ? (
-            <p className="text-xs text-status-warning">
-              No location assigned — this member can&apos;t use Stock Out yet.
-            </p>
-          ) : null}
-          {locationsState && "error" in locationsState ? (
-            <FieldError>{locationsState.error}</FieldError>
-          ) : null}
-        </div>
-      ) : null}
-    </li>
+        ) : (
+          <LocationsCell
+            idPrefix={`member-${member.userId}-location`}
+            locations={locations}
+            selectedIds={member.locationIds}
+            onToggle={() => {}}
+            disabled
+          />
+        )}
+      </td>
+      <td className="py-3 pr-2 text-xs text-muted-foreground">
+        {formatDate(member.createdAt)}
+      </td>
+      <td className="cell-number py-3">
+        {canManageRoles ? (
+          isSoleOwner ? (
+            <span className="text-caption">Sole owner</span>
+          ) : !confirmingRemove ? (
+            // Plain <button>, not the shared Button component — matches
+            // Clients'/Locations' "Delete" button exactly (same classes,
+            // same destructive-red styling), not Team's own old pill-
+            // shaped <Button variant="outline">. Remove is this row's
+            // equivalent of "Delete" (a destructive, confirm-gated
+            // action), so it reads from the same style, not Edit's
+            // neutral one.
+            <button
+              type="button"
+              onClick={() => setConfirmingRemove(true)}
+              className="rounded-md px-2 py-1 text-xs font-medium text-destructive ring-1 ring-destructive/30 hover:bg-destructive/10"
+            >
+              Remove
+            </button>
+          ) : (
+            <form action={removeAction} className="flex items-center justify-end gap-2">
+              <input type="hidden" name="userId" value={member.userId} />
+              <Button
+                type="submit"
+                variant="destructive"
+                size="sm"
+                disabled={removePending}
+              >
+                {removePending ? "Removing…" : "Confirm"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={removePending}
+                onClick={() => setConfirmingRemove(false)}
+              >
+                Cancel
+              </Button>
+            </form>
+          )
+        ) : null}
+      </td>
+    </tr>
   );
 }
 
@@ -465,32 +488,89 @@ export function TeamManagement({
   canManageLocations: boolean;
 }) {
   const ownerCount = members.filter((m) => m.role === "owner").length;
+  const { pageItems, page, totalPages, setPage } = usePagination(
+    members,
+    MEMBERS_PAGE_SIZE
+  );
+
+  function rowProps(member: Member) {
+    return {
+      member,
+      locations,
+      isSelf: member.userId === currentUserId,
+      isSoleOwner: member.role === "owner" && ownerCount <= 1,
+      canManageRoles,
+      canManageLocations,
+    };
+  }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5">
       {canManageRoles ? <InviteMemberForm locations={locations} /> : null}
 
-      <Card>
+      {/* Card/CardHeader/CardTitle/CardContent — the exact same wrapper
+          ClientsPageContent/LocationsPageContent use around their own
+          lists (elevated, "All X" title, a CardDescription, an empty-
+          state <p> fallback). This table used to be a bare <div>, the
+          single biggest reason it read as a different surface from
+          Clients/Locations rather than another table in the same family. */}
+      <Card elevated>
         <CardHeader>
-          <CardTitle>Members</CardTitle>
+          <CardTitle>All members</CardTitle>
           <CardDescription>
             {members.length} member{members.length === 1 ? "" : "s"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="divide-y divide-border">
-            {members.map((member) => (
-              <MemberRow
-                key={member.userId}
-                member={member}
-                locations={locations}
-                isSelf={member.userId === currentUserId}
-                isSoleOwner={member.role === "owner" && ownerCount <= 1}
-                canManageRoles={canManageRoles}
-                canManageLocations={canManageLocations}
-              />
-            ))}
-          </ul>
+          {members.length === 0 ? (
+            <p className="text-muted-foreground">No members yet</p>
+          ) : (
+            <>
+              {/* table/table-head/table-row — the same shared classes
+                  Clients/Locations read, table-layout: fixed plus a
+                  colgroup (also now shared by all three — see theme.css's
+                  team-col, client-col and location-col token groups, and
+                  this pass's own VERIFY section for the measured zero-
+                  delta column-width proof). No sticky header — Clients and
+                  Locations don't scroll internally (the whole PAGE
+                  scrolls), so a sticky header here had no real scroll
+                  container to stick within anyway. */}
+              <div className="overflow-x-auto">
+                <table className="table table-fixed">
+                  <colgroup>
+                    <col style={{ width: "var(--team-col-member)" }} />
+                    <col style={{ width: "var(--team-col-role)" }} />
+                    <col style={{ width: "var(--team-col-locations)" }} />
+                    <col style={{ width: "var(--team-col-added)" }} />
+                    <col style={{ width: "var(--team-col-actions)" }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="table-head">
+                      <th className="pr-2 font-medium text-muted-foreground">
+                        Member
+                      </th>
+                      <th className="pr-2 font-medium text-muted-foreground">
+                        Role
+                      </th>
+                      <th className="pr-2 font-medium text-muted-foreground">
+                        Locations
+                      </th>
+                      <th className="pr-2 font-medium text-muted-foreground">
+                        Added
+                      </th>
+                      <th className="font-medium" aria-hidden />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageItems.map((member) => (
+                      <MemberRow key={member.userId} {...rowProps(member)} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <TablePagination page={page} totalPages={totalPages} onChange={setPage} />
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

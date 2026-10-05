@@ -25,11 +25,17 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        // .card (ui.css) supplies the surface color and radius; the
-        // shadow is the one thing that still varies by the `elevated`
-        // prop, so it stays a call-site override reading the same two
-        // theme.css tokens .card itself is built from.
-        "card group/card flex flex-col gap-(--card-spacing) overflow-hidden py-(--card-spacing) text-sm transition-shadow duration-300 ease-out [--card-spacing:var(--space-card-padding)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        // .card (ui.css) supplies the surface color, radius, AND the
+        // transition (box-shadow/border-color/transform, all driven by
+        // theme.css's MOTION tokens) — no transition-shadow utility here
+        // anymore: a Tailwind transition-* utility sets the longhand
+        // transition-property, which would win over (not merge with)
+        // .card's own transition-property list, silently dropping the
+        // border-color/transform half of it. The shadow itself is the one
+        // thing that still varies by the `elevated` prop, so it stays a
+        // call-site override reading the same two theme.css tokens .card
+        // itself is built from.
+        "card group/card flex flex-col gap-(--card-spacing) overflow-hidden py-(--card-spacing) text-sm [--card-spacing:var(--space-card-padding)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         elevated && "shadow-(--shadow-raised)",
         className
       )}

@@ -1,16 +1,10 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 import { createTransfer } from "@/app/(app)/transfers/actions";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,28 +14,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toastManager } from "@/components/ui/toast";
 
 export type LocationOption = { id: string; name: string };
 export type VariantOption = { id: string; label: string };
 
+/**
+ * CORRECTED this pass (item 9): used to be its own standalone <Card> sitting
+ * directly on the page — now lives inside a dialog (TransfersPageHeader),
+ * same "form inside a DialogContent" shape as ClientForm/LocationForm, so
+ * the outer Card/CardHeader/CardTitle is gone (DialogHeader/DialogTitle in
+ * the dialog itself now carries that framing). The actual field markup,
+ * validation (canSubmit below), and the error path (state.error/FieldError
+ * — this is where record_stock_transfer's "insufficient stock" error
+ * surfaces) are byte-for-byte unchanged, per this pass's explicit
+ * instruction to keep that behavior exactly as it was. `onCreated` closes
+ * the dialog and router.refresh()/toastManager.add give this the same
+ * success feedback every other create-via-dialog form in the app already
+ * has (ClientForm, LocationForm) — this form just never had it yet.
+ */
 export function TransferForm({
   locations,
   variants,
+  onCreated,
 }: {
   locations: LocationOption[];
   variants: VariantOption[];
+  onCreated?: () => void;
 }) {
   const [state, formAction, pending] = useActionState(
     createTransfer,
     undefined
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (state && "ok" in state) {
       formRef.current?.reset();
+      router.refresh();
+      toastManager.add({ title: "Transfer created", type: "success" });
+      onCreated?.();
     }
-  }, [state]);
+  }, [state, router, onCreated]);
 
   const locationItems: Record<string, string> = Object.fromEntries(
     locations.map((l) => [l.id, l.name])
@@ -53,16 +68,7 @@ export function TransferForm({
   const canSubmit = locations.length >= 2 && variants.length > 0;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>New stock transfer</CardTitle>
-        <CardDescription>
-          Moves stock between two locations as a single ledger event —
-          TRANSFER_OUT at the source and TRANSFER_IN at the destination.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form ref={formRef} action={formAction}>
+    <form ref={formRef} action={formAction}>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="sourceLocationId">From</FieldLabel>
@@ -147,8 +153,6 @@ export function TransferForm({
               {pending ? "Transferring…" : "Create transfer"}
             </Button>
           </FieldGroup>
-        </form>
-      </CardContent>
-    </Card>
+    </form>
   );
 }

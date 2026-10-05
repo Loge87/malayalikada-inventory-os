@@ -60,7 +60,8 @@ function LocationRow({
   }
 
   useEffect(() => {
-    if (state && "ok" in state) {
+    if (!state) return;
+    if ("ok" in state) {
       router.refresh();
       // state.result is "deactivated" when the location had inventory or
       // purchase-order history — say so rather than claiming "deleted" for a
@@ -72,6 +73,13 @@ function LocationRow({
             : `${location.name} deleted`,
         type: "success",
       });
+    } else {
+      // CORRECTED this pass — this table is now table-layout: fixed with a
+      // fixed Actions column width (matching Clients — see this file's own
+      // note on the shared pattern), so an inline error paragraph here
+      // would either overflow or wrap and grow the row past its fixed
+      // height; a toast carries it instead, same as Clients/Team.
+      toastManager.add({ title: state.error, type: "error" });
     }
   }, [state, router, location.name]);
 
@@ -79,12 +87,16 @@ function LocationRow({
     <tr
       onClick={() => onEdit(location.id)}
       aria-selected={isSelected}
-      className={cn(
-        "cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50",
-        isSelected && "bg-brand-accent/5 hover:bg-brand-accent/10"
-      )}
+      className="table-row cursor-pointer"
+      // A fixed row height, same token/value Clients and Team now read —
+      // see this file's own note on the shared fixed-column pattern.
+      style={{ height: "var(--space-table-row-height)" }}
     >
-      <td className="py-3 pr-2 font-medium">{location.name}</td>
+      <td className="py-3 pr-2 font-medium">
+        <span className="block truncate" title={location.name}>
+          {location.name}
+        </span>
+      </td>
       <td className="py-3 pr-2 text-muted-foreground capitalize">
         {location.type}
       </td>
@@ -92,7 +104,7 @@ function LocationRow({
         <ActiveStatusPill isActive={location.isActive} />
       </td>
       <td
-        className="py-3 pl-2 text-right"
+        className="cell-number py-3"
         onClick={(event) => event.stopPropagation()}
       >
         {!canManage ? null : !confirming ? (
@@ -113,14 +125,16 @@ function LocationRow({
             </button>
           </div>
         ) : (
+          // CORRECTED this pass — the "Delete X?" text used to sit inline
+          // here; now a title attribute instead, same fix Clients already
+          // has (a fixed, narrow Actions column can't let this wrap
+          // without growing the row past its fixed height).
           <form
             action={formAction}
-            className="flex flex-wrap items-center justify-end gap-2"
+            className="flex items-center justify-end gap-2"
+            title={`Delete "${location.name}"?`}
           >
             <input type="hidden" name="locationId" value={location.id} />
-            <span className="text-xs text-muted-foreground">
-              Delete &ldquo;{location.name}&rdquo;?
-            </span>
             <Button type="submit" variant="destructive" size="sm" disabled={pending}>
               {pending ? "Deleting…" : "Confirm"}
             </Button>
@@ -135,9 +149,6 @@ function LocationRow({
             </Button>
           </form>
         )}
-        {state && "error" in state ? (
-          <p className="mt-1 text-xs text-destructive">{state.error}</p>
-        ) : null}
       </td>
     </tr>
   );
@@ -178,13 +189,23 @@ export function LocationsList({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      {/* .table/.table-head — not raw markup — see
+          expiring-soon-table.tsx's own note for why. table-layout: fixed +
+          a <colgroup> — this table now matches Clients/Team's shared
+          fixed-column pattern (see theme.css's --location-col-* tokens). */}
+      <table className="table table-fixed">
+        <colgroup>
+          <col style={{ width: "var(--location-col-name)" }} />
+          <col style={{ width: "var(--location-col-type)" }} />
+          <col style={{ width: "var(--location-col-status)" }} />
+          <col style={{ width: "var(--location-col-actions)" }} />
+        </colgroup>
         <thead>
-          <tr className="border-b border-border bg-muted/40 text-left text-xs">
-            <th className="py-2 font-medium text-muted-foreground">Name</th>
-            <th className="py-2 font-medium text-muted-foreground">Type</th>
-            <th className="py-2 font-medium text-muted-foreground">Status</th>
-            <th className="py-2 pl-2 font-medium" aria-hidden />
+          <tr className="table-head">
+            <th className="pr-2 font-medium text-muted-foreground">Name</th>
+            <th className="pr-2 font-medium text-muted-foreground">Type</th>
+            <th className="pr-2 font-medium text-muted-foreground">Status</th>
+            <th className="font-medium" aria-hidden />
           </tr>
         </thead>
         <tbody>

@@ -600,14 +600,33 @@ export function PriceFormulaChain({
   initialChain,
   variables,
   currency,
+  onChainChange,
 }: {
   formulaType: FormulaType;
   initialChain: FormulaChain;
   variables: PriceVariable[];
   currency: string;
+  /** Mirrors this chain's live (draft, possibly-unsaved) state up to the
+   *  parent — the parent needs it for the Retail/Wholesale selector cards'
+   *  one-line preview and Applied/Draft changes/Not set status badge, which
+   *  live outside this component and would otherwise have no visibility
+   *  into in-progress edits. Purely a read mirror — this component's own
+   *  `chain` state stays the single source of truth for editing/autosave. */
+  onChainChange?: (chain: FormulaChain) => void;
 }) {
   const [chain, setChain] = useState<FormulaChain>(initialChain);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+
+  // Fires on mount too (so the parent gets the starting value, not just
+  // subsequent edits) and on every change thereafter.
+  useEffect(() => {
+    onChainChange?.(chain);
+    // onChainChange intentionally excluded — price-formula-builder.tsx
+    // passes a fresh inline closure each render, and including it would
+    // re-fire this effect (harmlessly, but needlessly) every render rather
+    // than only when `chain` itself actually changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chain]);
 
   // Debounced autosave — see savePriceFormula's own doc comment for why
   // this is autosave rather than an explicit Save button.

@@ -65,7 +65,9 @@ function ToastList() {
         toast={toast}
         swipeDirection={["down", "right"]}
         className={cn(
-          "toast relative flex w-full items-start gap-3 p-4 text-sm transition-all select-none",
+          // transition itself lives in ui.css's .toast rule now (named
+          // transform/opacity properties, not this transition-all).
+          "toast relative flex w-full items-start gap-3 p-4 text-sm select-none",
           "data-starting-style:translate-y-2 data-starting-style:opacity-0",
           "data-ending-style:opacity-0",
           "data-[swipe-direction=right]:translate-x-(--toast-swipe-movement-x) data-[swipe-direction=down]:translate-y-(--toast-swipe-movement-y)"

@@ -62,7 +62,8 @@ function ClientRow({
   }
 
   useEffect(() => {
-    if (state && "ok" in state) {
+    if (!state) return;
+    if ("ok" in state) {
       router.refresh();
       // state.result is "deactivated" when the client had stock-out history
       // — say so rather than claiming "deleted" for a row that's actually
@@ -74,6 +75,12 @@ function ClientRow({
             : `${client.name} deleted`,
         type: "success",
       });
+    } else {
+      // CORRECTED this pass — item 8: this table is now table-layout:
+      // fixed with a fixed Actions column width, so an inline error
+      // paragraph here would either overflow or wrap and grow the row's
+      // fixed height; a toast carries it instead.
+      toastManager.add({ title: state.error, type: "error" });
     }
   }, [state, router, client.name]);
 
@@ -81,31 +88,42 @@ function ClientRow({
     <tr
       onClick={() => onEdit(client.id)}
       aria-selected={isSelected}
-      className={cn(
-        "cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/50",
-        isSelected && "bg-brand-accent/5 hover:bg-brand-accent/10"
-      )}
+      className="table-row cursor-pointer"
+      // A fixed row height (item 8) — this table's own default
+      // --space-table-row-height, not the Team table's denser compact
+      // token (this list isn't trying to cram in extra rows the way
+      // Team's pagination-driven table is).
+      style={{ height: "var(--space-table-row-height)" }}
     >
       <td className="py-3 pr-2">
-        <span className="block truncate font-medium">{client.name}</span>
+        <span className="block truncate font-medium" title={client.name}>
+          {client.name}
+        </span>
         {client.contactPerson ? (
-          <span className="block truncate text-xs text-muted-foreground">
+          <span className="block truncate text-xs text-muted-foreground" title={client.contactPerson}>
             {client.contactPerson}
           </span>
         ) : null}
       </td>
       <td className="py-3 pr-2 text-muted-foreground">
-        <span className="block">{client.phone}</span>
-        {client.email ? <span className="block text-xs">{client.email}</span> : null}
+        <span className="block truncate">{client.phone}</span>
+        {client.email ? (
+          <span className="block truncate text-xs" title={client.email}>
+            {client.email}
+          </span>
+        ) : null}
       </td>
-      <td className="hidden py-3 pr-2 text-muted-foreground sm:table-cell">
+      <td
+        className="hidden truncate py-3 pr-2 text-muted-foreground sm:table-cell"
+        title={client.address}
+      >
         {client.address}
       </td>
       <td className="py-3 pr-2">
         <ActiveStatusPill isActive={client.isActive} />
       </td>
       <td
-        className="py-3 pl-2 text-right"
+        className="cell-number py-3"
         onClick={(event) => event.stopPropagation()}
       >
         {!canManage ? null : !confirming ? (
@@ -126,14 +144,19 @@ function ClientRow({
             </button>
           </div>
         ) : (
+          // CORRECTED this pass — item 8: the "Delete X?" confirmation
+          // text used to sit inline here, but this cell's own column is
+          // now a fixed, narrow width (--client-col-actions) — a long
+          // client name would wrap it and grow this row past its fixed
+          // height. The destructive-red Confirm button plus its own
+          // title attribute (below) carries the same "you're about to
+          // delete this" signal without needing the row to flex for it.
           <form
             action={formAction}
-            className="flex flex-wrap items-center justify-end gap-2"
+            className="flex items-center justify-end gap-2"
+            title={`Delete "${client.name}"?`}
           >
             <input type="hidden" name="clientId" value={client.id} />
-            <span className="text-xs text-muted-foreground">
-              Delete &ldquo;{client.name}&rdquo;?
-            </span>
             <Button type="submit" variant="destructive" size="sm" disabled={pending}>
               {pending ? "Deleting…" : "Confirm"}
             </Button>
@@ -189,16 +212,32 @@ export function ClientsList({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      {/* .table/.table-head — not raw markup — see
+          expiring-soon-table.tsx's own note for why. table-layout: fixed
+          + a <colgroup> (item 8) — the Address <col> is hidden the same
+          breakpoint its <th>/<td> already are (sm:table-column, mirroring
+          their own sm:table-cell), so it doesn't reserve dead width on a
+          narrow screen where no cell in that column actually renders. */}
+      <table className="table table-fixed">
+        <colgroup>
+          <col style={{ width: "var(--client-col-name)" }} />
+          <col style={{ width: "var(--client-col-contact)" }} />
+          <col
+            className="hidden sm:table-column"
+            style={{ width: "var(--client-col-address)" }}
+          />
+          <col style={{ width: "var(--client-col-status)" }} />
+          <col style={{ width: "var(--client-col-actions)" }} />
+        </colgroup>
         <thead>
-          <tr className="border-b border-border bg-muted/40 text-left text-xs">
-            <th className="py-2 font-medium text-muted-foreground">Name</th>
-            <th className="py-2 font-medium text-muted-foreground">Contact</th>
-            <th className="hidden py-2 font-medium text-muted-foreground sm:table-cell">
+          <tr className="table-head">
+            <th className="pr-2 font-medium text-muted-foreground">Name</th>
+            <th className="pr-2 font-medium text-muted-foreground">Contact</th>
+            <th className="hidden pr-2 font-medium text-muted-foreground sm:table-cell">
               Address
             </th>
-            <th className="py-2 font-medium text-muted-foreground">Status</th>
-            <th className="py-2 pl-2 font-medium" aria-hidden />
+            <th className="pr-2 font-medium text-muted-foreground">Status</th>
+            <th className="font-medium" aria-hidden />
           </tr>
         </thead>
         <tbody>

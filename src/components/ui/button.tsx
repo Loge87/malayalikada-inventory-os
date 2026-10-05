@@ -32,23 +32,24 @@ const buttonVariants = cva(
         // relying on color.
         link: "text-foreground underline underline-offset-4",
       },
-      // One step up the 8px scale from the previous sizes across the board
-      // (h-6->h-7, h-7->h-8, h-9->h-10, and the matching icon/padding
-      // steps) — every size was passing the "comfortably clickable" bar
-      // less generously than it should have, not just the default one.
-      //
-      // Horizontal padding reads --space-button-padding-x (theme.css) for
-      // default/lg now, uniformly at every breakpoint — the old sm:px-3
-      // actually SHRANK padding on desktop, the opposite of the roomier
-      // feel this pass asked for, so that responsive shrink is gone, not
-      // just rebalanced. xs/sm stay their own smaller literal values
-      // (deliberately more compact variants), bumped by the same margin.
+      // CORRECTED this pass: default/lg used to carry their own Tailwind
+      // `h-10 ... sm:h-9` height utility — a utilities-layer class, which
+      // (per this file's own opening cascade note) WINS over ui.css's
+      // `.btn` height for the same longhand property, so at >=640px these
+      // two sizes silently rendered 36px tall while .input/.select stayed
+      // 40px (--control-height) — the exact cross-control height mismatch
+      // this pass's item 2 asked to fix. Neither size sets its own height
+      // or horizontal padding anymore; both now come from .btn's own
+      // --control-height/--control-padding-x (theme.css), same as every
+      // other control on a row with them. xs/sm/icon* stay their own
+      // smaller literal values on purpose — see theme.css's --control-
+      // height comment for the full exclusion list.
       size: {
         default:
-          "h-10 gap-1.5 px-(--space-button-padding-x) has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 sm:h-9",
+          "gap-1.5 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
         xs: "h-7 gap-1.5 px-3 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
         sm: "btn-sm has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-10 gap-1.5 px-(--space-button-padding-x) has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
+        lg: "gap-1.5 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
         icon: "btn-icon",
         "icon-xs": "size-7 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "btn-icon",

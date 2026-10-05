@@ -9,7 +9,7 @@ import {
 } from "@/lib/organisation";
 import { hasPermission } from "@/lib/permissions";
 import type { PriceVariable, PriceVariableType } from "@/lib/price-variable-types";
-import { loadPriceFormulaChain } from "@/lib/price-formula";
+import { loadActiveFormulaChain, loadPriceFormulaChain } from "@/lib/price-formula";
 import {
   SettingsTabs,
   type SettingsTab,
@@ -80,14 +80,21 @@ export default async function SettingsPage({
     valueType: row.value_type,
   }));
 
-  // Both formulas loaded unconditionally, same reasoning as currency/
-  // variables above — switching between Retail and Wholesale is pure
-  // client state (PriceFormulaBuilder), so neither can wait on a fetch
-  // once the page has loaded.
-  const [retailChain, wholesaleChain] = await Promise.all([
-    loadPriceFormulaChain(supabase, organisationId, "retail"),
-    loadPriceFormulaChain(supabase, organisationId, "wholesale"),
-  ]);
+  // Both formulas' DRAFT and ACTIVE chains loaded unconditionally, same
+  // reasoning as currency/variables above — switching between Retail and
+  // Wholesale is pure client state (PriceFormulaBuilder), so none of these
+  // can wait on a fetch once the page has loaded. The active chains are
+  // only for the Retail/Wholesale selector cards' status badge (Applied /
+  // Draft changes / Not set, by comparing active against the live draft) —
+  // every actual product price still reads active formulas through
+  // loadPricingContext elsewhere, not through this page.
+  const [retailChain, wholesaleChain, activeRetailChain, activeWholesaleChain] =
+    await Promise.all([
+      loadPriceFormulaChain(supabase, organisationId, "retail"),
+      loadPriceFormulaChain(supabase, organisationId, "wholesale"),
+      loadActiveFormulaChain(supabase, organisationId, "retail"),
+      loadActiveFormulaChain(supabase, organisationId, "wholesale"),
+    ]);
 
   return (
     <div className="flex w-full flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
@@ -107,6 +114,8 @@ export default async function SettingsPage({
             currency={currency}
             retailChain={retailChain}
             wholesaleChain={wholesaleChain}
+            activeRetailChain={activeRetailChain}
+            activeWholesaleChain={activeWholesaleChain}
           />
         }
         notificationsContent={<NotificationsPlaceholder />}

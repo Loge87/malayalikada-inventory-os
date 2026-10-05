@@ -122,7 +122,22 @@ export function StatCard({
         <Card
           size="sm"
           elevated
-          className={cn("stat-card hover:-translate-y-1", className)}
+          className={cn(
+            // hover lifts exactly 2px (-translate-y-0.5 = 0.125rem) and
+            // swaps to the larger/softer --shadow-hover (smoothed by
+            // .card's own transition, ui.css, which already covers both
+            // transform and box-shadow on --duration-base/--duration-fast
+            // + --ease-out); active returns to 0 lift plus a slight
+            // press-down scale — same "lift on hover, settle+shrink on
+            // press" shape as .btn-primary, so a clickable card and a
+            // clickable button read as the same kind of interactive
+            // surface. No cursor utility needed — this branch is only
+            // ever reached inside the <Link> below, which is already a
+            // pointer-cursor element by default; the plain (non-href)
+            // branch further down stays a plain cursor.
+            "stat-card hover:-translate-y-0.5 hover:shadow-(--shadow-hover) active:translate-y-0 active:scale-[0.98]",
+            className
+          )}
         >
           {content}
         </Card>

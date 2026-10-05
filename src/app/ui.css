@@ -19,6 +19,42 @@
  */
 
 /* ============================================================
+   MOTION — reduced-motion handling for every transition/animation in this
+   file (and the handful of .tsx files that carry their own Tailwind
+   transition and animate-in utilities, all reading theme.css's
+   --duration-fast/--duration-base/--ease-out). One global rule rather
+   than threading a reduced-motion variant onto every single hover/press/
+   enter rule below: collapsing every duration to near-zero makes a
+   transition resolve to its end state instantly, which reads as "no
+   animation" the same way explicitly removing the transform/animation
+   would, but can't miss a spot the way restating this per-selector could.
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* Belt-and-suspenders for the handful of rules that move something
+     (lift, press-scale, the tab indicator's slide) rather than just
+     fading a color — an instant jump to the hovered/pressed/active
+     position is harmless, but drop the transform-driven MOTION itself,
+     not only its duration, for anything that was deliberately an
+     animated slide/lift rather than a simple state swap. */
+  .btn:active,
+  .btn-primary:hover,
+  .btn-primary:active,
+  .card,
+  .selector-card:active,
+  [data-slot="tabs-indicator"] {
+    transform: none !important;
+  }
+}
+
+/* ============================================================
    1. PAGE LAYOUT — the outer shell every page and page-section is built
    from. Not yet wired into any actual page (existing pages keep their
    own Tailwind classes for now — see the Stage A note below); these
@@ -91,34 +127,62 @@
    reads as distinct from the soft cards/panels/pills around it.
    ============================================================ */
 
-/* The shared base every variant below builds on. */
+/* The shared base every variant below builds on. CORRECTED this pass:
+   height/padding now read the same --control-height/--control-padding-x
+   tokens .input/.select (and the new multi-select trigger) read, with
+   box-sizing made explicit — see theme.css's own comment on --control-
+   height for why (a button, input, and select on the same row now measure
+   the same getBoundingClientRect().height). .btn-sm/.btn-icon override
+   both below, by source order — their own smaller sizes are deliberate,
+   not an oversight (see theme.css's --control-height comment for the
+   full exclusion list). border-radius now reads --radius-pill directly
+   (was --radius-button, 4px) — see .btn-primary below for why this used
+   to differ per variant and no longer does. */
 .btn {
+  box-sizing: border-box;
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  height: var(--space-control-height);
-  padding-inline: var(--space-button-padding-x);
-  border-radius: var(--radius-button);
+  height: var(--control-height);
+  padding-inline: var(--control-padding-x);
+  border-radius: var(--radius-pill);
   border: 1px solid transparent;
   font-size: var(--text-sm);
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
   outline: none;
-  transition: all 150ms;
+  /* Named properties, not `transition: all` — a catch-all transition
+     silently animates every property that happens to change (including
+     ones nobody intended to animate), which gets expensive precisely
+     where it matters least: a bunch of buttons re-rendering at once. */
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 .btn:focus-visible {
   border-color: var(--ring);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 80%, transparent);
 }
+/* CORRECTED: used to push DOWN a pixel on press (translateY(1px)) for
+   every variant — now just a scale-down, "back to 0 lift" per .btn-primary
+   below, which is the one variant that actually lifts on hover in the
+   first place; a non-lifting button has nowhere to "return" from. */
 .btn:active {
-  transform: translateY(1px) scale(0.97);
+  transform: scale(0.98);
 }
 .btn:disabled {
   pointer-events: none;
   opacity: 0.5;
+  /* No hover/press motion at all once disabled — see .btn-primary:hover/
+     :active below, both of which this correctly blocks since :disabled
+     always matches regardless of :hover/:active also matching. */
+  transform: none;
 }
 
 /* The one solid-fill action on a page — "do the main thing here." Fixed a
@@ -126,28 +190,36 @@
    silently broke the text color, a hardcoded 20px padding, a border-radius
    override, and a pointless 0px border) — all reverted back to the
    shape/padding/radius .btn's own base already sets, none of which this
-   rule needs to override. */
+   rule needs to override. CORRECTED this pass: the pill radius below used
+   to be a .btn-primary-only override (every other variant kept the base
+   .btn's 4px --radius-button) — per this pass's explicit "every variant
+   uses exactly the radius primary uses" instruction, .btn's own base now
+   sets --radius-pill directly, so EVERY variant is pill-shaped and this
+   line is redundant with the base — left unset here on purpose (not
+   restated) rather than kept as dead, duplicate CSS. */
 .btn-primary {
   background: var(--primary);
   color: var(--primary-foreground);
   font-weight: 600;
   box-shadow: var(--shadow-card);
-  /* Pill-shaped, matching the reference image's Deposit/Upgrade/Connect
-     buttons — reuses the existing --radius-pill token (already used by
-     status pills/badges) rather than extending the shared --radius-button
-     (every OTHER variant — secondary/outline/ghost/danger — keeps the
-     base .btn's 4px radius from .btn above) or inventing a new token for
-     this alone. Only .btn-primary overrides it. */
-  border-radius: var(--radius-pill);
 }
 .btn-primary:hover {
   background: var(--primary-hover);
   color: var(--primary-hover-foreground);
+  /* --shadow-raised is already the "more pronounced" shadow weight (see
+     DEPTH below) — reused here rather than a third, button-specific
+     shadow value, so "lifted" means the same thing everywhere it happens. */
   box-shadow: var(--shadow-raised);
+  transform: translateY(-1px);
 }
 .btn-primary:active {
   background: var(--primary-active);
   color: var(--primary-active-foreground);
+  /* Back to 0 lift (from hover's -1px) plus the base .btn:active scale —
+     restated here, not just inherited, since this rule needs to win over
+     .btn-primary:hover's translateY(-1px) when both would otherwise match
+     during a press-while-hovering (the normal case on desktop). */
+  transform: translateY(0) scale(0.98);
 }
 
 /* A lower-emphasis alternative — still filled, with a neutral color
@@ -216,7 +288,27 @@
   background: var(--card);
   color: var(--card-foreground);
   border-radius: var(--radius-card);
+  /* CORRECTED this pass: a real 1px border is back (--card-border-width,
+     theme.css's BORDERS group — a prior pass had zeroed this out, relying
+     on shadow/surface-step alone), reading its own dedicated --card-
+     border-color (not a bare --border re-use) so a card's edge can be
+     retuned independently of every other hairline divider in the app —
+     still the same neutral slate family either way (1.233:1 contrast
+     against light --card, 1.767:1 against dark --card). Both properties
+     stay TOKENS, not literals, so toggling this off again later is a
+     one-line edit in theme.css rather than hunting this rule down. */
+  border: var(--card-border-width) solid var(--card-border-color);
   box-shadow: var(--shadow-card);
+  /* Present on every card, but only ever visibly DOES anything on the
+     clickable ones — a stat card that navigates (hover:-translate-y-1,
+     stat-card.tsx) or .selector-card below (its own hover/active rules).
+     A static card never receives a transform or a shadow change, so this
+     property just sits idle for it; cheap to leave on everywhere rather
+     than threading a "this one might animate" class onto every card. */
+  transition:
+    box-shadow var(--duration-base) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
 /* An optional top region of a card (title, description, an action button
@@ -230,6 +322,11 @@
    matches height regardless of how much text each one holds. */
 .stat-card {
   height: 100%;
+  /* Explicit, not just inherited from .card — belt-and-suspenders so a
+     stat card's border stays in sync with every other card's even if
+     it's ever rendered without the plain .card class composed in. */
+  border-width: var(--card-border-width);
+  border-color: var(--card-border-color);
 }
 
 /* The small caption under a stat card's number. */
@@ -310,18 +407,34 @@
   color: var(--destructive);
 }
 
-/* A single-line text control. */
+/* A single-line text control. CORRECTED this pass: the old vertical
+   padding (1.25rem top/bottom — 2.5rem combined, equal to the ENTIRE
+   declared height, leaving literally no room for the text line) was a
+   straight-up bug, not a deliberate look — it silently forced this
+   element taller than --space-control-height every time it rendered,
+   the other half of this pass's item 2 control-height mismatch (the
+   other half was .btn's own responsive height, see button.tsx). Vertical
+   padding is 0 now; a plain text <input> centers its own value within
+   the box natively once height/box-sizing are set, no flexbox needed the
+   way .select below needs for its multi-element content. box-sizing is
+   explicit so --control-height is the FINAL rendered height, not a
+   content-box floor padding/border then adds on top of. */
 .input {
-  height: var(--space-control-height);
+  box-sizing: border-box;
+  height: var(--control-height);
   width: 100%;
   min-width: 0;
   border-radius: var(--radius-input);
   border: 1px solid var(--input);
   background: transparent;
-  padding: 1.25rem 0.625rem;
+  padding-block: 0;
+  padding-inline: var(--control-padding-x);
   font-size: 1rem;
   outline: none;
-  transition: color 150ms, background-color 150ms, border-color 150ms;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 .input::placeholder {
   color: var(--muted-foreground);
@@ -348,7 +461,10 @@
   font-size: 1rem;
   outline: none;
   resize: vertical;
-  transition: color 150ms, background-color 150ms, border-color 150ms;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 .textarea::placeholder {
   color: var(--muted-foreground);
@@ -364,22 +480,34 @@
 }
 
 /* A dropdown trigger — the same shape/border language as .input, sized
-   to its content rather than stretching full width. */
+   to its content rather than stretching full width. Also the base class
+   the new multi-select trigger (team-management.tsx) reuses directly, so
+   "styled exactly like the Role select" is structural, not a lookalike
+   copy — see this pass's item 7. CORRECTED this pass: height/horizontal
+   padding now read the same --control-height/--control-padding-x .input
+   and .btn read (was its own slightly-asymmetric 0.5rem/0.625rem) — see
+   theme.css's --control-height comment. Vertical centering stays correct
+   without a padding-block rule the way .input needed one, since this is
+   already `display: inline-flex; align-items: center`. */
 .select {
+  box-sizing: border-box;
   display: inline-flex;
   width: fit-content;
   align-items: center;
   justify-content: space-between;
   gap: 0.375rem;
-  height: var(--space-control-height);
+  height: var(--control-height);
   border-radius: var(--radius-input);
   border: 1px solid var(--input);
   background: transparent;
-  padding: 0.5rem 0.5rem 0.5rem 0.625rem;
+  padding-inline: var(--control-padding-x);
   font-size: var(--text-sm);
   white-space: nowrap;
   outline: none;
-  transition: color 150ms, background-color 150ms, border-color 150ms;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 .select:focus-visible {
   border-color: var(--ring);
@@ -404,7 +532,10 @@
   border-radius: 4px;
   border: 1px solid var(--input);
   outline: none;
-  transition: color 150ms, background-color 150ms, border-color 150ms;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 .checkbox[data-checked] {
   border-color: var(--brand-accent);
@@ -444,12 +575,44 @@
   text-align: left;
   font-size: var(--text-xs);
 }
+/* NEW this pass — a shared header-cell vertical padding (~3rem total row
+   height, see theme.css's --table-header-padding-y comment for the exact
+   math) applied here so every table reading .table-head gets it for
+   free, rather than each table setting its own `py-2` on every <th> (the
+   per-table utility classes that used to do this were removed from every
+   table in the app this pass specifically so this rule can actually take
+   effect — see --table-header-padding-y's own comment for why a
+   components-layer rule can't just coexist with a utilities-layer one on
+   the same property). */
+.table-head > th {
+  padding-block: var(--table-header-padding-y);
+}
+/* Outermost-column edge padding — a SHARED fix, not a per-table one: every
+   table that reads from .table-head/.table-row gets left padding on its
+   first cell and right padding on its last cell automatically, so no
+   future table can "miss" this the way a direct Tailwind-utility table
+   could (one did — see expiring-soon-table.tsx's own note). Interior
+   columns are untouched; each table keeps its own gap between them. */
+.table-head > th:first-child,
+.table-row > td:first-child {
+  padding-left: var(--space-table-cell-x);
+}
+.table-head > th:last-child,
+.table-row > td:last-child {
+  padding-right: var(--space-table-cell-x);
+}
 
-/* One data row. */
+/* One data row. CORRECTED: cursor:pointer used to be unconditional here,
+   which was fine while every .table-row happened to be clickable (opens an
+   edit panel/page) — now that plenty of tables use this same class for
+   purely informational rows (no onClick), a pointer cursor on those would
+   falsely suggest they're interactive. Clickable rows add `cursor-pointer`
+   themselves (a plain Tailwind utility at the call site — see products-
+   table.tsx/locations-list.tsx/clients-list.tsx/location-summary-table.tsx)
+   rather than this class assuming it for everyone. */
 .table-row {
   border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background-color 150ms;
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 .table-row:last-child {
   border-bottom: none;
@@ -545,7 +708,13 @@
 /* The desktop sidebar's own surface. */
 .sidebar {
   background: var(--sidebar-background);
-  border-color: var(--sidebar-border);
+  /* CORRECTED this pass: was a plain border-color (the width/style came
+     from a border-r Tailwind utility at the call site, app-nav.tsx) — now
+     the full property lives here, reading --sidebar-border-width (0 by
+     default, theme.css's BORDERS group) so the sidebar's own surface
+     step (--sidebar-background, LEFT MENU group) is what separates it
+     from the page now, not a visible edge. */
+  border-right: var(--sidebar-border-width) solid var(--sidebar-border);
 }
 
 /* A small uppercase, letter-spaced label above a group of nav items (e.g.
@@ -564,6 +733,9 @@
 /* One destination in the sidebar or the mobile overflow menu, at rest. */
 .nav-item {
   color: var(--muted-foreground);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
 }
 .nav-item:hover {
   background: var(--sidebar-hover);
@@ -592,9 +764,19 @@
 /* One destination in the bottom tab bar, at rest. */
 .bottom-nav-item {
   color: var(--muted-foreground);
+  transition: color var(--duration-fast) var(--ease-out);
 }
 .bottom-nav-item[aria-current="page"] {
-  color: var(--sidebar-active-foreground);
+  /* CORRECTED: was --sidebar-active-foreground — that token is now
+     calibrated to sit ON TOP OF a solid --sidebar-active fill (.nav-item-
+     active above), not on this element's own plain --background (the
+     bottom nav has no fill behind the active item, just a color change).
+     In dark mode specifically, --sidebar-active-foreground is now a
+     near-black #0B1F14 — unreadable on the near-black page background it
+     would actually render against here. --primary-text is the token
+     built for exactly this case: the brand green readable as plain text
+     on a normal surface, in both modes. */
+  color: var(--primary-text);
 }
 
 /* The email + role + theme toggle + sign-out block at the bottom of the
@@ -654,6 +836,9 @@
 .dropdown-item {
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 .dropdown-item:focus {
   background: var(--accent);
@@ -665,23 +850,20 @@
    of controls for narrowing down a list.
    ============================================================ */
 
-/* The pill-shaped track a tab row sits inside. */
+/* The pill-shaped track a tab row sits inside. White/grey/black only —
+   every tab control in the app is deliberately colorless, see theme.css's
+   TABS group. An explicit hairline border (--tab-track-border), not just a
+   background color, is what keeps the track from merging into the page —
+   a flat fill alone can't reliably stay distinct from whatever
+   --background/--card happen to be after a future rebrand. */
 .tabs {
   display: inline-flex;
   width: fit-content;
   align-items: center;
   gap: 0.25rem;
   border-radius: var(--radius-input);
-  /* var(--card) + the same hairline-ring/shadow combo every .card already
-     uses — not var(--muted), which measures a 1.003:1 contrast against
-     the lavender --background (essentially the same color; this is the
-     bug). A flat color alone can't reliably stay distinct from whatever
-     --background happens to be after a future rebrand, but --shadow-card
-     is a real drop-shadow — the same mechanism that already makes every
-     white Card read as a distinct floating surface against this exact
-     page background. */
-  background: var(--card);
-  box-shadow: var(--shadow-card);
+  background: var(--tab-track);
+  border: 1px solid var(--tab-track-border);
   padding: 0.25rem;
 }
 
@@ -697,19 +879,31 @@
   font-size: var(--text-sm);
   font-weight: 500;
   white-space: nowrap;
-  color: var(--muted-foreground);
+  color: var(--tab-foreground);
   outline: none;
-  
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+/* Only inactive tabs get a hover fill — hovering the already-active tab
+   needs no extra feedback, and a hover bg there would visually clash with
+   the sliding TabsIndicator pill underneath it. */
+.tab:hover:not([data-active]) {
+  background: var(--tab-hover);
+}
+/* Keyboard focus only (never on a mouse click) — neutral, not the app's
+   green focus ring (--ring/--primary): overrides globals.css's generic
+   button:focus-visible rule, which lives in Tailwind's "base" layer and so
+   always loses to this "components"-layer rule regardless of specificity. */
+.tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--foreground) 35%, transparent);
 }
 /* The tab for the panel currently showing (Base UI sets this attribute
    itself — see .table-row[aria-selected] and friends above for the same
    pattern: a state of a named class, not a second class). */
 .tab[data-active] {
-  /* Reads the same neutral token as the sidebar's active-nav pill (theme.css)
-     — CORRECTED from --brand-accent-foreground: the active tab's pill itself
-     (TabsIndicator, tabs.tsx) now reads --sidebar-active too, so its text
-     needs the matching foreground, not a leftover brand-accent reference. */
-  color: var(--sidebar-active-foreground);
+  color: var(--tab-active-foreground);
 }
 
 /* A row of filter controls above a list or table. */
@@ -733,6 +927,88 @@
   color: var(--secondary-foreground);
 }
 
+/* One card in a small (2-4 option) radio-group chooser — e.g. the
+   Retail/Wholesale formula picker. role="radio" lives on the element this
+   class is applied to; [aria-checked="true"] drives the selected look, not
+   a second class, same "state of a named attribute" pattern as
+   .table-row[aria-selected] and .tab[data-active] above. CORRECTED this
+   pass: no background fill in ANY state now (transparent — reads the
+   page/section surface behind it, per this pass's explicit instruction),
+   and the unselected border is --card-border-color (same restored 1px
+   token every other card uses, theme.css's BORDERS group) rather than a
+   width-0 placeholder — see [aria-checked="true"]/:hover below for how
+   selection and hover now read without any fill. */
+.selector-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  border-radius: var(--radius-card);
+  border: var(--card-border-width) solid var(--card-border-color);
+  background: transparent;
+  padding: 1rem;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+  box-shadow: none;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+/* CORRECTED: a border-color shift only — no box-shadow ring, no fill —
+   per this pass's "hover micro-interaction without a fill" instruction.
+   --muted-foreground is a real, visible step up from the resting
+   --card-border-color hairline without being as strong as the selected
+   ring's own color, so hover and selected stay visually distinct. */
+.selector-card:hover {
+  border-color: var(--muted-foreground);
+}
+.selector-card:active {
+  transform: scale(0.98);
+}
+.selector-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 80%, transparent);
+}
+/* CORRECTED: no tint fill anymore (see this group's own opening comment)
+   — selection is carried by the 2px ring PLUS the radio dot rendered by
+   .selector-card-dot below (markup: price-formula-builder.tsx), so it
+   never relies on color alone. --primary-text, not the raw --primary
+   fill — the fill only reaches ~2.6:1 against this card's own (now
+   transparent, so effectively page/card-colored) background, well under
+   the 3:1 non-text/UI-component floor; --primary-text clears 4.94:1
+   against --card / 4.73:1 against --background in light mode, 7.03:1 /
+   7.53:1 in dark (where --primary-text IS the plain fill color — see its
+   own theme.css comment). */
+.selector-card[aria-checked="true"] {
+  border-color: var(--primary-text);
+  box-shadow: 0 0 0 2px var(--primary-text);
+}
+/* The visual radio dot — an empty ring at rest, a filled dot once
+   selected. A plain span (not a real <input type="radio">, matching the
+   parent's own role="radio" card-as-control pattern), sized to read
+   clearly next to the card's title text without dominating it. */
+.selector-card-dot {
+  display: inline-flex;
+  box-sizing: border-box;
+  height: 1rem;
+  width: 1rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--muted-foreground);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+.selector-card[aria-checked="true"] .selector-card-dot {
+  position: relative;
+  border-color: var(--primary-text);
+}
+.selector-card[aria-checked="true"] .selector-card-dot::after {
+  content: "";
+  position: absolute;
+  inset: 2.5px;
+  border-radius: var(--radius-pill);
+  background: var(--primary-text);
+}
+
 /* ============================================================
    10. FEEDBACK — the small set of ways the app tells you something
    happened: a toast after an action, a "nothing here" message, a
@@ -746,6 +1022,14 @@
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-raised),
     0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
+  /* The enter/exit slide+fade itself (translate-y + opacity) comes from
+     toast.tsx's data-starting-style/data-ending-style Tailwind classes —
+     this is just what makes that movement smooth instead of an instant
+     jump. Was a transition-all utility in toast.tsx; moved here as named
+     properties instead (see CLAUDE.md's "no transition: all" rule). */
+  transition:
+    transform var(--duration-base) var(--ease-out),
+    opacity var(--duration-base) var(--ease-out);
 }
 
 /* A success toast's icon color (the toast surface itself stays neutral —

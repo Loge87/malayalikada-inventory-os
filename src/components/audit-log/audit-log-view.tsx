@@ -308,25 +308,26 @@ export function AuditLogView({
                   Scroll to see more →
                 </p>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  {/* .table/.table-head/.table-row, not raw markup — see
+                      expiring-soon-table.tsx's own note for why this matters
+                      (a table outside the shared classes doesn't pick up
+                      shared-level fixes, like edge padding, automatically). */}
+                  <table className="table">
                     <thead>
-                      <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                        <th className="py-2 pr-4 pl-4 font-medium">When</th>
-                        <th className="py-2 pr-4 font-medium">Item</th>
-                        <th className="py-2 pr-4 font-medium">Location</th>
-                        <th className="py-2 pr-4 font-medium">Type</th>
-                        <th className="py-2 pr-4 text-right font-medium">Qty</th>
-                        <th className="py-2 pr-4 font-medium">Reference</th>
-                        <th className="py-2 pr-4 font-medium">By</th>
+                      <tr className="table-head">
+                        <th className="pr-4 font-medium">When</th>
+                        <th className="pr-4 font-medium">Item</th>
+                        <th className="pr-4 font-medium">Location</th>
+                        <th className="pr-4 font-medium">Type</th>
+                        <th className="cell-number pr-4 font-medium">Qty</th>
+                        <th className="pr-4 font-medium">Reference</th>
+                        <th className="font-medium">By</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((row) => (
-                        <tr
-                          key={row.id}
-                          className="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
-                        >
-                          <td className="py-2 pr-4 pl-4 whitespace-nowrap text-muted-foreground">
+                        <tr key={row.id} className="table-row">
+                          <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">
                             {formatDateTime(row.created_at)}
                           </td>
                           <td className="py-2 pr-4">
@@ -345,13 +346,13 @@ export function AuditLogView({
                           <td className="py-2 pr-4">
                             {movementTypeLabel(row.movement_type)}
                           </td>
-                          <td className="py-2 pr-4 text-right font-medium tabular-nums">
+                          <td className="cell-number py-2 pr-4 font-medium tabular-nums">
                             {signed(row.quantity)}
                           </td>
                           <td className="py-2 pr-4 text-muted-foreground">
                             {row.reference_label ?? row.reference_type ?? "Manual entry"}
                           </td>
-                          <td className="py-2 pr-4 text-muted-foreground">
+                          <td className="py-2 text-muted-foreground">
                             {row.created_by_email ?? "—"}
                           </td>
                         </tr>
@@ -389,10 +390,10 @@ export function AuditLogView({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-                      <th className="py-2 pr-4 font-medium">Event</th>
-                      <th className="py-2 pr-4 font-medium">Reference</th>
-                      <th className="py-2 pr-4 font-medium">Status</th>
-                      <th className="py-2 font-medium">Received</th>
+                      <th className="pr-4 font-medium">Event</th>
+                      <th className="pr-4 font-medium">Reference</th>
+                      <th className="pr-4 font-medium">Status</th>
+                      <th className="font-medium">Received</th>
                     </tr>
                   </thead>
                   <tbody>

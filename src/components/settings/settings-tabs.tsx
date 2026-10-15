@@ -12,7 +12,7 @@ import {
   TabsTab,
 } from "@/components/ui/tabs";
 
-export type SettingsTab = "general" | "price-settings" | "notifications";
+export type SettingsTab = "general" | "price-settings" | "wholesale" | "notifications";
 
 /**
  * Pure client state, not a `router.push`-driven URL change — same reasoning
@@ -25,11 +25,13 @@ export function SettingsTabs({
   activeTab: initialTab,
   generalContent,
   priceSettingsContent,
+  wholesaleContent,
   notificationsContent,
 }: {
   activeTab: SettingsTab;
   generalContent: ReactNode;
   priceSettingsContent: ReactNode;
+  wholesaleContent: ReactNode;
   notificationsContent: ReactNode;
 }) {
   const pathname = usePathname();
@@ -40,6 +42,7 @@ export function SettingsTabs({
     if (
       value !== "general" &&
       value !== "price-settings" &&
+      value !== "wholesale" &&
       value !== "notifications"
     ) {
       return;
@@ -59,6 +62,7 @@ export function SettingsTabs({
       <TabsList>
         <TabsTab value="general">General</TabsTab>
         <TabsTab value="price-settings">Price Settings</TabsTab>
+        <TabsTab value="wholesale">Wholesale</TabsTab>
         <TabsTab value="notifications">Notifications</TabsTab>
         <TabsIndicator />
       </TabsList>
@@ -67,6 +71,9 @@ export function SettingsTabs({
       </TabsPanel>
       <TabsPanel value="price-settings" className="pt-3 sm:pt-4">
         {priceSettingsContent}
+      </TabsPanel>
+      <TabsPanel value="wholesale" className="pt-3 sm:pt-4">
+        {wholesaleContent}
       </TabsPanel>
       <TabsPanel value="notifications" className="pt-3 sm:pt-4">
         {notificationsContent}

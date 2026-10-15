@@ -16,7 +16,8 @@ export type Permission =
   | "audit:view"
   | "roles:manage"
   | "pricing:manage"
-  | "financials:view";
+  | "financials:view"
+  | "wholesale:manage";
 
 // staff: view everything, record movements (sales/adjustments/transfers/
 //   receiving/stock counts), scan/add products.
@@ -35,6 +36,7 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "audit:view",
     "pricing:manage",
     "financials:view",
+    "wholesale:manage",
   ]),
   owner: new Set([
     "products:delete",
@@ -45,6 +47,7 @@ const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "roles:manage",
     "pricing:manage",
     "financials:view",
+    "wholesale:manage",
   ]),
 };
 

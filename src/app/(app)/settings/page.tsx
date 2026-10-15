@@ -16,6 +16,10 @@ import {
 } from "@/components/settings/settings-tabs";
 import { GeneralSettingsForm } from "@/components/settings/general-settings-form";
 import { PriceFormulaBuilder } from "@/components/settings/price-formula-builder";
+import {
+  WholesaleSettings,
+  type PortalVariant,
+} from "@/components/settings/wholesale-settings";
 import { NotificationsPlaceholder } from "@/components/settings/notifications-placeholder";
 
 type PriceVariableRow = {
@@ -52,7 +56,9 @@ export default async function SettingsPage({
 
   const params = await searchParams;
   const activeTab: SettingsTab =
-    params.tab === "price-settings" || params.tab === "notifications"
+    params.tab === "price-settings" ||
+    params.tab === "wholesale" ||
+    params.tab === "notifications"
       ? params.tab
       : "general";
 
@@ -96,6 +102,45 @@ export default async function SettingsPage({
       loadActiveFormulaChain(supabase, organisationId, "wholesale"),
     ]);
 
+  const [settingsRes, locationsRes, variantsRes] = await Promise.all([
+    supabase
+      .from("portal_settings")
+      .select(
+        "is_enabled, min_order_value, fulfilment_location_ids, stock_basis, notify_email, guest_message"
+      )
+      .maybeSingle(),
+    supabase.from("locations").select("id, name").eq("is_active", true).order("name"),
+    supabase
+      .from("product_variants")
+      .select("id, name, sku, units_per_pack, portal_visible, products(name)")
+      .order("sku")
+      .limit(2000),
+  ]);
+  if (settingsRes.error) throw settingsRes.error;
+  if (locationsRes.error) throw locationsRes.error;
+  if (variantsRes.error) throw variantsRes.error;
+
+  const wholesaleValues = {
+    isEnabled: settingsRes.data?.is_enabled ?? true,
+    minOrderValue: Number(settingsRes.data?.min_order_value ?? 100),
+    fulfilmentLocationIds: settingsRes.data?.fulfilment_location_ids ?? [],
+    stockBasis: (settingsRes.data?.stock_basis ?? "unit") as "unit" | "case",
+    notifyEmail: settingsRes.data?.notify_email ?? "",
+    guestMessage:
+      settingsRes.data?.guest_message ??
+      "Sign in to see wholesale prices, or contact us to request a price list.",
+  };
+  const portalVariants: PortalVariant[] = (variantsRes.data ?? []).map((v) => {
+    const product = Array.isArray(v.products) ? v.products[0] : v.products;
+    return {
+      id: v.id,
+      label: product?.name ? `${product.name} - ${v.name}` : v.name,
+      sku: v.sku,
+      unitsPerPack: Number(v.units_per_pack),
+      visible: v.portal_visible,
+    };
+  });
+
   return (
     <div className="flex w-full flex-col gap-5 p-5 sm:gap-8 sm:p-8 md:p-12">
       <div>
@@ -116,6 +161,17 @@ export default async function SettingsPage({
             wholesaleChain={wholesaleChain}
             activeRetailChain={activeRetailChain}
             activeWholesaleChain={activeWholesaleChain}
+          />
+        }
+        wholesaleContent={
+          <WholesaleSettings
+            currency={currency}
+            values={wholesaleValues}
+            locations={(locationsRes.data ?? []).map((l) => ({
+              id: l.id,
+              label: l.name,
+            }))}
+            variants={portalVariants}
           />
         }
         notificationsContent={<NotificationsPlaceholder />}

@@ -4,7 +4,7 @@ import { AuthForm } from "@/components/auth-form";
 
 export default function LoginPage() {
   return (
-    <div className="mx-auto max-w-sm">
+    <div className="mx-auto max-w-sm px-4 py-12">
       <h1 className="text-2xl font-bold">Sign in</h1>
       <p className="mt-1 mb-6 text-sm text-muted">Sign in to see your wholesale prices and order.</p>
       <AuthForm mode="login" />

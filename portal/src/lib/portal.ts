@@ -30,6 +30,7 @@ export type PortalSettings = {
   stockBasis: "unit" | "case";
   guestMessage: string;
   businessName: string;
+  currency: string;
 };
 
 export const getCurrentUser = cache(async (): Promise<User | null> => {
@@ -144,7 +145,7 @@ export const getPortalSettings = cache(async (): Promise<PortalSettings> => {
       .select("is_enabled, min_order_value, fulfilment_location_ids, stock_basis, guest_message")
       .eq("organisation_id", organisationId)
       .maybeSingle(),
-    admin.from("organisations").select("name").eq("id", organisationId).maybeSingle(),
+    admin.from("organisations").select("name, default_currency").eq("id", organisationId).maybeSingle(),
   ]);
   return {
     isEnabled: settings.data?.is_enabled ?? true,
@@ -153,5 +154,14 @@ export const getPortalSettings = cache(async (): Promise<PortalSettings> => {
     stockBasis: (settings.data?.stock_basis ?? "unit") as "unit" | "case",
     guestMessage: settings.data?.guest_message || DEFAULT_GUEST_MESSAGE,
     businessName: org.data?.name ?? "Wholesale",
+    currency: org.data?.default_currency ?? "NZD",
   };
 });
+
+export type PriceMode = "guest" | "pending" | "approved" | "suspended";
+
+/** What the current visitor is allowed to see: prices only when approved. */
+export async function getPriceMode(): Promise<PriceMode> {
+  const [user, retailer] = await Promise.all([getCurrentUser(), getCurrentRetailer()]);
+  return !user || !retailer ? "guest" : retailer.status;
+}

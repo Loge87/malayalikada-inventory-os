@@ -8,23 +8,34 @@ const STOCK_STYLE = {
   out: "bg-danger/10 text-danger",
 } as const;
 
-export type PriceMode = "guest" | "pending" | "approved" | "suspended";
+import type { PriceMode } from "@/lib/portal";
+
+export type { PriceMode };
+
+export function ProductImage({ src, alt }: { src: string | null; alt: string }) {
+  return (
+    // Signed storage URLs expire, so next/image optimisation does not apply.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src ?? "/placeholder-product.svg"}
+      alt={src ? alt : `${alt} (no image available)`}
+      className={`h-full w-full ${src ? "object-contain p-3" : "object-cover"}`}
+      loading="lazy"
+    />
+  );
+}
 
 export function ProductCard({ item, mode }: { item: CatalogueItem; mode: PriceMode }) {
   return (
-    <li className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface">
-      <div className="flex aspect-[4/3] items-center justify-center bg-bg">
-        {item.imageUrl ? (
-          // Signed storage URL that expires, so next/image optimisation does not apply.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" loading="lazy" />
-        ) : (
-          <span className="text-4xl text-line" aria-hidden>▢</span>
-        )}
+    <li className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface transition hover:border-brand hover:shadow-md">
+      <div className="aspect-[4/3] bg-[#efeadc]">
+        <ProductImage src={item.imageUrl} alt={item.name} />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div>
-          {item.brand ? <div className="text-xs font-medium uppercase tracking-wide text-muted">{item.brand}</div> : null}
+          {item.brand ? (
+            <div className="text-[11px] font-bold uppercase tracking-widest text-muted">{item.brand}</div>
+          ) : null}
           <h3 className="font-semibold leading-snug">{item.name}</h3>
           <p className="text-sm text-muted">
             {item.variantName} · {item.sku}
@@ -49,7 +60,7 @@ export function ProductCard({ item, mode }: { item: CatalogueItem; mode: PriceMo
             ) : mode === "suspended" ? (
               <div className="text-sm text-muted">Account on hold</div>
             ) : (
-              <div className="text-sm font-medium text-brand">Sign in for price</div>
+              <div className="text-sm font-semibold text-brand">Sign in for price</div>
             )}
           </div>
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STOCK_STYLE[item.stock]}`}>

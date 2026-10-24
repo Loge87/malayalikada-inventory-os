@@ -4,6 +4,8 @@ import { getOrganisationId, type PortalSettings } from "@/lib/portal";
 
 export const PAGE_SIZE = 24;
 
+export type Facet = { name: string; count: number };
+
 export type StockState = "in" | "low" | "out";
 
 export type CatalogueItem = {
@@ -26,7 +28,10 @@ export type CatalogueItem = {
 export type CatalogueQuery = {
   q?: string;
   category?: string;
+  brand?: string;
   page?: number;
+  pageSize?: number;
+  sort?: "sku" | "newest";
 };
 
 const LOW_STOCK_CASES = 5;
@@ -44,20 +49,30 @@ export async function loadFulfilmentLocationIds(settings: PortalSettings): Promi
   return (data ?? []).map((l) => l.id);
 }
 
-export async function loadCategories(): Promise<string[]> {
+export async function loadFacets(): Promise<{
+  brands: Facet[];
+  categories: Facet[];
+  total: number;
+}> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("product_variants")
-    .select("products!inner(category)")
+    .select("products!inner(category, brand)")
     .eq("organisation_id", getOrganisationId())
     .eq("portal_visible", true)
     .limit(5000);
-  const set = new Set<string>();
+  const brands = new Map<string, number>();
+  const categories = new Map<string, number>();
   for (const row of data ?? []) {
     const p = Array.isArray(row.products) ? row.products[0] : row.products;
-    if (p?.category) set.add(p.category);
+    if (p?.brand) brands.set(p.brand, (brands.get(p.brand) ?? 0) + 1);
+    if (p?.category) categories.set(p.category, (categories.get(p.category) ?? 0) + 1);
   }
-  return [...set].sort((a, b) => a.localeCompare(b));
+  const toList = (m: Map<string, number>) =>
+    [...m.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  return { brands: toList(brands), categories: toList(categories), total: data?.length ?? 0 };
 }
 
 export async function loadCatalogue(
@@ -68,7 +83,8 @@ export async function loadCatalogue(
   const admin = createAdminClient();
   const organisationId = getOrganisationId();
   const page = Math.max(1, query.page ?? 1);
-  const from = (page - 1) * PAGE_SIZE;
+  const pageSize = query.pageSize ?? PAGE_SIZE;
+  const from = (page - 1) * pageSize;
 
   let q = admin
     .from("product_variants")
@@ -80,15 +96,17 @@ export async function loadCatalogue(
     .eq("portal_visible", true);
 
   if (query.category) q = q.eq("products.category", query.category);
+  if (query.brand) q = q.eq("products.brand", query.brand);
   if (query.q?.trim()) {
     // strip characters that would break the PostgREST filter syntax
     const term = query.q.trim().replace(/[,()%*\\]/g, " ");
     q = q.or(`name.ilike.%${term}%,sku.ilike.%${term}%`);
   }
 
-  const { data, count, error } = await q
-    .order("sku")
-    .range(from, from + PAGE_SIZE - 1);
+  const { data, count, error } = await (query.sort === "newest"
+    ? q.order("created_at", { ascending: false })
+    : q.order("sku")
+  ).range(from, from + pageSize - 1);
   if (error) throw error;
   const rows = data ?? [];
   if (rows.length === 0) return { items: [], total: count ?? 0, page };

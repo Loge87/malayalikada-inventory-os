@@ -90,7 +90,9 @@ function LocationsCell({
         onToggle={onToggle}
         disabled={disabled}
         placeholder="None"
-        triggerClassName="h-8 w-full px-2 text-xs"
+        // control-compact (ui.css) — the real compact-tier token pair,
+        // replacing a literal h-8/px-2/text-xs guess.
+        triggerClassName="control-compact w-full"
       />
       {/* CORRECTED this pass — used to be a sibling line below the trigger,
           which added its own height to this cell's natural content height
@@ -386,7 +388,7 @@ function MemberRow({
               });
             }}
           >
-            <SelectTrigger className="h-8 w-28 text-sm">
+            <SelectTrigger className="control-compact w-28">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -433,16 +435,16 @@ function MemberRow({
             <span className="text-caption">Sole owner</span>
           ) : !confirmingRemove ? (
             // Plain <button>, not the shared Button component — matches
-            // Clients'/Locations' "Delete" button exactly (same classes,
-            // same destructive-red styling), not Team's own old pill-
-            // shaped <Button variant="outline">. Remove is this row's
-            // equivalent of "Delete" (a destructive, confirm-gated
+            // Clients'/Locations' "Delete" button exactly (the shared
+            // .btn-row-action-danger class, ui.css), not Team's own old
+            // pill-shaped <Button variant="outline">. Remove is this
+            // row's equivalent of "Delete" (a destructive, confirm-gated
             // action), so it reads from the same style, not Edit's
             // neutral one.
             <button
               type="button"
               onClick={() => setConfirmingRemove(true)}
-              className="rounded-md px-2 py-1 text-xs font-medium text-destructive ring-1 ring-destructive/30 hover:bg-destructive/10"
+              className="btn-row-action btn-row-action-danger"
             >
               Remove
             </button>

@@ -22,7 +22,15 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         // .select/.btn measured 40/36px, three different heights on one
         // row. Removed; height now comes purely from .input's own
         // --control-height.
-        "input file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:bg-input/50 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        // CORRECTED again this pass: `md:text-sm` sat here too — the
+        // exact same bug, on font-size instead of height. .input's own
+        // font-size (ui.css) was a literal 1rem that this utility beat at
+        // >=768px, so the control-height audit's live measurement of
+        // every .input on the page read 14px, not the 16px the ui.css
+        // rule actually said — an accident, not a decision. Removed; .input
+        // now reads var(--text-sm) directly, so 14px is what the rule
+        // itself says, matching the reference control on purpose.
+        "input file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground disabled:bg-input/50 dark:bg-input/30 dark:disabled:bg-input/80 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
         className
       )}
       {...props}

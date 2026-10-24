@@ -111,7 +111,12 @@ export function CountEntryForm({
                           step="1"
                           inputMode="numeric"
                           aria-label={`Counted quantity for ${item.label}`}
-                          className="h-7 w-24"
+                          // CORRECTED this pass — was a literal h-7 (28px,
+                          // an ungoverned one-off) on top of .input's own
+                          // height; control-compact (ui.css) is the real
+                          // compact-tier token pair instead, same as every
+                          // other table-row control now reads.
+                          className="control-compact w-24"
                           value={values[item.id] ?? ""}
                           onChange={(event) =>
                             setValues((current) => ({

@@ -48,18 +48,36 @@ function Combobox({
       isItemEqualToValue={(a: ComboboxOption, b: ComboboxOption) => a.value === b.value}
       disabled={disabled}
     >
+      {/* CORRECTED this pass — used to be its own hardcoded `h-10 ...
+          sm:h-8` + `rounded-lg` Tailwind string, disconnected from
+          --control-height/--radius-input entirely (and carrying the
+          exact same "sm: utility silently wins over the shared rule"
+          shape as the bugs already fixed in button.tsx/select.tsx/
+          input.tsx). .combobox-group (ui.css) now reads those tokens
+          directly, same as .input/.select — this IS the app's measured
+          reference control (see theme.css's --control-height comment),
+          so it has to be the one actually built from the tokens, not
+          just the one other controls were measured against. */}
       <ComboboxPrimitive.InputGroup
-        className={cn(
-          "relative flex h-10 w-full items-center rounded-lg border border-input bg-transparent transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/80 sm:h-8 dark:bg-input/30",
-          className
-        )}
+        className={cn("combobox-group relative dark:bg-input/30", className)}
       >
         <ComboboxPrimitive.Input
           id={id}
           placeholder={placeholder}
-          className="h-full w-full min-w-0 rounded-lg bg-transparent pl-2.5 pr-14 text-sm outline-none placeholder:text-muted-foreground"
+          // CORRECTED this pass — was h-full: with the group's own height
+          // no longer fixed (see .combobox-group's comment), "100% of an
+          // auto-height parent" has nothing to resolve against. The input
+          // just takes its own natural line-height now, centered within
+          // the taller padded group by the group's own align-items: center.
+          className="w-full min-w-0 rounded-[var(--radius-input)] bg-transparent pl-(--control-padding-x) pr-14 text-sm outline-none placeholder:text-muted-foreground"
         />
-        <div className="absolute right-1 flex items-center gap-0.5">
+        {/* top-1/2 -translate-y-1/2, explicit — this is position:absolute
+            (to sit on top of the input rather than taking its own row), so
+            with the group now taller (padding-driven, not a fixed height)
+            it needs a real anchor to stay vertically centered rather than
+            relying on its pre-absolute "static position" inside the
+            flex row, which isn't guaranteed consistent across browsers. */}
+        <div className="absolute top-1/2 right-1 flex -translate-y-1/2 items-center gap-0.5">
           <ComboboxPrimitive.Clear
             className="flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Clear selection"

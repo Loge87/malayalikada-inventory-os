@@ -128,16 +128,17 @@
    ============================================================ */
 
 /* The shared base every variant below builds on. CORRECTED this pass:
-   height/padding now read the same --control-height/--control-padding-x
-   tokens .input/.select (and the new multi-select trigger) read, with
-   box-sizing made explicit — see theme.css's own comment on --control-
-   height for why (a button, input, and select on the same row now measure
-   the same getBoundingClientRect().height). .btn-sm/.btn-icon override
-   both below, by source order — their own smaller sizes are deliberate,
-   not an oversight (see theme.css's --control-height comment for the
-   full exclusion list). border-radius now reads --radius-pill directly
-   (was --radius-button, 4px) — see .btn-primary below for why this used
-   to differ per variant and no longer does. */
+   no more fixed height — padding-block (--control-padding-y, theme.css)
+   plus the button's own line-height/border is what determines height
+   now, same as .input/.select/.combobox-group below, so all four measure
+   the same height by construction rather than by a shared number. 20px
+   top/bottom, per explicit request. Horizontal padding reads its own
+   --btn-padding-x (not --control-padding-x — see theme.css's own
+   comment: a button's horizontal padding has always been visually
+   heavier than a text field's here). .btn-sm/.btn-icon reset padding-
+   block back to 0 and keep their own fixed height instead — their own
+   smaller sizes are deliberate, not an oversight (see theme.css's
+   --control-padding-y comment for the full exclusion list). */
 .btn {
   box-sizing: border-box;
   display: inline-flex;
@@ -145,8 +146,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  height: var(--control-height);
-  padding-inline: var(--control-padding-x);
+  padding-block: var(--control-padding-y);
+  padding-inline: var(--btn-padding-x);
   border-radius: var(--radius-pill);
   border: 1px solid transparent;
   font-size: var(--text-sm);
@@ -254,20 +255,26 @@
 }
 
 /* A square, icon-only button — deliberately smaller than .btn's own
-   height (2rem, not --space-control-height): today's icon buttons have
-   never scaled with the text-button height, at any breakpoint. Combine
-   with a color variant, e.g. `btn btn-ghost btn-icon`. */
+   height: today's icon buttons have never scaled with the text-button
+   height, at any breakpoint. Combine with a color variant, e.g.
+   `btn btn-ghost btn-icon`. CORRECTED this pass: padding-block: 0 is now
+   explicit — the base .btn's new 20px top/bottom padding would otherwise
+   fight this fixed 2rem height (padding eating into the content box
+   rather than the button growing to fit), squishing the icon. */
 .btn-icon {
   height: 2rem;
   width: 2rem;
   padding-inline: 0;
+  padding-block: 0;
 }
 
 /* A smaller button, for dense toolbars and table row actions. Combine
-   with a color variant, e.g. `btn btn-secondary btn-sm`. */
+   with a color variant, e.g. `btn btn-secondary btn-sm`. CORRECTED this
+   pass: padding-block: 0 explicit, same reasoning as .btn-icon above. */
 .btn-sm {
   height: 2rem;
   padding-inline: 0.875rem; /* was 0.75rem */
+  padding-block: 0;
   font-size: 0.8rem;
 }
 
@@ -372,11 +379,15 @@
    hint or error underneath.
    ============================================================ */
 
-/* The wrapper around one label + control (+ hint/error) group. */
+/* The wrapper around one label + control (+ hint/error) group. CORRECTED
+   this pass: gap now reads --field-label-gap (theme.css) instead of a
+   bare 0.5rem literal — same value, now a named, reusable token (the
+   reference-control audit measured this exact gap on the Stock Out
+   dialog's Location field and confirmed it as the standard). */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--field-label-gap);
   width: 100%;
 }
 
@@ -407,29 +418,30 @@
   color: var(--destructive);
 }
 
-/* A single-line text control. CORRECTED this pass: the old vertical
-   padding (1.25rem top/bottom — 2.5rem combined, equal to the ENTIRE
-   declared height, leaving literally no room for the text line) was a
-   straight-up bug, not a deliberate look — it silently forced this
-   element taller than --space-control-height every time it rendered,
-   the other half of this pass's item 2 control-height mismatch (the
-   other half was .btn's own responsive height, see button.tsx). Vertical
-   padding is 0 now; a plain text <input> centers its own value within
-   the box natively once height/box-sizing are set, no flexbox needed the
-   way .select below needs for its multi-element content. box-sizing is
-   explicit so --control-height is the FINAL rendered height, not a
-   content-box floor padding/border then adds on top of. */
+/* A single-line text control. CORRECTED this pass: no more fixed height —
+   a plain text <input> centers its own value within its content box
+   natively, so 20px top/bottom padding (--control-padding-y, theme.css)
+   is all that's needed; height is whatever that padding plus the text
+   line/border adds up to. box-sizing stays explicit so padding is never
+   fighting a separately-set height the way the old (buggy) version did. */
 .input {
   box-sizing: border-box;
-  height: var(--control-height);
   width: 100%;
   min-width: 0;
   border-radius: var(--radius-input);
   border: 1px solid var(--input);
   background: transparent;
-  padding-block: 0;
+  padding-block: var(--control-padding-y);
   padding-inline: var(--control-padding-x);
-  font-size: 1rem;
+  /* CORRECTED this pass: was a literal 1rem — input.tsx also carried a
+     Tailwind `md:text-sm` utility that happened to win over this at
+     >=768px (same "utility beats the shared rule" bug as the height
+     fixes above, just on font-size instead), so this rule's own 1rem
+     never actually rendered there; removing that utility and reading
+     var(--text-sm) directly here makes the ACTUAL rendered size (14px,
+     matching the reference control) the intentional one instead of an
+     accident of which rule happened to win. */
+  font-size: var(--text-sm);
   outline: none;
   transition:
     color var(--duration-fast) var(--ease-out),
@@ -457,8 +469,12 @@
   border-radius: var(--radius-input);
   border: 1px solid var(--input);
   background: transparent;
-  padding: 0.5rem 0.625rem;
-  font-size: 1rem;
+  /* CORRECTED this pass — padding-block now reads --control-padding-y,
+     same as .input/.select/.btn, instead of its own smaller literal
+     0.5rem; padding-inline unchanged (--control-padding-x). */
+  padding-block: var(--control-padding-y);
+  padding-inline: var(--control-padding-x);
+  font-size: var(--text-sm); /* CORRECTED this pass — was a literal 1rem, see .input's own comment */
   outline: none;
   resize: vertical;
   transition:
@@ -483,12 +499,10 @@
    to its content rather than stretching full width. Also the base class
    the new multi-select trigger (team-management.tsx) reuses directly, so
    "styled exactly like the Role select" is structural, not a lookalike
-   copy — see this pass's item 7. CORRECTED this pass: height/horizontal
-   padding now read the same --control-height/--control-padding-x .input
-   and .btn read (was its own slightly-asymmetric 0.5rem/0.625rem) — see
-   theme.css's --control-height comment. Vertical centering stays correct
-   without a padding-block rule the way .input needed one, since this is
-   already `display: inline-flex; align-items: center`. */
+   copy. CORRECTED this pass: no more fixed height — padding-block
+   (--control-padding-y, same 20px as .input/.btn) plus the trigger's own
+   line-height/border determines height now; align-items: center still
+   keeps the label/chevron centered within that taller box. */
 .select {
   box-sizing: border-box;
   display: inline-flex;
@@ -496,7 +510,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.375rem;
-  height: var(--control-height);
+  padding-block: var(--control-padding-y);
   border-radius: var(--radius-input);
   border: 1px solid var(--input);
   background: transparent;
@@ -516,6 +530,98 @@
 .select:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* NEW this pass — the compact tier. Compose onto .input/.select/.btn
+   (e.g. `className="select control-compact"`) to drop a control into a
+   table row at the compact size instead of the default one, reading
+   --control-height-compact/--control-padding-x-compact/--text-xs
+   (theme.css) rather than a one-off h-7/h-8/px-2/text-xs utility string
+   at the call site — see team-management.tsx's Role select and Locations
+   multi-select, and count-entry-form.tsx's quantity input, for the three
+   places this replaced exactly that kind of literal. */
+.control-compact {
+  height: var(--control-height-compact);
+  /* CORRECTED this pass — explicit 0 so the default tier's new 20px
+     padding-block (.input/.select/.btn) doesn't leak into a compact
+     control that still wants a fixed, smaller height: padding eating
+     into a height that's ALSO explicitly set squeezes the content
+     instead of growing the box, the same conflict --btn-icon/--btn-sm
+     guard against. */
+  padding-block: 0;
+  padding-inline: var(--control-padding-x-compact);
+  font-size: var(--text-xs);
+}
+
+/* NEW this pass — the Combobox's own trigger shape (Stock Out's Location/
+   Client pickers), previously a hardcoded `h-10 ... sm:h-8` + `rounded-lg`
+   Tailwind string with no connection to --control-height/--radius-input
+   at all (the exact "leftover utility outside the token system" pattern
+   this pass's audit was looking for — ironically on the ONE control this
+   session measured as the reference standard). Same shape language as
+   .input/.select, read from the same tokens, so the three stay in sync
+   by construction instead of by someone remembering to update three
+   places. */
+.combobox-group {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  /* CORRECTED this pass — no more fixed height, same as .input/.select:
+     padding-block (--control-padding-y) plus the inner input's own line-
+     height/this border determines height now. The inner Input element
+     (combobox.tsx) no longer forces h-full for the same reason — there's
+     nothing fixed left for "full" to resolve against. */
+  padding-block: var(--control-padding-y);
+  width: 100%;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--input);
+  background: transparent;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+.combobox-group:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 80%, transparent);
+}
+
+/* NEW this pass — the shared shape for a row's small text-only action
+   buttons (Edit/Delete/Remove in Clients/Locations/Team/Products/
+   price-variables), replacing a `rounded-md px-2 py-1 text-xs ...`
+   Tailwind string that was hand-duplicated at 9 call sites across 6
+   files (the one-off-string problem CLAUDE.md's styling rules call out
+   directly). Reads the compact tier's own height/padding, so a row's
+   Edit button and its Role select measure the same height as each
+   other, not just "both small." */
+.btn-row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--control-height-compact);
+  padding-inline: var(--control-padding-x-compact);
+  border-radius: var(--radius-input);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+.btn-row-action:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+/* The destructive variant (Delete/Remove) — same shape, red ink + a
+   red-tinted ring instead of the neutral one. */
+.btn-row-action-danger {
+  color: var(--destructive);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--destructive) 30%, transparent);
+}
+.btn-row-action-danger:hover {
+  background: color-mix(in oklab, var(--destructive) 10%, transparent);
+  color: var(--destructive);
 }
 
 /* A checkbox — small square, filled with --brand-accent once checked (a
@@ -547,12 +653,36 @@
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 80%, transparent);
 }
 
-/* A 2-column form layout on desktop, single column on mobile — see the
-   Responsive rules block at the bottom of this file for the breakpoint. */
+/* A form layout grid — single column on mobile, 2 or 3 columns on desktop
+   depending on which .form-grid-cols-N modifier it's paired with (see the
+   Responsive rules block at the bottom of this file for the breakpoint).
+   CORRECTED this pass (item 5): now the Add Product form's real layout
+   (new-product-form.tsx), not an unused Stage-A class — column/row gap
+   read named tokens, and align-items: start is explicit so one field in
+   a row growing taller than its neighbor (a hint, an error, the barcode-
+   duplicate warning) never re-centers the row and throws off every
+   input's top edge, the bug this item set out to fix. */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  column-gap: var(--form-grid-gap-x);
+  row-gap: var(--form-grid-gap-y);
+  align-items: start;
+}
+
+/* The reserved hint/error slot under a field's control — see theme.css's
+   --field-message-slot-height comment for why this has a floor but isn't
+   clipped to it: a short hint/error (the common case) always reserves
+   this exact height whether or not it's actually showing text, so two
+   fields in the same .form-grid row measure the same total height either
+   way; a field whose message genuinely needs more room (the barcode
+   duplicate match, with its own link/button) is still allowed to grow
+   past the floor — align-items: start on the parent grid means that
+   growth never moves the SIBLING field's input out of alignment, only
+   pushes whatever comes after the row down, same as a real validation
+   message anywhere else in the app would. */
+.field-message-slot {
+  min-height: var(--field-message-slot-height);
 }
 
 /* ============================================================
@@ -730,16 +860,23 @@
   color: var(--muted-foreground);
 }
 
-/* One destination in the sidebar or the mobile overflow menu, at rest. */
+/* One destination in the sidebar or the mobile overflow menu, at rest.
+   CORRECTED this pass (item 6): color now reads --sidebar-foreground-
+   strong (theme.css) — literal #000000 in light mode, the existing
+   light sidebar color in dark mode — instead of --muted-foreground (a
+   gray). Icons pick this up automatically via currentColor (no separate
+   icon color rule anywhere — see app-nav.tsx). .nav-item-disabled
+   (below) is a fully separate class, never combined with this one, so
+   disabled items are unaffected. */
 .nav-item {
-  color: var(--muted-foreground);
+  color: var(--sidebar-foreground-strong);
   transition:
     color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
 .nav-item:hover {
   background: var(--sidebar-hover);
-  color: var(--sidebar-foreground);
+  color: var(--sidebar-foreground-strong);
 }
 
 /* The nav item for the page currently showing. */
@@ -1086,9 +1223,15 @@
     width: auto;
   }
 
-  /* .form-grid: two columns once there's room for them side by side. */
-  .form-grid {
+  /* .form-grid-cols-2/-3: single column up to this point (item 5: "single
+     column on mobile with the same vertical rhythm" — row-gap doesn't
+     change between the two, only whether there's more than one column),
+     the named column count from here up. */
+  .form-grid-cols-2 {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .form-grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 

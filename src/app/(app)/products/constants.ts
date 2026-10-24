@@ -6,6 +6,7 @@ export const VARIANT_UNITS = [
   "ml",
   "pack",
   "case",
+  "bag",
 ] as const;
 export type VariantUnit = (typeof VARIANT_UNITS)[number];
 

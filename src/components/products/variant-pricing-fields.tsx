@@ -29,7 +29,9 @@ export function ReadOnlyCurrencyField({
     <Field>
       <FieldLabel htmlFor={`${idPrefix}-currency`}>Currency</FieldLabel>
       <Input id={`${idPrefix}-currency`} value={currency} disabled />
-      <FieldDescription>Set in Price Settings.</FieldDescription>
+      <div className="field-message-slot">
+        <FieldDescription>Set in Price Settings.</FieldDescription>
+      </div>
     </Field>
   );
 }
@@ -104,13 +106,27 @@ export function useVariantPricingFields({
           recalcPackPrice(event.target.value, unitsPerPack);
         }}
       />
+      {/* field-message-slot (ui.css, item 5) — empty here on purpose, so
+          this field measures the same height as its row-mates below
+          (both of which always show a hint), rather than being the one
+          field in a 3-up row that's a line shorter. */}
+      <div className="field-message-slot" />
     </Field>
   );
 
   const unitsPerPackField = (
     <Field>
+      {/* CORRECTED this pass (item 5) — was "Units per pack/case/box",
+          which wraps onto 2 lines in the 3-up pricing row (new-product-
+          form.tsx) at normal widths, pushing JUST this field's input
+          down a line relative to its row-mates — a second, more subtle
+          version of the same "input tops must match" bug the barcode-
+          duplicate message caused. Shortened the label and moved the
+          "pack/case/box" detail into the hint below instead, which has
+          the full row width to itself and was never at risk of wrapping
+          unevenly against a sibling. */}
       <FieldLabel htmlFor={`${idPrefix}-unitsPerPack`}>
-        Units per pack/case/box
+        Units per pack
       </FieldLabel>
       <Input
         id={`${idPrefix}-unitsPerPack`}
@@ -124,7 +140,9 @@ export function useVariantPricingFields({
           recalcPackPrice(unitPrice, event.target.value);
         }}
       />
-      <FieldDescription>1 = sold individually.</FieldDescription>
+      <div className="field-message-slot">
+        <FieldDescription>Case/box size — 1 = sold individually.</FieldDescription>
+      </div>
     </Field>
   );
 
@@ -144,11 +162,13 @@ export function useVariantPricingFields({
           setPackPriceTouched(true);
         }}
       />
-      <FieldDescription>
-        {packPriceTouched
-          ? "Set manually."
-          : "Auto-calculated from unit price × units per pack/case/box — edit to override."}
-      </FieldDescription>
+      <div className="field-message-slot">
+        <FieldDescription>
+          {packPriceTouched
+            ? "Set manually."
+            : "Auto-calculated from unit price × units per pack/case/box — edit to override."}
+        </FieldDescription>
+      </div>
     </Field>
   );
 

@@ -207,14 +207,14 @@ function VariableRow({
         <button
           type="button"
           onClick={() => onEdit(variable)}
-          className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
+          className="btn-row-action"
         >
           Edit
         </button>
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="rounded-md px-2 py-1 text-xs font-medium text-destructive ring-1 ring-destructive/30 hover:bg-destructive/10"
+          className="btn-row-action btn-row-action-danger"
         >
           Delete
         </button>

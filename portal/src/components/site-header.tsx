@@ -21,16 +21,23 @@ export async function SiteHeader() {
   const orderHref = user ? "/products" : "/login";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur">
-      <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="text-xl font-extrabold tracking-tight text-brand">{settings.businessName}</span>
-          <span className="hidden text-xs font-semibold uppercase tracking-widest text-muted sm:inline">Wholesale</span>
+    <header className="sticky top-0 z-30 border-b border-line bg-white/85 backdrop-blur-xl">
+      <div className="container-page flex h-[4.5rem] items-center justify-between gap-4">
+        <Link href="/" className="group flex items-center gap-2.5">
+          <span className="grid size-9 place-items-center rounded-xl bg-brand text-lg font-extrabold text-white transition-transform duration-300 group-hover:rotate-6 group-hover:scale-105">
+            {settings.businessName.slice(0, 1)}
+          </span>
+          <span className="flex items-baseline gap-2">
+            <span className="text-lg font-extrabold tracking-tight">{settings.businessName}</span>
+            <span className="hidden rounded-full bg-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand sm:inline">
+              Wholesale
+            </span>
+          </span>
         </Link>
 
-        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">
+        <nav className="hidden items-center gap-8 lg:flex" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className="text-sm font-medium text-ink/80 hover:text-brand">
+            <Link key={n.href} href={n.href} className="nav-link">
               {n.label}
             </Link>
           ))}
@@ -43,26 +50,26 @@ export async function SiteHeader() {
                 {retailer?.businessName ?? user.email}
               </span>
               <form action={logout}>
-                <button className="btn" type="submit">Sign out</button>
+                <button className="btn btn-sm" type="submit">Sign out</button>
               </form>
             </>
           ) : (
-            <Link href="/login" className="btn hidden sm:inline-flex">Sign in</Link>
+            <Link href="/login" className="btn btn-sm hidden sm:inline-flex">Sign in</Link>
           )}
-          <Link href={orderHref} className="btn btn-primary">Order</Link>
+          <Link href={orderHref} className="btn btn-sm btn-primary">Order now</Link>
 
           <details className="relative lg:hidden">
-            <summary className="btn cursor-pointer list-none" aria-label="Menu">Menu</summary>
-            <div className="absolute right-0 mt-2 w-56 rounded-xl border border-line bg-surface p-2 shadow-lg">
+            <summary className="btn btn-sm cursor-pointer list-none" aria-label="Menu">Menu</summary>
+            <div className="menu-pop absolute right-0 mt-3 w-60 rounded-2xl border border-line bg-white p-2 shadow-[var(--shadow-lg)]">
               {NAV.map((n) => (
-                <Link key={n.href} href={n.href} className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-bg">
+                <Link key={n.href} href={n.href} className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-soft">
                   {n.label}
                 </Link>
               ))}
               {!user ? (
                 <>
-                  <Link href="/login" className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-bg">Sign in</Link>
-                  <Link href="/signup" className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-bg">Apply for an account</Link>
+                  <Link href="/login" className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-soft">Sign in</Link>
+                  <Link href="/signup" className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-soft">Apply for an account</Link>
                 </>
               ) : null}
             </div>

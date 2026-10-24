@@ -1,25 +1,24 @@
 import type { CatalogueItem } from "@/lib/catalogue";
 import { formatMoney } from "@/lib/catalogue";
-
-const STOCK_LABEL = { in: "In stock", low: "Low stock", out: "Out of stock" } as const;
-const STOCK_STYLE = {
-  in: "bg-brand/10 text-brand",
-  low: "bg-accent/15 text-accent",
-  out: "bg-danger/10 text-danger",
-} as const;
-
 import type { PriceMode } from "@/lib/portal";
 
 export type { PriceMode };
 
-export function ProductImage({ src, alt }: { src: string | null; alt: string }) {
+const STOCK_LABEL = { in: "In stock", low: "Low stock", out: "Out of stock" } as const;
+const STOCK_STYLE = {
+  in: "bg-brand/10 text-brand",
+  low: "bg-accent/15 text-[#a15f06]",
+  out: "bg-danger/10 text-danger",
+} as const;
+
+export function ProductImage({ src, alt, fit = "contain" }: { src: string | null; alt: string; fit?: "contain" | "cover" }) {
   return (
     // Signed storage URLs expire, so next/image optimisation does not apply.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src ?? "/placeholder-product.svg"}
       alt={src ? alt : `${alt} (no image available)`}
-      className={`h-full w-full ${src ? "object-contain p-3" : "object-cover"}`}
+      className={`h-full w-full ${src && fit === "contain" ? "object-contain p-4" : "object-cover"}`}
       loading="lazy"
     />
   );
@@ -27,49 +26,47 @@ export function ProductImage({ src, alt }: { src: string | null; alt: string }) 
 
 export function ProductCard({ item, mode }: { item: CatalogueItem; mode: PriceMode }) {
   return (
-    <li className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface transition hover:border-brand hover:shadow-md">
-      <div className="aspect-[4/3] bg-[#efeadc]">
+    <div className="card card-hover group flex w-full flex-col overflow-hidden">
+      <div className="product-media relative aspect-square overflow-hidden">
         <ProductImage src={item.imageUrl} alt={item.name} />
+        <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur ${STOCK_STYLE[item.stock]}`}>
+          {mode === "approved" && item.casesAvailable !== null && item.stock !== "out"
+            ? `${item.casesAvailable} cases`
+            : STOCK_LABEL[item.stock]}
+        </span>
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-4">
+      <div className="flex flex-1 flex-col gap-3 p-5">
         <div>
           {item.brand ? (
-            <div className="text-[11px] font-bold uppercase tracking-widest text-muted">{item.brand}</div>
+            <div className="text-[11px] font-bold uppercase tracking-widest text-brand">{item.brand}</div>
           ) : null}
-          <h3 className="font-semibold leading-snug">{item.name}</h3>
-          <p className="text-sm text-muted">
+          <h3 className="mt-0.5 line-clamp-2 font-semibold leading-snug">{item.name}</h3>
+          <p className="mt-1 text-sm text-muted">
             {item.variantName} · {item.sku}
           </p>
         </div>
-        <p className="text-sm">
-          1 case = <strong>{item.unitsPerCase}</strong> {item.unitsPerCase === 1 ? "item" : "items"}
+        <p className="text-sm text-muted">
+          1 case = <strong className="text-ink">{item.unitsPerCase}</strong> {item.unitsPerCase === 1 ? "item" : "items"}
         </p>
-        <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-          <div>
-            {mode === "approved" ? (
-              item.casePrice !== null ? (
-                <>
-                  <div className="text-lg font-bold">{formatMoney(item.casePrice, item.currency)}</div>
-                  <div className="text-xs text-muted">per case</div>
-                </>
-              ) : (
-                <div className="text-sm text-muted">Price on request</div>
-              )
-            ) : mode === "pending" ? (
-              <div className="text-sm text-muted">Prices after approval</div>
-            ) : mode === "suspended" ? (
-              <div className="text-sm text-muted">Account on hold</div>
+        <div className="mt-auto border-t border-line pt-3">
+          {mode === "approved" ? (
+            item.casePrice !== null ? (
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xl font-extrabold tracking-tight">{formatMoney(item.casePrice, item.currency)}</span>
+                <span className="text-xs text-muted">per case</span>
+              </div>
             ) : (
-              <div className="text-sm font-semibold text-brand">Sign in for price</div>
-            )}
-          </div>
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STOCK_STYLE[item.stock]}`}>
-            {mode === "approved" && item.casesAvailable !== null && item.stock !== "out"
-              ? `${item.casesAvailable} cases`
-              : STOCK_LABEL[item.stock]}
-          </span>
+              <div className="text-sm text-muted">Price on request</div>
+            )
+          ) : mode === "pending" ? (
+            <div className="text-sm text-muted">Prices after approval</div>
+          ) : mode === "suspended" ? (
+            <div className="text-sm text-muted">Account on hold</div>
+          ) : (
+            <div className="text-sm font-semibold text-brand">Sign in for price →</div>
+          )}
         </div>
       </div>
-    </li>
+    </div>
   );
 }

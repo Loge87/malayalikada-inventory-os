@@ -323,18 +323,6 @@
   /* The nav's default (non-active) text color, used on hover — the same
      shade as ordinary body text, one step bolder than the resting label. */
   --sidebar-foreground: var(--foreground);
-  /* NEW this pass — a dedicated, literal #000000 for a sidebar item's
-     REST-state text/icon (icons inherit this via currentColor — no
-     separate icon color anywhere), replacing --muted-foreground (a gray)
-     as .nav-item's own color. Exposed as its own token, not an alias of
-     --sidebar-foreground/--foreground above (both of which are the app's
-     usual NEAR-black, #0f172a, not literally #000000) specifically so
-     this can be retuned locally without touching the app's general text
-     color. Disabled items (.nav-item-disabled) are NOT affected — they
-     read their own, separately-set greyed color, unchanged. See .dark
-     below: non-active items stay the existing light color there instead
-     — black text on the dark sidebar background would be unreadable. */
-  --sidebar-foreground-strong: #000000;
   /* CORRECTED this pass: was a plain alias of --muted — now its own
      formula, a further step in the same direction as --sidebar-background
      above (12% vs. 6%), so hovering a nav row reads as a clear, deliberate
@@ -346,17 +334,15 @@
      SOLID fill of --primary itself, per this pass's explicit instruction
      ("Left menu active item: solid #4eb46c fill with dark text"). */
   --sidebar-active: var(--primary);
-  /* CORRECTED this pass: literal #000000 now, in BOTH modes (not
-     var(--foreground), and not a dark-mode-specific value) — the active
-     row's fill is --primary (#4eb46c) unconditionally, the SAME vivid
-     green regardless of theme, so the text on top of it can be the same
-     black regardless of theme too; there's no near-black-page/near-white-
-     page asymmetry to compensate for here the way --sidebar-foreground-
-     strong (above) has. 8.07:1 against the fill. Not aliased to
-     --sidebar-foreground-strong even though both are #000000 in light
-     mode — they diverge in dark mode (that one goes light, this one
-     stays #000000), so they're separate tokens on purpose. */
-  --sidebar-active-foreground: #000000;
+  /* CORRECTED this pass: was a dedicated given hex (#166534, calibrated to
+     read on the pale tint above) — now --foreground itself ("light mode:
+     black text (menu text is black)"), since the active row is a solid
+     fill now, not a tint, and plain body-text black is what the rest of
+     the sidebar already uses. 6.86:1 against the new solid --sidebar-
+     active. See .dark below for the dark-mode value (explicitly #0B1F14,
+     not --foreground — dark mode's near-white body text would fail
+     against this same vivid green fill). */
+  --sidebar-active-foreground: var(--foreground);
   /* The hairline border separating the sidebar (and the mobile top/bottom
      bars) from the rest of the page. */
   --sidebar-border: var(--border);
@@ -436,13 +422,7 @@
      ============================================================ */
 
   --radius-card: 1rem; /* cards, panels, dialogs — Tailwind's rounded-2xl step, was 0.875rem */
-  /* CORRECTED this pass — 0.625rem (was 0.5rem), matching the reference
-     Combobox's own measured 10px radius (see --control-height's comment)
-     — that control never read this token at all (a hardcoded Tailwind
-     rounded-lg instead, see combobox.tsx), so bringing it onto .input's/
-     .select's shared radius means picking ONE value, and the reference's
-     own measured number is it. */
-  --radius-input: 0.625rem; /* text inputs, selects, textareas, combobox */
+  --radius-input: 0.5rem; /* text inputs, selects, textareas */
   --radius-button: 4px; /* every button, every size and variant — was 2px */
   --radius-pill: 9999px; /* status pills, badges, the fully-round chips */
   /* The general-purpose Tailwind radius scale (rounded-sm/-md/-lg/-xl/-2xl/
@@ -507,87 +487,25 @@
      a shorter row with less cell padding, on its own token, used nowhere
      else. Team now reads the same --space-table-row-height every other
      table does — see team-management.tsx. */
-  /* CORRECTED this pass — re-derived from a live measurement of the Stock
-     Out dialog's Location control (a Combobox), named as this app's
-     reference/preferred spacing standard. Measured at 1440px: height
-     32px, horizontal padding 10px, font-size 14px (already --text-sm),
-     line-height 20px (Tailwind's own default pairing for text-sm — not a
-     separate token), radius 10px. All judged sensible and adopted as-is
-     except the horizontal padding, which measures a non-round 10px
-     (0.625rem) — already a value this file uses elsewhere (--radius),
-     so kept exactly rather than rounded to a different number for its
-     own sake. --space-control-height kept as a plain alias so nothing
-     reading the old name breaks.
-
-     DEFAULT tier: every single-line interactive control used in a form,
-     toolbar, filter row, dialog, or page-header action — .input, .select
-     and every dropdown/combobox/multi-select trigger built from it, and
-     a default/lg-size .btn. box-sizing: border-box is explicit on each
-     consumer so padding can never push the rendered box taller than this
-     value.
-
-     COMPACT tier (--control-height-compact/--control-padding-x-compact,
-     below) is the SECOND tier this pass adds — every control that lives
-     INSIDE a table row (the Role select, a row's Locations multi-select,
-     row action buttons like Edit/Delete/Remove) reads that pair instead,
-     via the new .control-compact modifier class and .btn-row-action
-     class in ui.css — never its own one-off height.
-
-     Excluded from BOTH tiers, by design: .btn-sm and .btn-icon (and the
-     button component's own xs/icon-xs/icon-sm/icon-lg sizes) keep their
-     own literal sizes — intentionally smaller/square variants, not a
-     drifted outlier. Checkboxes/radios are excluded from height matching
-     entirely (they're a different shape of control, not a text field). */
-  /* CORRECTED this pass — the default tier's height is no longer a fixed
-     number at all: .input/.select/.combobox-group/default-size .btn now
-     derive their height from --control-padding-y (below) plus their own
-     line-height/border, not from this token directly. --control-height
-     is kept defined (equal to what that padding math currently resolves
-     to, ~2rem content+line-height... not exact anymore, see each class's
-     own comment) only because other, unrelated parts of the app still
-     read --space-control-height as a plain sizing value — nothing in the
-     control family itself reads --control-height for its own height any
-     more. */
-  --control-height: 2rem;
+  /* RENAMED this pass to --control-height (the name this request asks
+     for) — --space-control-height kept as a plain alias below so nothing
+     that already reads the old name breaks. Every single-line interactive
+     control (.input, .select and every other dropdown/combobox/multi-
+     select trigger built from it, and a default/lg-size .btn) now reads
+     THIS token for its height, with box-sizing: border-box made explicit
+     on each so padding can never push the rendered box taller than this
+     value the way .input's old (buggy) 1.25rem vertical padding used to.
+     .btn-sm/.btn-icon (and the button component's own xs/icon-xs/icon-sm/
+     icon-lg sizes) are deliberately EXCLUDED — they're intentionally
+     smaller/square variants, not meant to match a text control's height. */
+  --control-height: 2.5rem;
   --space-control-height: var(--control-height); /* back-compat alias */
-  --control-padding-x: 0.625rem;
-  /* NEW this pass — 20px top/bottom padding on every default-tier text
-     input, dropdown/select/combobox trigger, and button, given directly
-     (not derived/measured) per explicit request. Height is now whatever
-     this padding plus the control's own line-height/border adds up to,
-     instead of a fixed --control-height — a deliberately taller, roomier
-     default than the previous pass's 32px reference-measured height.
-     Compact-tier controls (--control-height-compact, below) are
-     unaffected — .control-compact explicitly zeroes this back out (see
-     ui.css) so a table row's Role select/Edit button doesn't inherit 40px
-     of padding on top of its own fixed, smaller height. */
-  --control-padding-y: 1.25rem;
-  /* NEW this pass — action buttons' own horizontal padding, given
-     directly as "a generous fixed value, roughly what 10% of a typical
-     button's width would look like" (the literal CSS-percentage reading
-     of that request was rejected: padding-inline: 10% resolves against
-     the button's CONTAINING BLOCK width, not the button's own width, so
-     the same button would measure differently on a full-width page vs.
-     inside a narrow dialog — the opposite of "uniform"). Separate from
-     --control-padding-x (inputs/selects keep their own, smaller,
-     reference-measured horizontal padding) — a button's horizontal
-     padding has always been visually heavier than a text field's in this
-     app, and that relationship is intentional, not an oversight. */
-  --btn-padding-x: 1.5rem;
-  /* NEW this pass — the compact tier's own height/padding, for every
-     control that lives inside a table row. 1.75rem/0.5rem — one clean
-     step down from the default tier above, closely matching what the
-     Team table's Role select and Locations multi-select already
-     happened to use ad hoc (h-8/px-2) before this pass made it a real,
-     reusable pair instead of a per-component guess. */
-  --control-height-compact: 1.75rem;
-  --control-padding-x-compact: 0.5rem;
-  /* NEW this pass — the vertical gap between a field's label and its
-     control, formalizing .field's existing (already-correct) 0.5rem gap
-     as a named, reusable token — measured 9px on the reference Combobox
-     above; 0.5rem/8px is the closest clean value and is what .field
-     already used, so this is a rename, not a visual change. */
-  --field-label-gap: 0.5rem;
+  /* NEW this pass — the shared horizontal padding for the same control
+     family above (.input/.select/multi-select trigger/default-lg .btn),
+     so a button's padding and an input's padding are the same measured
+     number, not just happening to look similar. Same exclusions as
+     --control-height just above. */
+  --control-padding-x: 1rem;
   /* NEW this pass — header row height target ~3rem: --text-xs (0.75rem)
      at the browser's default line-height (~1.2, so ~0.9rem/14.4px of
      actual line box) plus 2x this padding lands at roughly 0.9rem +
@@ -623,23 +541,6 @@
      available space in the flex row, this just lowers its floor so the
      role/locations controls beside it get more of the row by default. */
   --invite-email-width: 10rem;
-  /* NEW this pass — the Add Product form's grid (item 5: "one grid with a
-     consistent column gap and row gap"). Column and row gap are named
-     separately so they can be tuned independently even though they
-     currently share the same value — see .form-grid/.form-grid-cols-2/
-     .form-grid-cols-3 in ui.css. */
-  --form-grid-gap-x: 1.25rem;
-  --form-grid-gap-y: 1.25rem;
-  /* NEW this pass — the fixed-height slot every field in that grid
-     reserves for its hint/error text underneath, so a message appearing
-     (the barcode-duplicate warning was the reported case) never shifts a
-     sibling field in the same row out of alignment. One line of --text-sm
-     at its default line-height (1.25rem) is the common case (a single
-     hint/error line); a field whose message genuinely needs more room
-     (the barcode duplicate match, with its own link/button) is still
-     allowed to grow past this floor — see .field-message-slot's own
-     comment in ui.css for why that's a deliberate, not a missed, case. */
-  --field-message-slot-height: 1.25rem;
   /* NEW this pass — fixed per-column widths for the Teams and Clients
      tables (table-layout: fixed + a <colgroup>, so a long email/name
      never reflows a sibling column's width — see item 8's own VERIFY
@@ -798,20 +699,13 @@
      all. Still 1.22:1 against the restored --card (a real, visibly-green-
      tinted step) while --primary-text still clears 5.23:1 against it. */
   --primary-tint: #14532d;
-  /* REMOVED this pass — --sidebar-active-foreground used to be restated
-     here as #0B1F14 (a dark-mode-specific value, matching --primary-
-     foreground) because :root's own value was var(--foreground), which
-     would've gone near-white in dark mode. :root now sets a literal
-     #000000 directly instead (see its own comment — the active fill is
-     the same vivid green in both modes, so the text on it can be the
-     same black in both modes too), so there's nothing left to override
-     here; removing the restatement lets :root's value apply unchanged. */
-  /* NEW this pass — --sidebar-foreground-strong (see :root's own comment)
-     stays the existing light sidebar text color in dark mode, i.e.
-     unchanged from before this pass — explicit here only because :root's
-     own value (#000000) would otherwise leak in and be unreadable
-     against this near-black sidebar. */
-  --sidebar-foreground-strong: var(--sidebar-foreground);
+  /* CORRECTED this pass: :root now sets --sidebar-active-foreground to
+     var(--foreground) (near-black, for the light-mode solid fill) — that
+     would be near-WHITE in dark mode, which fails against the same vivid
+     green fill, so this restates it as the explicit #0B1F14 the request
+     calls for ("dark mode: #0B1F14"), same value as --primary-foreground.
+     6.61:1 against --sidebar-active (= --primary, #4eb46c). */
+  --sidebar-active-foreground: #0b1f14;
 
   /* Re-verified against the restored dark card: 10.42:1. */
   --status-success: #22dbc0;

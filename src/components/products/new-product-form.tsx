@@ -90,15 +90,9 @@ export function NewProductForm({
       </CardHeader>
       <CardContent>
         {/* On success the action redirects, so no reset handling. Every
-            related group below is a .form-grid row (item 5) — a real CSS
-            grid, not the flex-based Field orientation="responsive" pairing
-            this form used before: that wrapper's items-center is what let
-            the barcode-duplicate warning (BarcodeDuplicateField) re-center
-            the whole SKU/Barcode row and knock the SKU input out of
-            alignment once it appeared. align-items: start on .form-grid
-            (ui.css) means a field growing taller than its row-mates now
-            only pushes what comes AFTER the row down, never shifts the
-            row's own tops relative to each other. */}
+            related pair below is a responsive Field — side by side once
+            this card has room (its own container width, not the viewport),
+            stacked full-width otherwise; see ui/field.tsx. */}
         <form action={formAction}>
           <input type="hidden" name="returnTo" value={returnTo} />
           <FieldGroup>
@@ -106,7 +100,7 @@ export function NewProductForm({
               Product
             </span>
             <ProductImageField idPrefix="new-product" />
-            <div className="form-grid form-grid-cols-2">
+            <Field orientation="responsive">
               <Field>
                 <FieldLabel htmlFor="productName">Product name</FieldLabel>
                 <Input
@@ -115,7 +109,6 @@ export function NewProductForm({
                   placeholder="Basmati Rice"
                   required
                 />
-                <div className="field-message-slot" />
               </Field>
               <Field>
                 <FieldLabel htmlFor="category">Category</FieldLabel>
@@ -125,9 +118,8 @@ export function NewProductForm({
                   placeholder="Grains"
                   required
                 />
-                <div className="field-message-slot" />
               </Field>
-            </div>
+            </Field>
             <Field>
               <FieldLabel htmlFor="brand">Brand</FieldLabel>
               <Input id="brand" name="brand" placeholder="Optional" />
@@ -145,13 +137,12 @@ export function NewProductForm({
                 required
               />
             </Field>
-            <div className="form-grid form-grid-cols-2">
+            <Field orientation="responsive">
               <Field>
                 <FieldLabel htmlFor="sku">SKU</FieldLabel>
                 <Input id="sku" name="sku" placeholder="RICE-BAS-5KG" required />
-                <div className="field-message-slot" />
               </Field>
-              <div>
+              <div className="flex flex-col gap-2">
                 <BarcodeDuplicateField
                   id="barcode"
                   defaultValue={barcode}
@@ -163,36 +154,35 @@ export function NewProductForm({
                   </FieldDescription>
                 ) : null}
               </div>
-            </div>
+            </Field>
 
-            {/* Pricing and initial stock share one section. Unit pairs
-                with initial quantity (both are "how this variant is
-                counted/received," not pricing per se); unit price, units
-                per pack, and pack price then share their own 3-up row —
-                unit price first since it's the one filled in directly,
-                pack/case price last since it's the derived one (still
-                editable, for a supplier quote that doesn't cleanly
-                multiply out). */}
+            {/* Pricing and initial stock share one section — unit price
+                pairs with initial quantity below, so a single header
+                covering both reads more naturally than splitting them.
+                Unit price comes first: it's the field you fill in directly,
+                and pack/case price (below) is calculated from it × units
+                per pack/case/box, though still editable if a supplier
+                quotes a case price that doesn't cleanly multiply out. */}
             <span className="text-xs font-medium text-muted-foreground">
               Pricing &amp; initial stock (optional)
             </span>
-            <div className="form-grid form-grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="unit">Unit</FieldLabel>
-                <Select name="unit" defaultValue="each" items={UNIT_ITEMS}>
-                  <SelectTrigger id="unit" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VARIANT_UNITS.map((unit) => (
-                      <SelectItem key={unit} value={unit}>
-                        {unit}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="field-message-slot" />
-              </Field>
+            <Field>
+              <FieldLabel htmlFor="unit">Unit</FieldLabel>
+              <Select name="unit" defaultValue="each" items={UNIT_ITEMS}>
+                <SelectTrigger id="unit" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VARIANT_UNITS.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field orientation="responsive">
+              {unitPriceField}
               <Field>
                 <FieldLabel htmlFor="new-product-initialQuantity">
                   Quantity
@@ -205,28 +195,19 @@ export function NewProductForm({
                   min="0"
                   placeholder="Optional"
                 />
-                <div className="field-message-slot">
-                  <FieldDescription>
-                    Recorded as a received-stock ledger movement, not set
-                    directly.
-                  </FieldDescription>
-                </div>
+                <FieldDescription>
+                  Recorded as a received-stock ledger movement, not set
+                  directly.
+                </FieldDescription>
               </Field>
-            </div>
-            <div className="form-grid form-grid-cols-3">
-              {unitPriceField}
+            </Field>
+            <Field orientation="responsive">
               {unitsPerPackField}
               {packPriceField}
-            </div>
+            </Field>
             {/* After all the price fields, per the read-only currency
-                display's own placement rule — see ReadOnlyCurrencyField.
-                Its own row (item 5's "the read-only price fields together")
-                — today that's just Currency, but it's the row any future
-                read-only price field (e.g. a computed retail/wholesale
-                preview) would join. */}
-            <div className="form-grid form-grid-cols-2">
-              <ReadOnlyCurrencyField idPrefix="new-product" currency={defaultCurrency} />
-            </div>
+                display's own placement rule — see ReadOnlyCurrencyField. */}
+            <ReadOnlyCurrencyField idPrefix="new-product" currency={defaultCurrency} />
 
             <Field>
               <FieldLabel htmlFor="new-product-initialLocationId">

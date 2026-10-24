@@ -97,20 +97,9 @@ export function BarcodeDuplicateField({
           }
         }}
       />
-      {/* field-message-slot (ui.css, item 5) — reserves the same fixed
-          height SKU's own (empty) slot does, so the two fields in that
-          grid row measure the same total height in the common case
-          ("Checking…", or nothing yet). The duplicate-match callout below
-          is the one deliberate exception: it carries its own link/button
-          and can genuinely need more than one line, so it's allowed to
-          grow past the slot's floor — align-items: start on the parent
-          .form-grid means that growth never moves the SKU field's own
-          input out of alignment, only pushes whatever comes after this
-          row down, same as any real validation message would. */}
-      <div className="field-message-slot">
-        {checking ? <FieldDescription>Checking…</FieldDescription> : null}
-      </div>
-      {duplicate?.isActive ? (
+      {checking ? (
+        <FieldDescription>Checking…</FieldDescription>
+      ) : duplicate?.isActive ? (
         <div className="flex flex-wrap items-center gap-2 rounded-md bg-status-warning/10 px-3 py-2 text-sm text-status-warning">
           <span>This product already exists ({duplicate.productName}).</span>
           <Link

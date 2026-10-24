@@ -44,23 +44,16 @@ const buttonVariants = cva(
       // other control on a row with them. xs/sm/icon* stay their own
       // smaller literal values on purpose — see theme.css's --control-
       // height comment for the full exclusion list.
-      // xs/icon-xs/icon-lg carry their own py-0/p-0 — the same safety
-      // .btn-icon/.btn-sm/.control-compact/select.tsx's "sm" size already
-      // have: a fixed height (h-7/size-7/size-10) would otherwise fight
-      // the base .btn's new 20px padding-block (theme.css's
-      // --control-padding-y), squeezing the icon/label instead of the
-      // button growing to fit. Not currently used anywhere in the app,
-      // but kept correct rather than left as a latent break.
       size: {
         default:
           "gap-1.5 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
-        xs: "h-7 gap-1.5 px-3 py-0 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
+        xs: "h-7 gap-1.5 px-3 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
         sm: "btn-sm has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "gap-1.5 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
         icon: "btn-icon",
-        "icon-xs": "size-7 p-0 [&_svg:not([class*='size-'])]:size-3",
+        "icon-xs": "size-7 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "btn-icon",
-        "icon-lg": "size-10 p-0",
+        "icon-lg": "size-10",
       },
     },
     defaultVariants: {

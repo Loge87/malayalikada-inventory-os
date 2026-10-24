@@ -112,14 +112,14 @@ function LocationRow({
             <button
               type="button"
               onClick={() => onEdit(location.id)}
-              className="btn-row-action"
+              className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
             >
               Edit
             </button>
             <button
               type="button"
               onClick={() => setConfirming(true)}
-              className="btn-row-action btn-row-action-danger"
+              className="rounded-md px-2 py-1 text-xs font-medium text-destructive ring-1 ring-destructive/30 hover:bg-destructive/10"
             >
               Delete
             </button>

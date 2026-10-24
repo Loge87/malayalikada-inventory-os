@@ -767,7 +767,7 @@ export function ProductsTable({
                         event.stopPropagation();
                         openEdit(product.id);
                       }}
-                      className="btn-row-action"
+                      className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
                     >
                       Edit
                     </button>

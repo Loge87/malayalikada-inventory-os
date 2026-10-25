@@ -20,7 +20,8 @@ export function CameraScanButton({
    *  changes visually. */
   emphasized?: boolean;
 }) {
-  const { phase, isOpen, videoRef, start, close } = useCameraScan(onScan);
+  const { phase, isOpen, videoRef, start, close, torchSupported, torchOn, toggleTorch } =
+    useCameraScan(onScan);
 
   if (!isOpen) {
     return (
@@ -72,15 +73,29 @@ export function CameraScanButton({
             : "Point the camera at a barcode."}
         </p>
       )}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="w-fit"
-        onClick={close}
-      >
-        Cancel
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-fit"
+          onClick={close}
+        >
+          Cancel
+        </Button>
+        {torchSupported ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit"
+            aria-pressed={torchOn}
+            onClick={toggleTorch}
+          >
+            {torchOn ? "Light off" : "Light on"}
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

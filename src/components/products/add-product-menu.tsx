@@ -67,11 +67,15 @@ export function AddProductMenu() {
     router.push(`/products/new?barcode=${encodeURIComponent(barcode)}`);
   }
 
-  const { phase, videoRef, start, close } = useCameraScan(handleScan);
+  const { phase, videoRef, start, close, torchSupported, torchOn, toggleTorch } =
+    useCameraScan(handleScan);
 
   function openDialog() {
     setDuplicate(null);
     setDialogOpen(true);
+    // Warm up the create page while the camera finds the barcode, so landing
+    // on it after a scan is instant.
+    router.prefetch("/products/new");
     start();
   }
 
@@ -182,6 +186,18 @@ export function AddProductMenu() {
                 muted
                 autoPlay
               />
+              {torchSupported ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit"
+                  aria-pressed={torchOn}
+                  onClick={toggleTorch}
+                >
+                  {torchOn ? "Light off" : "Light on"}
+                </Button>
+              ) : null}
               {phase.kind === "error" ? (
                 <p className="text-sm text-destructive">{phase.message}</p>
               ) : (

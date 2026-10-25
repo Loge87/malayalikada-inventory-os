@@ -10,6 +10,7 @@ import {
   PRICE_VARIABLE_TYPES,
   type PriceVariableType,
 } from "@/lib/price-variable-types";
+import { isVariableScope, type VariableScope } from "@/lib/product-type";
 
 export type PriceVariableFormState = { error: string } | { ok: true } | undefined;
 
@@ -19,7 +20,7 @@ const UNIQUE_VIOLATION = "23505";
 
 function parseVariableFields(
   formData: FormData
-): { error: string } | { name: string; value: number; valueType: PriceVariableType } {
+): { error: string } | { name: string; value: number; valueType: PriceVariableType; appliesTo: VariableScope } {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
     return { error: "Name is required." };
@@ -36,7 +37,12 @@ function parseVariableFields(
     return { error: "Choose a value type." };
   }
 
-  return { name, value, valueType: valueType as PriceVariableType };
+  const appliesTo = String(formData.get("appliesTo") ?? "all");
+  if (!isVariableScope(appliesTo)) {
+    return { error: "Choose which products this applies to." };
+  }
+
+  return { name, value, valueType: valueType as PriceVariableType, appliesTo };
 }
 
 /**
@@ -68,6 +74,7 @@ export async function createPriceVariable(
     name: parsed.name,
     value: parsed.value,
     value_type: parsed.valueType,
+    applies_to_type: parsed.appliesTo,
   });
 
   if (error) {
@@ -109,6 +116,7 @@ export async function updatePriceVariable(
       name: parsed.name,
       value: parsed.value,
       value_type: parsed.valueType,
+      applies_to_type: parsed.appliesTo,
     })
     .eq("id", variableId);
 

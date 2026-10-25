@@ -15,6 +15,7 @@ import {
   type PriceVariableType,
 } from "@/lib/price-variable-types";
 import type { Currency } from "@/app/(app)/products/constants";
+import { VARIABLE_SCOPES, VARIABLE_SCOPE_LABELS } from "@/lib/product-type";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -130,6 +131,31 @@ function VariableForm({
         </Field>
       </div>
 
+      <Field>
+        <FieldLabel htmlFor="price-variable-applies-to">Applies to</FieldLabel>
+        <Select
+          name="appliesTo"
+          defaultValue={editing?.appliesTo ?? "all"}
+          items={VARIABLE_SCOPE_LABELS}
+        >
+          <SelectTrigger id="price-variable-applies-to" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {VARIABLE_SCOPES.map((scope) => (
+              <SelectItem key={scope} value={scope}>
+                {VARIABLE_SCOPE_LABELS[scope]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-caption">
+          A frozen-only or dry-only variable is skipped in the price of any
+          other product type. Products with no type only use &ldquo;All
+          products&rdquo; variables.
+        </p>
+      </Field>
+
       {state && "error" in state ? <FieldError>{state.error}</FieldError> : null}
 
       <div className="flex items-center gap-2">
@@ -203,6 +229,9 @@ function VariableRow({
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1">
+        {variable.appliesTo !== "all" ? (
+          <span className="pill pill-neutral">{VARIABLE_SCOPE_LABELS[variable.appliesTo]}</span>
+        ) : null}
         <span className="pill pill-neutral">{TYPE_LABELS[variable.valueType]}</span>
         <button
           type="button"

@@ -11,6 +11,11 @@ import {
 } from "@/app/(app)/products/actions";
 import { VARIANT_UNITS, type Currency } from "@/app/(app)/products/constants";
 import { formatMoney } from "@/lib/format";
+import {
+  PRODUCT_TYPES,
+  PRODUCT_TYPE_LABELS,
+  type ProductType,
+} from "@/lib/product-type";
 import { computeDisplayPrice, type PricingContext } from "@/lib/price-formula";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,6 +103,25 @@ function ProductFieldsForm({ product }: { product: EditableProduct }) {
             />
           </Field>
         </Field>
+        <Field>
+          <FieldLabel htmlFor={`${idPrefix}-productType`}>Type</FieldLabel>
+          <Select
+            name="productType"
+            defaultValue={product.productType ?? undefined}
+            items={PRODUCT_TYPE_LABELS}
+          >
+            <SelectTrigger id={`${idPrefix}-productType`} className="w-full">
+              <SelectValue placeholder="Not set" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRODUCT_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {PRODUCT_TYPE_LABELS[type]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
 
         {state && "error" in state ? <FieldError>{state.error}</FieldError> : null}
 
@@ -112,17 +136,19 @@ function ProductFieldsForm({ product }: { product: EditableProduct }) {
 function CalculatedPrices({
   variant,
   pricing,
+  productType,
 }: {
   variant: EditableVariant;
   pricing: PricingContext;
+  productType: ProductType | null;
 }) {
   // Retail computes live from unit_price using the active Retail formula;
   // wholesale from pack_price using the active Wholesale formula — each via
   // the one shared evaluateFormula call path (computeDisplayPrice). A
   // formula_type with no active row yet (never applied) renders its own
   // "No pricing formula set yet" line rather than a broken calculation.
-  const retail = computeDisplayPrice(variant.unitPrice, pricing.activeFormulas.retail, pricing.variables);
-  const wholesale = computeDisplayPrice(variant.packPrice, pricing.activeFormulas.wholesale, pricing.variables);
+  const retail = computeDisplayPrice(variant.unitPrice, pricing.activeFormulas.retail, pricing.variables, productType);
+  const wholesale = computeDisplayPrice(variant.packPrice, pricing.activeFormulas.wholesale, pricing.variables, productType);
 
   if (retail.kind === "not_set" && wholesale.kind === "not_set") {
     return (
@@ -169,10 +195,12 @@ function CalculatedPrices({
 function VariantEditForm({
   variant,
   pricing,
+  productType,
   defaultCurrency,
 }: {
   variant: EditableVariant;
   pricing: PricingContext;
+  productType: ProductType | null;
   /** The organisation's CURRENT Price Settings currency — not
    *  variant.currency. Saving this form re-syncs the variant's stored
    *  currency to this value regardless of what it was before (products/
@@ -257,7 +285,7 @@ function VariantEditForm({
         defaultUnitPrice={variant.unitPrice}
       />
 
-      <CalculatedPrices variant={variant} pricing={pricing} />
+      <CalculatedPrices variant={variant} pricing={pricing} productType={productType} />
 
       {/* After all the price fields, including retail/wholesale above —
           per the read-only currency display's own placement rule. */}
@@ -414,6 +442,7 @@ export function ProductEditContent({
             key={variant.id}
             variant={variant}
             pricing={pricing}
+            productType={product.productType}
             defaultCurrency={defaultCurrency}
           />
         ))}

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { PRODUCT_IMAGE_BUCKET } from "@/app/(app)/products/constants";
+import type { ProductType } from "@/lib/product-type";
 import type { EditableProduct } from "@/components/products/products-table";
 
 type VariantRow = {
@@ -21,12 +22,13 @@ type ProductRow = {
   name: string;
   category: string;
   brand: string | null;
+  product_type: ProductType | null;
   image_url: string | null;
   is_active: boolean;
   product_variants: VariantRow[];
 };
 
-const PRODUCT_SELECT = `id, name, category, brand, image_url, is_active,
+const PRODUCT_SELECT = `id, name, category, brand, product_type, image_url, is_active,
   product_variants(
     id, name, sku, barcode, unit,
     currency, pack_price, units_per_pack, unit_price,
@@ -83,6 +85,7 @@ export async function loadProducts(
     name: product.name,
     category: product.category,
     brand: product.brand,
+    productType: product.product_type,
     imageUrl: product.image_url
       ? (signedUrlByPath.get(product.image_url) ?? null)
       : null,

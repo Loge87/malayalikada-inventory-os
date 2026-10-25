@@ -170,6 +170,11 @@ function VariableBox({
         <>
           <span className="truncate text-sm font-medium">{variable.name}</span>
           <span className="text-caption">{formatVariableValue(variable, currency)}</span>
+          {variable.appliesTo !== "all" ? (
+            <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              {variable.appliesTo} only
+            </span>
+          ) : null}
         </>
       ) : (
         <span className="text-caption text-destructive">Deleted variable</span>

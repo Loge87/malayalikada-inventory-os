@@ -15,6 +15,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PriceVariable } from "@/lib/price-variable-types";
+import type { ProductType, VariableScope } from "@/lib/product-type";
 
 export type FormulaType = "retail" | "wholesale";
 
@@ -171,6 +172,7 @@ type PriceVariableRow = {
   name: string;
   value: number;
   value_type: PriceVariable["valueType"];
+  applies_to_type: VariableScope | null;
 };
 
 export type PricingContext = {
@@ -197,7 +199,7 @@ export async function loadPricingContext(
   const [variablesRes, activeFormulas] = await Promise.all([
     supabase
       .from("price_variables")
-      .select("id, name, value, value_type")
+      .select("id, name, value, value_type, applies_to_type")
       .returns<PriceVariableRow[]>(),
     loadActivePriceFormulas(supabase, organisationId),
   ]);
@@ -211,6 +213,7 @@ export async function loadPricingContext(
     name: row.name,
     value: row.value,
     valueType: row.value_type,
+    appliesTo: row.applies_to_type ?? "all",
   }));
 
   return { variables, activeFormulas };
@@ -250,13 +253,48 @@ export function applyCharmPricing(rawPrice: number): number {
 export function computeDisplayPrice(
   baseAmount: number | null,
   activeChain: FormulaChain | null,
-  variables: PriceVariable[]
+  variables: PriceVariable[],
+  productType: ProductType | null = null
 ): PriceComputation {
   if (baseAmount === null || activeChain === null) {
     return { kind: "not_set" };
   }
-  const rawAmount = evaluateFormula(baseAmount, activeChain, variables);
+  const rawAmount = evaluateFormula(baseAmount, activeChain, variables, productType);
   return { kind: "computed", amount: applyCharmPricing(rawAmount) };
+}
+
+/**
+ * Product type as a pricing factor: a variable limited to "frozen" or "dry"
+ * only takes part in the price of a product of that type. A product with no
+ * type set only picks up variables that apply to all products. Steps for
+ * variables that don't apply are dropped before the chain is evaluated
+ * (groups are filtered recursively; a group left empty is dropped whole).
+ * A deleted variable is kept so it behaves exactly as before.
+ */
+export function variableAppliesToType(
+  variable: Pick<PriceVariable, "appliesTo">,
+  productType: ProductType | null
+): boolean {
+  return variable.appliesTo === "all" || variable.appliesTo === productType;
+}
+
+function filterChainForType(
+  chain: FormulaChain,
+  variableById: Map<string, PriceVariable>,
+  productType: ProductType | null
+): FormulaChain {
+  const out: ChainStep[] = [];
+  for (const step of chain) {
+    if (step.kind === "group") {
+      const inner = filterChainForType(step.chain, variableById, productType);
+      if (inner.length > 0) out.push({ ...step, chain: inner });
+      continue;
+    }
+    const variable = variableById.get(step.variableId);
+    if (variable && !variableAppliesToType(variable, productType)) continue;
+    out.push(step);
+  }
+  return out;
 }
 
 /**
@@ -349,10 +387,11 @@ function evaluateGroupChain(
 export function evaluateFormula(
   startValue: number,
   chain: FormulaChain,
-  variables: PriceVariable[]
+  variables: PriceVariable[],
+  productType: ProductType | null = null
 ): number {
   const variableById = new Map(variables.map((variable) => [variable.id, variable]));
-  return chain.reduce(
+  return filterChainForType(chain, variableById, productType).reduce(
     (runningTotal, step) => applyOperator(runningTotal, step.operator, resolveOperand(step, variableById)),
     startValue
   );

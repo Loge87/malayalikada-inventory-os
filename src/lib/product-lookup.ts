@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { ProductType } from "@/lib/product-type";
+
 /**
  * The one query every barcode-driven flow uses to answer "does this barcode
  * belong to an active product, and what's its real availability" —
@@ -34,7 +36,7 @@ export type BarcodeMatchVariant = {
   pack_price: number | null;
   units_per_pack: number;
   unit_price: number | null;
-  products: { name: string; category: string | null } | null;
+  products: { name: string; category: string | null; product_type: ProductType | null } | null;
   inventory_levels: {
     on_hand: number;
     location_id: string;
@@ -57,7 +59,7 @@ export async function findActiveVariantsByBarcode(
     .from("product_variants")
     .select(
       `id, product_id, name, sku, barcode, unit, currency, pack_price, units_per_pack, unit_price,
-       products!inner(name, category, is_active),
+       products!inner(name, category, product_type, is_active),
        inventory_levels(on_hand, location_id, locations(name, type))`
     )
     .eq("barcode", barcode)

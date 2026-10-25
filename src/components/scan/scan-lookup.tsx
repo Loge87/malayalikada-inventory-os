@@ -295,8 +295,8 @@ function LookupResult({
   // shared evaluateFormula call path (computeDisplayPrice) every other
   // price display uses. pack_price itself is shown as-is below, not run
   // through either formula.
-  const retail = computeDisplayPrice(variant.unit_price, pricing.activeFormulas.retail, pricing.variables);
-  const wholesale = computeDisplayPrice(variant.pack_price, pricing.activeFormulas.wholesale, pricing.variables);
+  const retail = computeDisplayPrice(variant.unit_price, pricing.activeFormulas.retail, pricing.variables, variant.products?.product_type ?? null);
+  const wholesale = computeDisplayPrice(variant.pack_price, pricing.activeFormulas.wholesale, pricing.variables, variant.products?.product_type ?? null);
   const retailPrice = retail.kind === "computed" ? retail.amount : null;
   const wholesalePrice = wholesale.kind === "computed" ? wholesale.amount : null;
 

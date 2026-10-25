@@ -13,6 +13,7 @@ import {
 } from "@/lib/organisation";
 import { getCurrentUserRole } from "@/lib/roles";
 import { hasPermission } from "@/lib/permissions";
+import { isProductType } from "@/lib/product-type";
 import { findAnyVariantByBarcode } from "@/lib/product-lookup";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
@@ -373,7 +374,12 @@ export async function updateProduct(
   const name = String(formData.get("name") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const brand = String(formData.get("brand") ?? "").trim();
+  const rawType = String(formData.get("productType") ?? "").trim();
   const imageFile = formData.get("image");
+
+  if (rawType && !isProductType(rawType)) {
+    return { error: "Choose Frozen or Dry for the type." };
+  }
 
   if (!productId) {
     return { error: "Missing product." };
@@ -420,6 +426,7 @@ export async function updateProduct(
       name,
       category,
       brand: brand || null,
+      ...(rawType ? { product_type: rawType } : {}),
       ...(imagePath !== undefined ? { image_url: imagePath } : {}),
     })
     .eq("id", productId);
@@ -455,6 +462,7 @@ export async function createProductWithVariant(
   const productName = String(formData.get("productName") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const brand = String(formData.get("brand") ?? "").trim();
+  const productType = String(formData.get("productType") ?? "").trim();
   const variantName = String(formData.get("variantName") ?? "").trim();
   const sku = String(formData.get("sku") ?? "").trim();
   const barcode = String(formData.get("barcode") ?? "").trim();
@@ -487,6 +495,9 @@ export async function createProductWithVariant(
   }
   if (!category) {
     return { error: "Category is required." };
+  }
+  if (!isProductType(productType)) {
+    return { error: "Choose a type (Frozen or Dry)." };
   }
   if (!variantName) {
     return { error: "Variant name is required." };
@@ -556,6 +567,18 @@ export async function createProductWithVariant(
       .eq("id", variantId)
       .single();
     productId = variantRow?.product_id ?? null;
+
+    if (productId) {
+      const { error: typeError } = await supabase
+        .from("products")
+        .update({ product_type: productType })
+        .eq("id", productId);
+      if (typeError) {
+        return {
+          error: `The product was created, but its type could not be saved (${typeError.message}). Open it and set the type.`,
+        };
+      }
+    }
 
     if (hasImage && productId) {
       const uploaded = await uploadProductImage(

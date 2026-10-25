@@ -89,7 +89,7 @@ export async function loadCatalogue(
   let q = admin
     .from("product_variants")
     .select(
-      "id, name, sku, units_per_pack, pack_price, currency, products!inner(name, category, brand, image_url)",
+      "id, name, sku, units_per_pack, pack_price, currency, products!inner(name, category, brand, image_url, product_type)",
       { count: "exact" }
     )
     .eq("organisation_id", organisationId)
@@ -149,7 +149,8 @@ export async function loadCatalogue(
       const price = computeDisplayPrice(
         r.pack_price === null ? null : Number(r.pack_price),
         pricing.activeFormulas.wholesale,
-        pricing.variables
+        pricing.variables,
+        product?.product_type ?? null
       );
       casePrice = price.kind === "computed" ? price.amount : null;
     }

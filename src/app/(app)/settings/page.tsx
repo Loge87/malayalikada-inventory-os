@@ -9,6 +9,7 @@ import {
 } from "@/lib/organisation";
 import { hasPermission } from "@/lib/permissions";
 import type { PriceVariable, PriceVariableType } from "@/lib/price-variable-types";
+import type { VariableScope } from "@/lib/product-type";
 import { loadActiveFormulaChain, loadPriceFormulaChain } from "@/lib/price-formula";
 import {
   SettingsTabs,
@@ -27,6 +28,7 @@ type PriceVariableRow = {
   name: string;
   value: number;
   value_type: PriceVariableType;
+  applies_to_type: VariableScope | null;
 };
 
 export default async function SettingsPage({
@@ -70,7 +72,7 @@ export default async function SettingsPage({
     getOrganisationDefaultCurrency(supabase, organisationId),
     supabase
       .from("price_variables")
-      .select("id, name, value, value_type")
+      .select("id, name, value, value_type, applies_to_type")
       .order("name")
       .returns<PriceVariableRow[]>(),
   ]);
@@ -84,6 +86,7 @@ export default async function SettingsPage({
     name: row.name,
     value: row.value,
     valueType: row.value_type,
+    appliesTo: row.applies_to_type ?? "all",
   }));
 
   // Both formulas' DRAFT and ACTIVE chains loaded unconditionally, same

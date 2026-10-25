@@ -14,6 +14,7 @@
  * whichever component happened to need it first.
  */
 import { formatMoney } from "@/lib/format";
+import type { VariableScope } from "@/lib/product-type";
 
 export const PRICE_VARIABLE_TYPES = ["number", "percentage", "currency"] as const;
 export type PriceVariableType = (typeof PRICE_VARIABLE_TYPES)[number];
@@ -23,6 +24,8 @@ export type PriceVariable = {
   name: string;
   value: number;
   valueType: PriceVariableType;
+  /** Which product type this variable applies to ("all" = every product). */
+  appliesTo: VariableScope;
 };
 
 /** How a variable's raw numeric value reads — "9%" for a percentage, a

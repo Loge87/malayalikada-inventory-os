@@ -37,6 +37,7 @@ import {
 } from "@/components/products/variant-pricing-fields";
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import type { Currency } from "@/app/(app)/products/constants";
+import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/product-type";
 
 const UNIT_ITEMS: Record<string, string> = Object.fromEntries(
   VARIANT_UNITS.map((unit) => [unit, unit])
@@ -120,9 +121,29 @@ export function NewProductForm({
                 />
               </Field>
             </Field>
-            <Field>
-              <FieldLabel htmlFor="brand">Brand</FieldLabel>
-              <Input id="brand" name="brand" placeholder="Optional" />
+            <Field orientation="responsive">
+              <Field>
+                <FieldLabel htmlFor="brand">Brand</FieldLabel>
+                <Input id="brand" name="brand" placeholder="Optional" />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="productType">Type</FieldLabel>
+                <Select name="productType" items={PRODUCT_TYPE_LABELS} required>
+                  <SelectTrigger id="productType" className="w-full">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRODUCT_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {PRODUCT_TYPE_LABELS[type]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldDescription>
+                  Frozen or dry — used when calculating the price.
+                </FieldDescription>
+              </Field>
             </Field>
 
             <span className="text-xs font-medium text-muted-foreground">

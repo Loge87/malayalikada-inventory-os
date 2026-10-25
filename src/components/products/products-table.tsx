@@ -1,5 +1,6 @@
 "use client";
 
+import type { ProductType } from "@/lib/product-type";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
@@ -55,6 +56,7 @@ export type EditableProduct = {
   name: string;
   category: string;
   brand: string | null;
+  productType: ProductType | null;
   imageUrl: string | null;
   isActive: boolean;
   variants: EditableVariant[];
@@ -104,8 +106,8 @@ function moneyCell(value: number | null | undefined, currency: string | undefine
  *  computeDisplayPrice, never a stale fallback. "No pricing formula set
  *  yet" (not an em dash, not $0) when no formula of this type has ever
  *  been applied for the organisation. */
-function formulaPriceCell(baseAmount: number | null, activeChain: FormulaChain | null, variables: PriceVariable[], currency: string | undefined) {
-  const computation = computeDisplayPrice(baseAmount, activeChain, variables);
+function formulaPriceCell(baseAmount: number | null, activeChain: FormulaChain | null, variables: PriceVariable[], currency: string | undefined, productType: ProductType | null) {
+  const computation = computeDisplayPrice(baseAmount, activeChain, variables, productType);
   if (computation.kind === "not_set") {
     return <span className="text-caption">No pricing formula set yet</span>;
   }
@@ -749,7 +751,8 @@ export function ProductsTable({
                       variant?.unitPrice ?? null,
                       pricing.activeFormulas.retail,
                       pricing.variables,
-                      variant?.currency
+                      variant?.currency,
+                      product.productType
                     )}
                   </td>
                   <td className="cell-number hidden py-3 pr-2 xl:table-cell">
@@ -757,7 +760,8 @@ export function ProductsTable({
                       variant?.packPrice ?? null,
                       pricing.activeFormulas.wholesale,
                       pricing.variables,
-                      variant?.currency
+                      variant?.currency,
+                      product.productType
                     )}
                   </td>
                   <td className="cell-number py-3">

@@ -764,7 +764,7 @@ export function ProductsTable({
                       pricing.variables,
                       variant?.currency,
                       product.productType,
-                      pricing.shipmentCosts
+                      {}
                     )}
                   </td>
                   <td className="cell-number py-3">

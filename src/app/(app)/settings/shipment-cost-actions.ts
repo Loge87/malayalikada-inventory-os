@@ -6,10 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganisationId } from "@/lib/organisation";
 import { getCurrentUserRole } from "@/lib/roles";
 import { hasPermission } from "@/lib/permissions";
-import {
-  PRICE_VARIABLE_TYPES,
-  type PriceVariableType,
-} from "@/lib/price-variable-types";
 import { PRODUCT_TYPES } from "@/lib/product-type";
 
 export type ShipmentCostFormState = { error: string } | { ok: true } | undefined;
@@ -39,7 +35,7 @@ export async function saveShipmentCosts(
       return { error: "Shipment costs must be a number, zero or more." };
     }
     const valueType = String(formData.get(`${type}Type`) ?? "number");
-    if (!PRICE_VARIABLE_TYPES.includes(valueType as PriceVariableType)) {
+    if (valueType !== "number" && valueType !== "percentage") {
       return { error: "Choose a value type for each shipment cost." };
     }
     rows.push({

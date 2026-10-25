@@ -6,7 +6,6 @@ import type { ShipmentCosts } from "@/lib/price-formula";
 import { useRef, useState, type KeyboardEvent } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { Currency } from "@/app/(app)/products/constants";
 import {
@@ -218,17 +217,19 @@ export function PriceFormulaBuilder({
           </CardContent>
         </Card>
 
-        {/* Shared by Retail AND Wholesale: currency, shipment cost and
-            variables apply to both formulas, so they live in one panel
-            that stays put when the toggle above switches. */}
-        <Card className="lg:basis-[32%]">
-          <CardContent className="flex flex-col gap-5">
-            <p className="text-caption">Applies to both Retail and Wholesale.</p>
-            <PriceVariablesPanel variables={variables} currency={currency} />
-            <Separator />
-            <ShipmentCostPanel costs={shipmentCosts} />
-          </CardContent>
-        </Card>
+        {/* Right panel stays put when the toggle above switches. */}
+        <div className="flex flex-col gap-5 lg:basis-[32%]">
+          <Card>
+            <CardContent>
+              <PriceVariablesPanel variables={variables} currency={currency} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <ShipmentCostPanel costs={shipmentCosts} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

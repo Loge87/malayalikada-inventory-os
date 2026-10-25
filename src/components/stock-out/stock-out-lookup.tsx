@@ -384,7 +384,7 @@ function LookupResult({
   // other price display — live from this variant's current unit_price/
   // pack_price against the active formula, never a stale fallback.
   const retail = computeDisplayPrice(variant.unit_price, pricing.activeFormulas.retail, pricing.variables, variant.products?.product_type ?? null, pricing.shipmentCosts);
-  const wholesale = computeDisplayPrice(variant.pack_price, pricing.activeFormulas.wholesale, pricing.variables, variant.products?.product_type ?? null, pricing.shipmentCosts);
+  const wholesale = computeDisplayPrice(variant.pack_price, pricing.activeFormulas.wholesale, pricing.variables, variant.products?.product_type ?? null);
 
   const byType = (type: string) =>
     variant.inventory_levels

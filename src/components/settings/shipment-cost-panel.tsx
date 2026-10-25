@@ -7,7 +7,6 @@ import {
   saveShipmentCosts,
 } from "@/app/(app)/settings/shipment-cost-actions";
 import type { ShipmentCosts } from "@/lib/price-formula";
-import { PRICE_VARIABLE_TYPES } from "@/lib/price-variable-types";
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/product-type";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -21,10 +20,10 @@ import {
 } from "@/components/ui/select";
 import { toastManager } from "@/components/ui/toast";
 
+const SHIPMENT_TYPES = ["number", "percentage"] as const;
 const TYPE_LABELS = {
   number: "Number",
   percentage: "Percentage",
-  currency: "Currency",
 } as const;
 
 /** Settings → Price Settings, right panel: the shipment cost added to the
@@ -45,8 +44,8 @@ export function ShipmentCostPanel({ costs }: { costs: ShipmentCosts }) {
       <div>
         <h2 className="text-section-title">Shipment cost</h2>
         <p className="text-caption">
-          Added to the retail and wholesale price of every product of that
-          type. A percentage is taken from the price calculated so far.
+          Added to the retail price of every product of that type. A
+          percentage is taken from the price calculated so far.
         </p>
       </div>
 
@@ -70,14 +69,14 @@ export function ShipmentCostPanel({ costs }: { costs: ShipmentCosts }) {
             <FieldLabel htmlFor={`shipment-${type}-type`}>Type</FieldLabel>
             <Select
               name={`${type}Type`}
-              defaultValue={costs[type]?.valueType ?? "number"}
+              defaultValue={costs[type]?.valueType === "percentage" ? "percentage" : "number"}
               items={TYPE_LABELS}
             >
               <SelectTrigger id={`shipment-${type}-type`} className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PRICE_VARIABLE_TYPES.map((t) => (
+                {SHIPMENT_TYPES.map((t) => (
                   <SelectItem key={t} value={t}>
                     {TYPE_LABELS[t]}
                   </SelectItem>

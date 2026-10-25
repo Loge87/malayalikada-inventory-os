@@ -13,7 +13,13 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  // Only same-site paths: "//evil.com" or "https://evil.com" would be an open
+  // redirect after a successful sign-in.
+  const requestedNext = searchParams.get("next") ?? "/";
+  const next =
+    requestedNext.startsWith("/") && !requestedNext.startsWith("//")
+      ? requestedNext
+      : "/";
 
   const supabase = await createClient();
 

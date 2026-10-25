@@ -21,7 +21,7 @@ export default function AuthErrorPage() {
           <CardHeader>
             <CardTitle>Something went wrong</CardTitle>
             <CardDescription>
-              That confirmation link is invalid or has expired.
+              That link is invalid or has expired. Request a new one and try again.
             </CardDescription>
           </CardHeader>
           <CardContent>

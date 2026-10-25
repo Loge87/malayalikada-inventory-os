@@ -11,6 +11,7 @@ import {
   History,
   Layers,
   LayoutDashboard,
+  KeyRound,
   LogOut,
   MapPin,
   Menu,
@@ -295,6 +296,13 @@ function ProfileSection({
         </div>
         <ThemeToggle />
       </div>
+      <Link
+        href="/reset-password"
+        className="text-muted-foreground hover:text-foreground flex items-center gap-2 px-1 text-xs"
+      >
+        <KeyRound className="size-3.5" />
+        Change password
+      </Link>
       <form action={signOut}>
         <Button
           type="submit"

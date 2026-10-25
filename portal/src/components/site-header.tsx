@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { logout } from "@/app/actions";
+import { cartCount } from "@/lib/cart";
 import { getCurrentRetailer, getCurrentUser, getPortalSettings } from "@/lib/portal";
 
 const NAV = [
@@ -18,7 +19,9 @@ export async function SiteHeader() {
     getCurrentRetailer(),
   ]);
 
-  const orderHref = user ? "/products" : "/login";
+  const orderHref = user ? "/products" : "/login?next=/products";
+  const approved = retailer?.status === "approved";
+  const count = approved ? await cartCount() : 0;
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-white/85 backdrop-blur-xl">
@@ -49,6 +52,9 @@ export async function SiteHeader() {
               <span className="hidden max-w-40 truncate text-sm text-muted xl:inline">
                 {retailer?.businessName ?? user.email}
               </span>
+              {approved ? (
+                <Link href="/orders" className="nav-link hidden text-sm sm:inline">My orders</Link>
+              ) : null}
               <form action={logout}>
                 <button className="btn btn-sm" type="submit">Sign out</button>
               </form>
@@ -56,7 +62,16 @@ export async function SiteHeader() {
           ) : (
             <Link href="/login" className="btn btn-sm hidden sm:inline-flex">Sign in</Link>
           )}
-          <Link href={orderHref} className="btn btn-sm btn-primary">Order now</Link>
+          {approved ? (
+            <Link href="/cart" className="btn btn-sm btn-primary relative" aria-label={`Cart, ${count} items`}>
+              Cart
+              {count > 0 ? (
+                <span className="ml-1.5 grid min-w-5 place-items-center rounded-full bg-white px-1.5 text-xs font-bold text-brand">{count}</span>
+              ) : null}
+            </Link>
+          ) : (
+            <Link href={orderHref} className="btn btn-sm btn-primary">Order now</Link>
+          )}
 
           <details className="relative lg:hidden">
             <summary className="btn btn-sm cursor-pointer list-none" aria-label="Menu">Menu</summary>
@@ -66,6 +81,9 @@ export async function SiteHeader() {
                   {n.label}
                 </Link>
               ))}
+              {approved ? (
+                <Link href="/orders" className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-soft">My orders</Link>
+              ) : null}
               {!user ? (
                 <>
                   <Link href="/login" className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-soft">Sign in</Link>

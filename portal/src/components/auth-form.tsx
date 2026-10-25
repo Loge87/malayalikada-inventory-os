@@ -15,7 +15,7 @@ function Field({ label, name, type = "text", required = true, autoComplete }: {
   );
 }
 
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(
     mode === "login" ? login : signup,
     undefined
@@ -27,6 +27,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <form action={action} className="flex flex-col gap-4">
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       {mode === "signup" ? (
         <>
           <Field label="Business name" name="businessName" autoComplete="organization" />

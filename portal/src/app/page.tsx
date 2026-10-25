@@ -222,32 +222,47 @@ export default async function HomePage() {
       {/* Trade ordering */}
       <section className="container-page py-20">
         <Reveal>
-          <div className="relative overflow-hidden rounded-[2rem] bg-brand px-8 py-14 text-brand-ink sm:px-14">
-            <div className="anim-drift pointer-events-none absolute -right-16 -top-16 size-72 rounded-full bg-white/10 blur-2xl" aria-hidden />
-            <div className="relative grid gap-8 md:grid-cols-2 md:items-center">
+          <div className="relative overflow-hidden rounded-[2.25rem] bg-gradient-to-br from-[#0f4f2c] via-brand to-[#2a9a5b] p-8 text-brand-ink sm:p-14">
+            <div className="anim-drift pointer-events-none absolute -right-20 -top-24 size-96 rounded-full bg-white/10 blur-3xl" aria-hidden />
+            <div className="anim-drift pointer-events-none absolute -bottom-28 left-1/4 size-80 rounded-full bg-accent/25 blur-3xl [animation-delay:-7s]" aria-hidden />
+            <div className="relative grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-center">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-80">Trade ordering</p>
-                <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Order online, any time</h2>
-                <ul className="mt-6 space-y-2.5 text-sm">
-                  {[
-                    "Prices shown per case once you are approved",
-                    "Quick order grid for fast bulk entry",
-                    "Live stock checks before you place an order",
-                    "Order history in your account",
-                  ].map((t) => (
-                    <li key={t} className="flex gap-2.5"><span className="font-bold">✓</span>{t}</li>
-                  ))}
-                </ul>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.16em] backdrop-blur">
+                  <span className="relative flex size-2"><span className="anim-ping absolute inline-flex size-full rounded-full bg-white/70" /><span className="relative inline-flex size-2 rounded-full bg-white" /></span>
+                  Open 24/7
+                </span>
+                <h2 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl">Order online, any time</h2>
+                <p className="mt-4 max-w-md text-lg leading-relaxed opacity-90">
+                  Stock up whenever suits you. Pick your cases, see live availability and place your order in minutes.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  {mode === "guest" ? (
+                    <>
+                      <Link href="/login" className="btn border-white bg-white text-brand hover:text-brand-dark">Sign in</Link>
+                      <Link href="/signup" className="btn border-white/60 bg-transparent text-white hover:border-white hover:text-white">Apply for an account</Link>
+                    </>
+                  ) : (
+                    <Link href="/products" className="btn border-white bg-white text-brand hover:text-brand-dark">Start an order →</Link>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-3 md:justify-end">
-                {mode === "guest" ? (
-                  <>
-                    <Link href="/login" className="btn border-white bg-white text-brand hover:text-brand-dark">Sign in</Link>
-                    <Link href="/signup" className="btn border-white/60 bg-transparent text-white hover:border-white hover:text-white">Apply for an account</Link>
-                  </>
-                ) : (
-                  <Link href="/products" className="btn border-white bg-white text-brand hover:text-brand-dark">Start an order</Link>
-                )}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[
+                  { icon: "💰", title: "Trade prices", body: "Per-case pricing once you are approved." },
+                  { icon: "📦", title: "Live stock", body: "Availability checked when you order." },
+                  { icon: "🔒", title: "Stock reserved", body: "Your cases are held the moment you order." },
+                  { icon: "🧾", title: "Order history", body: "Track and review every order." },
+                ].map((f, i) => (
+                  <div
+                    key={f.title}
+                    className={`rounded-3xl border border-white/20 bg-white/10 p-5 backdrop-blur transition-transform duration-300 hover:-translate-y-1 hover:bg-white/15 ${i % 2 === 1 ? "sm:translate-y-6" : ""}`}
+                  >
+                    <div className="grid size-11 place-items-center rounded-2xl bg-white/90 text-xl shadow-lg">{f.icon}</div>
+                    <div className="mt-4 font-bold">{f.title}</div>
+                    <div className="mt-1 text-sm opacity-85">{f.body}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

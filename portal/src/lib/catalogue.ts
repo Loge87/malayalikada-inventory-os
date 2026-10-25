@@ -227,6 +227,36 @@ export async function loadCatalogue(
 
   if (rows.length === 0) return { items: [], total: count, page };
 
+  const items = await buildItems(rows, locationIds, settings, showPrices);
+
+  return { items, total: count, page };
+}
+
+
+type ItemRow = {
+  id: string;
+  name: string;
+  sku: string;
+  units_per_pack: number;
+  pack_price: number | null;
+  currency: string;
+  products:
+    | { name: string; category: string | null; brand: string | null; image_url: string | null; product_type: string | null }
+    | { name: string; category: string | null; brand: string | null; image_url: string | null; product_type: string | null }[]
+    | null;
+};
+
+const ITEM_SELECT =
+  "id, name, sku, units_per_pack, pack_price, currency, products!inner(name, category, brand, image_url, product_type)";
+
+async function buildItems(
+  rows: ItemRow[],
+  locationIds: string[],
+  settings: PortalSettings,
+  showPrices: boolean
+): Promise<CatalogueItem[]> {
+  const admin = createAdminClient();
+  const organisationId = getOrganisationId();
   const variantIds = rows.map((r) => r.id);
 
   const [levels, pricing, signed] = await Promise.all([
@@ -254,7 +284,7 @@ export async function loadCatalogue(
     free.set(l.product_variant_id, (free.get(l.product_variant_id) ?? 0) + avail);
   }
 
-  const items: CatalogueItem[] = rows.map((r) => {
+  return rows.map((r) => {
     const product = Array.isArray(r.products) ? r.products[0] : r.products;
     const perCase = Number(r.units_per_pack) || 1;
     const avail = free.get(r.id) ?? 0;
@@ -284,14 +314,27 @@ export async function loadCatalogue(
       casePrice,
     };
   });
-
-  return { items, total: count, page };
 }
 
-export function formatMoney(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-NZ", { style: "currency", currency }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
-  }
+/** Cart / order look-ups: the same shape as the catalogue, for specific variants. */
+export async function loadItemsByIds(
+  ids: string[],
+  settings: PortalSettings,
+  showPrices: boolean
+): Promise<CatalogueItem[]> {
+  if (ids.length === 0) return [];
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("product_variants")
+    .select(ITEM_SELECT)
+    .eq("organisation_id", getOrganisationId())
+    .eq("portal_visible", true)
+    .in("id", ids);
+  if (error) throw error;
+  const locationIds = await loadFulfilmentLocationIds(settings);
+  const items = await buildItems((data ?? []) as ItemRow[], locationIds, settings, showPrices);
+  const byId = new Map(items.map((i) => [i.id, i]));
+  return ids.map((id) => byId.get(id)).filter((i): i is CatalogueItem => Boolean(i));
 }
+
+export { formatMoney } from "@/lib/money";

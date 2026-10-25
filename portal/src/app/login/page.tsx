@@ -2,15 +2,22 @@ import Link from "next/link";
 
 import { AuthForm } from "@/components/auth-form";
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const { next } = await searchParams;
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
   return (
-    <div className="anim-up mx-auto my-12 max-w-sm rounded-[1.5rem] border border-line p-8 shadow-[var(--shadow-md)]">
-      <h1 className="text-2xl font-bold">Sign in</h1>
-      <p className="mt-1 mb-6 text-sm text-muted">Sign in to see your wholesale prices and order.</p>
-      <AuthForm mode="login" />
-      <p className="mt-6 text-sm text-muted">
-        New here? <Link className="font-semibold text-brand underline" href="/signup">Apply for a wholesale account</Link>
-      </p>
+    <div className="relative overflow-hidden">
+      <div className="anim-drift pointer-events-none absolute -left-24 top-0 size-96 rounded-full bg-brand/10 blur-3xl" aria-hidden />
+      <div className="anim-drift pointer-events-none absolute -right-20 bottom-0 size-80 rounded-full bg-accent/15 blur-3xl [animation-delay:-6s]" aria-hidden />
+      <div className="anim-up card relative mx-auto my-16 max-w-md p-8 shadow-[var(--shadow-lg)] sm:p-10">
+        <div className="mb-6 grid size-12 place-items-center rounded-2xl bg-brand/10 text-2xl">🔑</div>
+        <h1 className="text-2xl font-extrabold tracking-tight">Welcome back</h1>
+        <p className="mb-6 mt-1 text-sm text-muted">Sign in to see your wholesale prices, add to cart and place orders.</p>
+        <AuthForm mode="login" next={safeNext} />
+        <p className="mt-6 text-sm text-muted">
+          New here? <Link className="font-semibold text-brand underline" href="/signup">Apply for a wholesale account</Link>
+        </p>
+      </div>
     </div>
   );
 }

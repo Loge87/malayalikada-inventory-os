@@ -22,7 +22,9 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   if (error) return { error: error.message };
 
   revalidatePath("/", "layout");
-  redirect("/");
+  // Return to where the person came from, but only to a path on this site.
+  const next = String(formData.get("next") ?? "");
+  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/");
 }
 
 export async function signup(_prev: FormState, formData: FormData): Promise<FormState> {

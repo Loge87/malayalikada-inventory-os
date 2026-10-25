@@ -10,8 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { Currency } from "@/app/(app)/products/constants";
 import {
-  describeChain,
-  FORMULA_START_LABEL,
   type FormulaChain,
   type FormulaType,
 } from "@/lib/price-formula";
@@ -32,16 +30,6 @@ const STATUS_LABEL: Record<FormulaCardStatus, string> = {
   not_set: "Not set",
   applied: "Applied",
   draft_changes: "Draft changes",
-};
-
-// Reuses the app's existing status-pill color vocabulary (ui.css's
-// .pill-success/-warning/-neutral — same classes StockStatusPill uses) so
-// "Applied" reads as the same kind of "healthy/settled" green everywhere
-// else that color means that, rather than inventing a one-off badge style.
-const STATUS_PILL_CLASS: Record<FormulaCardStatus, string> = {
-  not_set: "pill-neutral",
-  applied: "pill-success",
-  draft_changes: "pill-warning",
 };
 
 function formulaCardStatus(
@@ -175,15 +163,6 @@ export function PriceFormulaBuilder({
     }
   }
 
-  const activeStatus =
-    activeFormula === "retail"
-      ? formulaCardStatus(activeRetailChain, liveRetailChain)
-      : formulaCardStatus(activeWholesaleChain, liveWholesaleChain);
-  const activePreview =
-    activeFormula === "retail"
-      ? describeChain(FORMULA_START_LABEL.retail, liveRetailChain, variables)
-      : describeChain(FORMULA_START_LABEL.wholesale, liveWholesaleChain, variables);
-
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -212,17 +191,7 @@ export function PriceFormulaBuilder({
             }}
           />
         </div>
-        <div className="flex min-w-0 items-center gap-2">
-          <span className={cn("pill shrink-0", STATUS_PILL_CLASS[activeStatus])}>
-            {STATUS_LABEL[activeStatus]}
-          </span>
-          <p
-            className="truncate font-mono text-xs text-muted-foreground"
-            title={activePreview}
-          >
-            {activePreview}
-          </p>
-        </div>
+        <CurrencyPanel currency={currency} />
       </div>
 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
@@ -255,11 +224,9 @@ export function PriceFormulaBuilder({
         <Card className="lg:basis-[32%]">
           <CardContent className="flex flex-col gap-5">
             <p className="text-caption">Applies to both Retail and Wholesale.</p>
-            <CurrencyPanel currency={currency} />
+            <PriceVariablesPanel variables={variables} currency={currency} />
             <Separator />
             <ShipmentCostPanel costs={shipmentCosts} />
-            <Separator />
-            <PriceVariablesPanel variables={variables} currency={currency} />
           </CardContent>
         </Card>
       </div>

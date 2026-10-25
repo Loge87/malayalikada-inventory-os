@@ -1,5 +1,6 @@
 "use client";
 
+import { InfoHint } from "@/components/ui/info-hint";
 import { useState, type ReactNode } from "react";
 
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -130,7 +131,14 @@ export function useVariantPricingFields({
 
   const packPriceField = (
     <Field>
-      <FieldLabel htmlFor={`${idPrefix}-packPrice`}>Pack / case price</FieldLabel>
+      <div className="flex items-center gap-1">
+        <FieldLabel htmlFor={`${idPrefix}-packPrice`}>Pack / case price</FieldLabel>
+        <InfoHint label="About pack / case price">
+          {packPriceTouched
+            ? "Set manually."
+            : "Auto-calculated from unit price × units per pack/case/box — edit to override."}
+        </InfoHint>
+      </div>
       <Input
         id={`${idPrefix}-packPrice`}
         name="packPrice"
@@ -144,11 +152,6 @@ export function useVariantPricingFields({
           setPackPriceTouched(true);
         }}
       />
-      <FieldDescription>
-        {packPriceTouched
-          ? "Set manually."
-          : "Auto-calculated from unit price × units per pack/case/box — edit to override."}
-      </FieldDescription>
     </Field>
   );
 

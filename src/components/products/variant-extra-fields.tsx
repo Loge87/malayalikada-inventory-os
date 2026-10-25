@@ -1,6 +1,7 @@
 "use client";
 
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { InfoHint } from "@/components/ui/info-hint";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -74,9 +75,14 @@ export function VariantExtraFields({
             </Select>
           </Field>
           <Field>
-            <FieldLabel htmlFor={`${idPrefix}-initialQuantity`}>
-              Quantity
-            </FieldLabel>
+            <div className="flex items-center gap-1">
+              <FieldLabel htmlFor={`${idPrefix}-initialQuantity`}>
+                Quantity
+              </FieldLabel>
+              <InfoHint label="About quantity">
+                Recorded as a received-stock ledger movement, not set directly.
+              </InfoHint>
+            </div>
             <Input
               id={`${idPrefix}-initialQuantity`}
               name="initialQuantity"
@@ -85,9 +91,6 @@ export function VariantExtraFields({
               min="0"
               placeholder="Optional"
             />
-            <FieldDescription>
-              Recorded as a received-stock ledger movement, not set directly.
-            </FieldDescription>
           </Field>
         </Field>
       </div>

@@ -6,6 +6,7 @@ import type { ShipmentCosts } from "@/lib/price-formula";
 import { useRef, useState, type KeyboardEvent } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { Currency } from "@/app/(app)/products/constants";
 import {
@@ -57,58 +58,53 @@ function formulaCardStatus(
 }
 
 /**
- * One selectable card in the Retail/Wholesale radio group — title, a
- * live one-line formula preview, and a status badge. role="radio" (not a
- * native <input type="radio">, so it can be styled as a full card) inside
- * the parent's role="radiogroup"; keyboard arrow navigation is handled by
- * the parent via onKeyDown, roving tabindex here (tabIndex 0 only when
- * selected — the standard WAI-ARIA radiogroup pattern, so Tab moves focus
- * past the whole group in one stop and arrow keys move within it).
+ * One segment of the Retail/Wholesale toggle — title plus a small status
+ * dot. role="radio" inside the parent's role="radiogroup"; keyboard arrow
+ * navigation is handled by the parent via onKeyDown, roving tabindex here
+ * (tabIndex 0 only when selected — the standard WAI-ARIA radiogroup
+ * pattern).
  */
-function FormulaSelectorCard({
+const STATUS_DOT_CLASS: Record<FormulaCardStatus, string> = {
+  not_set: "bg-muted-foreground/40",
+  applied: "bg-status-success",
+  draft_changes: "bg-status-warning",
+};
+
+function FormulaToggleButton({
   formulaType,
   selected,
-  previewText,
   status,
   onSelect,
   cardRef,
 }: {
   formulaType: FormulaType;
   selected: boolean;
-  previewText: string;
   status: FormulaCardStatus;
   onSelect: () => void;
-  cardRef: (el: HTMLDivElement | null) => void;
+  cardRef: (el: HTMLButtonElement | null) => void;
 }) {
   return (
-    <div
+    <button
       ref={cardRef}
+      type="button"
       role="radio"
       aria-checked={selected}
       tabIndex={selected ? 0 : -1}
       onClick={onSelect}
-      className="selector-card"
+      className={cn(
+        "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        selected
+          ? "bg-card text-foreground shadow-sm ring-1 ring-foreground/10"
+          : "text-muted-foreground hover:text-foreground"
+      )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2 font-medium">
-          {/* The radio dot — selection is carried by this PLUS the card's
-              own ring (ui.css's [aria-checked="true"]), never by color
-              alone. aria-hidden since role="radio"/aria-checked on the
-              parent already announce the state to assistive tech. */}
-          <span className="selector-card-dot" aria-hidden="true" />
-          {CARD_TITLE[formulaType]}
-        </span>
-        <span className={cn("pill", STATUS_PILL_CLASS[status])}>
-          {STATUS_LABEL[status]}
-        </span>
-      </div>
-      <p
-        className="truncate font-mono text-xs text-muted-foreground"
-        title={previewText}
-      >
-        {previewText}
-      </p>
-    </div>
+      {CARD_TITLE[formulaType]}
+      <span
+        className={cn("size-2 rounded-full", STATUS_DOT_CLASS[status])}
+        title={STATUS_LABEL[status]}
+        aria-label={STATUS_LABEL[status]}
+      />
+    </button>
   );
 }
 
@@ -153,7 +149,7 @@ export function PriceFormulaBuilder({
   const [liveWholesaleChain, setLiveWholesaleChain] =
     useState<FormulaChain>(wholesaleChain);
 
-  const cardRefs = useRef<Record<FormulaType, HTMLDivElement | null>>({
+  const cardRefs = useRef<Record<FormulaType, HTMLButtonElement | null>>({
     retail: null,
     wholesale: null,
   });
@@ -179,46 +175,58 @@ export function PriceFormulaBuilder({
     }
   }
 
+  const activeStatus =
+    activeFormula === "retail"
+      ? formulaCardStatus(activeRetailChain, liveRetailChain)
+      : formulaCardStatus(activeWholesaleChain, liveWholesaleChain);
+  const activePreview =
+    activeFormula === "retail"
+      ? describeChain(FORMULA_START_LABEL.retail, liveRetailChain, variables)
+      : describeChain(FORMULA_START_LABEL.wholesale, liveWholesaleChain, variables);
+
   return (
-    <div className="flex flex-col gap-4">
-      <div
-        role="radiogroup"
-        aria-label="Formula to edit"
-        onKeyDown={handleKeyDown}
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-      >
-        <FormulaSelectorCard
-          formulaType="retail"
-          selected={activeFormula === "retail"}
-          previewText={describeChain(
-            FORMULA_START_LABEL.retail,
-            liveRetailChain,
-            variables
-          )}
-          status={formulaCardStatus(activeRetailChain, liveRetailChain)}
-          onSelect={() => selectAndFocus("retail")}
-          cardRef={(el) => {
-            cardRefs.current.retail = el;
-          }}
-        />
-        <FormulaSelectorCard
-          formulaType="wholesale"
-          selected={activeFormula === "wholesale"}
-          previewText={describeChain(
-            FORMULA_START_LABEL.wholesale,
-            liveWholesaleChain,
-            variables
-          )}
-          status={formulaCardStatus(activeWholesaleChain, liveWholesaleChain)}
-          onSelect={() => selectAndFocus("wholesale")}
-          cardRef={(el) => {
-            cardRefs.current.wholesale = el;
-          }}
-        />
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          role="radiogroup"
+          aria-label="Formula to edit"
+          onKeyDown={handleKeyDown}
+          className="inline-flex w-fit gap-1 rounded-full bg-muted p-1"
+        >
+          <FormulaToggleButton
+            formulaType="retail"
+            selected={activeFormula === "retail"}
+            status={formulaCardStatus(activeRetailChain, liveRetailChain)}
+            onSelect={() => selectAndFocus("retail")}
+            cardRef={(el) => {
+              cardRefs.current.retail = el;
+            }}
+          />
+          <FormulaToggleButton
+            formulaType="wholesale"
+            selected={activeFormula === "wholesale"}
+            status={formulaCardStatus(activeWholesaleChain, liveWholesaleChain)}
+            onSelect={() => selectAndFocus("wholesale")}
+            cardRef={(el) => {
+              cardRefs.current.wholesale = el;
+            }}
+          />
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={cn("pill shrink-0", STATUS_PILL_CLASS[activeStatus])}>
+            {STATUS_LABEL[activeStatus]}
+          </span>
+          <p
+            className="truncate font-mono text-xs text-muted-foreground"
+            title={activePreview}
+          >
+            {activePreview}
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <Card className="flex-1 overflow-hidden lg:basis-[70%]">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+        <Card className="flex-1 overflow-hidden lg:basis-[68%]">
           <CardContent>
             <div hidden={activeFormula !== "retail"}>
               <PriceFormulaChain
@@ -240,23 +248,20 @@ export function PriceFormulaBuilder({
             </div>
           </CardContent>
         </Card>
-        <div className="flex flex-col gap-4 lg:basis-[30%]">
-          <Card>
-            <CardContent>
-              <CurrencyPanel currency={currency} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <ShipmentCostPanel costs={shipmentCosts} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <PriceVariablesPanel variables={variables} currency={currency} />
-            </CardContent>
-          </Card>
-        </div>
+
+        {/* Shared by Retail AND Wholesale: currency, shipment cost and
+            variables apply to both formulas, so they live in one panel
+            that stays put when the toggle above switches. */}
+        <Card className="lg:basis-[32%]">
+          <CardContent className="flex flex-col gap-5">
+            <p className="text-caption">Applies to both Retail and Wholesale.</p>
+            <CurrencyPanel currency={currency} />
+            <Separator />
+            <ShipmentCostPanel costs={shipmentCosts} />
+            <Separator />
+            <PriceVariablesPanel variables={variables} currency={currency} />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

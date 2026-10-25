@@ -38,6 +38,7 @@ import {
 import type { LocationOption } from "@/components/products/variant-extra-fields";
 import type { Currency } from "@/app/(app)/products/constants";
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/product-type";
+import { InfoHint } from "@/components/ui/info-hint";
 
 const UNIT_ITEMS: Record<string, string> = Object.fromEntries(
   VARIANT_UNITS.map((unit) => [unit, unit])
@@ -202,9 +203,15 @@ export function NewProductForm({
             <Field orientation="responsive">
               {unitPriceField}
               <Field>
-                <FieldLabel htmlFor="new-product-initialQuantity">
-                  Quantity
-                </FieldLabel>
+                <div className="flex items-center gap-1">
+                  <FieldLabel htmlFor="new-product-initialQuantity">
+                    Quantity
+                  </FieldLabel>
+                  <InfoHint label="About quantity">
+                    Recorded as a received-stock ledger movement, not set
+                    directly.
+                  </InfoHint>
+                </div>
                 <Input
                   id="new-product-initialQuantity"
                   name="initialQuantity"
@@ -213,10 +220,6 @@ export function NewProductForm({
                   min="0"
                   placeholder="Optional"
                 />
-                <FieldDescription>
-                  Recorded as a received-stock ledger movement, not set
-                  directly.
-                </FieldDescription>
               </Field>
             </Field>
             <Field orientation="responsive">

@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeDisplayPrice, loadPricingContext } from "@/lib/price-formula";
 import { getOrganisationId, type PortalSettings } from "@/lib/portal";
+import type { ProductType } from "@/lib/product-type";
 
 export const PAGE_SIZE = 24;
 
@@ -29,10 +30,33 @@ export type CatalogueQuery = {
   q?: string;
   category?: string;
   brand?: string;
+  /** Frozen or dry. */
+  type?: "frozen" | "dry";
+  /** Only products with at least one case available. */
+  inStock?: boolean;
+  /** Only products added in the last 30 days. */
+  isNew?: boolean;
   page?: number;
   pageSize?: number;
-  sort?: "sku" | "newest";
+  sort?: "sku" | "newest" | "name";
 };
+
+const NEW_WINDOW_DAYS = 30;
+const FETCH_CHUNK = 1000;
+
+/** PostgREST caps a response at ~1000 rows, so read big lists in chunks. */
+async function fetchAll<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let from = 0; from < 20000; from += FETCH_CHUNK) {
+    const { data, error } = await page(from, from + FETCH_CHUNK - 1);
+    if (error) throw new Error(error.message);
+    all.push(...(data ?? []));
+    if (!data || data.length < FETCH_CHUNK) break;
+  }
+  return all;
+}
 
 const LOW_STOCK_CASES = 5;
 
@@ -52,27 +76,34 @@ export async function loadFulfilmentLocationIds(settings: PortalSettings): Promi
 export async function loadFacets(): Promise<{
   brands: Facet[];
   categories: Facet[];
+  types: { frozen: number; dry: number };
   total: number;
 }> {
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("product_variants")
-    .select("products!inner(category, brand)")
-    .eq("organisation_id", getOrganisationId())
-    .eq("portal_visible", true)
-    .limit(5000);
+  const data = await fetchAll((from, to) =>
+    admin
+      .from("product_variants")
+      .select("id, products!inner(category, brand, product_type)")
+      .eq("organisation_id", getOrganisationId())
+      .eq("portal_visible", true)
+      .order("id")
+      .range(from, to)
+  );
   const brands = new Map<string, number>();
   const categories = new Map<string, number>();
-  for (const row of data ?? []) {
+  const types = { frozen: 0, dry: 0 };
+  for (const row of data) {
     const p = Array.isArray(row.products) ? row.products[0] : row.products;
     if (p?.brand) brands.set(p.brand, (brands.get(p.brand) ?? 0) + 1);
     if (p?.category) categories.set(p.category, (categories.get(p.category) ?? 0) + 1);
+    if (p?.product_type === "frozen") types.frozen += 1;
+    if (p?.product_type === "dry") types.dry += 1;
   }
   const toList = (m: Map<string, number>) =>
     [...m.entries()]
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  return { brands: toList(brands), categories: toList(categories), total: data?.length ?? 0 };
+  return { brands: toList(brands), categories: toList(categories), types, total: data.length };
 }
 
 export async function loadCatalogue(
@@ -86,33 +117,117 @@ export async function loadCatalogue(
   const pageSize = query.pageSize ?? PAGE_SIZE;
   const from = (page - 1) * pageSize;
 
-  let q = admin
-    .from("product_variants")
-    .select(
-      "id, name, sku, units_per_pack, pack_price, currency, products!inner(name, category, brand, image_url, product_type)",
-      { count: "exact" }
-    )
-    .eq("organisation_id", organisationId)
-    .eq("portal_visible", true);
+  const locationIds = await loadFulfilmentLocationIds(settings);
+  const SELECT =
+    "id, name, sku, units_per_pack, pack_price, currency, products!inner(name, category, brand, image_url, product_type)";
 
-  if (query.category) q = q.eq("products.category", query.category);
-  if (query.brand) q = q.eq("products.brand", query.brand);
-  if (query.q?.trim()) {
-    // strip characters that would break the PostgREST filter syntax
-    const term = query.q.trim().replace(/[,()%*\\]/g, " ");
-    q = q.or(`name.ilike.%${term}%,sku.ilike.%${term}%`);
+  // Search also matches the product's own name and brand (not just the
+  // variant name and SKU), via a separate look-up of matching product ids.
+  let searchProductIds: string[] = [];
+  const term = query.q?.trim().replace(/[,()%*\\]/g, " ").trim();
+  if (term) {
+    const { data: matches } = await admin
+      .from("products")
+      .select("id")
+      .eq("organisation_id", organisationId)
+      .or(`name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%`)
+      .limit(150);
+    searchProductIds = (matches ?? []).map((m) => m.id);
   }
 
-  const { data, count, error } = await (query.sort === "newest"
-    ? q.order("created_at", { ascending: false })
-    : q.order("sku")
-  ).range(from, from + pageSize - 1);
-  if (error) throw error;
-  const rows = data ?? [];
-  if (rows.length === 0) return { items: [], total: count ?? 0, page };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function filtered<T>(builder: T): T {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let b: any = builder;
+    b = b.eq("organisation_id", organisationId).eq("portal_visible", true);
+    if (query.category) b = b.eq("products.category", query.category);
+    if (query.brand) b = b.eq("products.brand", query.brand);
+    if (query.type) b = b.eq("products.product_type", query.type);
+    if (query.isNew) {
+      const since = new Date(Date.now() - NEW_WINDOW_DAYS * 86400000).toISOString();
+      b = b.gte("created_at", since);
+    }
+    if (term) {
+      const parts = [`name.ilike.%${term}%`, `sku.ilike.%${term}%`];
+      if (searchProductIds.length > 0) parts.push(`product_id.in.(${searchProductIds.join(",")})`);
+      b = b.or(parts.join(","));
+    }
+    return b as T;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function ordered<T>(builder: T): T {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let b: any = builder;
+    if (query.sort === "newest") b = b.order("created_at", { ascending: false });
+    else if (query.sort === "name") b = b.order("name", { referencedTable: "products" }).order("sku");
+    else b = b.order("sku");
+    return b as T;
+  }
+
+  type Row = {
+    id: string;
+    name: string;
+    sku: string;
+    units_per_pack: number;
+    pack_price: number | null;
+    currency: string;
+    products:
+      | { name: string; category: string | null; brand: string | null; image_url: string | null; product_type: string | null }
+      | { name: string; category: string | null; brand: string | null; image_url: string | null; product_type: string | null }[]
+      | null;
+  };
+
+  let rows: Row[] = [];
+  let count = 0;
+
+  if (query.inStock) {
+    // Which variants have at least one case free at the fulfilment locations?
+    const inStock = new Set<string>();
+    if (locationIds.length > 0) {
+      const levels = await fetchAll((f, t) =>
+        admin
+          .from("inventory_levels")
+          .select("product_variant_id, on_hand, reserved, product_variants!inner(units_per_pack)")
+          .in("location_id", locationIds)
+          .order("id")
+          .range(f, t)
+      );
+      const free = new Map<string, { avail: number; perCase: number }>();
+      for (const l of levels) {
+        const pv = Array.isArray(l.product_variants) ? l.product_variants[0] : l.product_variants;
+        const entry = free.get(l.product_variant_id) ?? { avail: 0, perCase: Number(pv?.units_per_pack) || 1 };
+        entry.avail += Math.max(Number(l.on_hand) - Number(l.reserved), 0);
+        free.set(l.product_variant_id, entry);
+      }
+      for (const [id, { avail, perCase }] of free) {
+        if (Math.floor(avail / (settings.stockBasis === "case" ? 1 : perCase)) >= 1) inStock.add(id);
+      }
+    }
+    const candidates = await fetchAll((f, t) =>
+      ordered(filtered(admin.from("product_variants").select("id, products!inner(name)"))).range(f, t)
+    );
+    const matchingIds = candidates.map((c) => c.id).filter((id) => inStock.has(id));
+    count = matchingIds.length;
+    const pageIds = matchingIds.slice(from, from + pageSize);
+    if (pageIds.length > 0) {
+      const { data, error } = await admin.from("product_variants").select(SELECT).in("id", pageIds);
+      if (error) throw error;
+      const byId = new Map((data as Row[]).map((r) => [r.id, r]));
+      rows = pageIds.map((id) => byId.get(id)).filter((r): r is Row => Boolean(r));
+    }
+  } else {
+    const { data, count: exact, error } = await ordered(
+      filtered(admin.from("product_variants").select(SELECT, { count: "exact" }))
+    ).range(from, from + pageSize - 1);
+    if (error) throw error;
+    rows = (data ?? []) as Row[];
+    count = exact ?? rows.length;
+  }
+
+  if (rows.length === 0) return { items: [], total: count, page };
 
   const variantIds = rows.map((r) => r.id);
-  const locationIds = await loadFulfilmentLocationIds(settings);
 
   const [levels, pricing, signed] = await Promise.all([
     locationIds.length
@@ -150,7 +265,7 @@ export async function loadCatalogue(
         r.pack_price === null ? null : Number(r.pack_price),
         pricing.activeFormulas.wholesale,
         pricing.variables,
-        product?.product_type ?? null
+        (product?.product_type as ProductType | null) ?? null
       );
       casePrice = price.kind === "computed" ? price.amount : null;
     }
@@ -170,7 +285,7 @@ export async function loadCatalogue(
     };
   });
 
-  return { items, total: count ?? items.length, page };
+  return { items, total: count, page };
 }
 
 export function formatMoney(amount: number, currency: string): string {

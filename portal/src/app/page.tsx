@@ -1,15 +1,33 @@
 import Link from "next/link";
 
+import { BrandMarquee } from "@/components/brand-marquee";
+import { ApprovedStoreIllustration, CasePriceIllustration, LiveStockIllustration } from "@/components/illustrations";
 import { ProductCard, ProductImage } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 import { loadCatalogue, loadFacets } from "@/lib/catalogue";
+import { categoryVisual } from "@/lib/category-visual";
 import { getPortalSettings, getPriceMode } from "@/lib/portal";
 import { SITE } from "@/lib/site";
 
 const WHY = [
-  { icon: "✓", title: "Approved retailers only", body: "Every retailer is reviewed by hand, so you trade with a known network." },
-  { icon: "▦", title: "Priced by the case", body: "See your trade price per case, with the case size on every product." },
-  { icon: "◔", title: "Live stock", body: "Stock is checked when you order, so you know what is available before you commit." },
+  {
+    art: <ApprovedStoreIllustration />,
+    title: "Approved retailers only",
+    body: "Every retailer is reviewed by hand, so you trade with a known network.",
+    points: ["Manual account approval", "Prices shown only to approved retailers"],
+  },
+  {
+    art: <CasePriceIllustration />,
+    title: "Priced by the case",
+    body: "See your trade price per case, with the case size on every product.",
+    points: ["Clear price per case", "Case size shown on every product"],
+  },
+  {
+    art: <LiveStockIllustration />,
+    title: "Live stock",
+    body: "Stock is checked when you order, so you know what is available before you commit.",
+    points: ["See cases available", "Stock reserved when you order"],
+  },
 ];
 
 export default async function HomePage() {
@@ -26,11 +44,6 @@ export default async function HomePage() {
 
   const { items: featured } = await loadCatalogue({ pageSize: 8, sort: "newest" }, settings, mode === "approved");
 
-  const byLetter = new Map<string, string[]>();
-  for (const b of facets.brands) {
-    const letter = /^[a-z]/i.test(b.name) ? b.name[0].toUpperCase() : "#";
-    byLetter.set(letter, [...(byLetter.get(letter) ?? []), b.name]);
-  }
   const topCategory = [...facets.categories].sort((a, b) => b.count - a.count)[0]?.name;
   const stats = [
     { value: facets.brands.length, label: "Brands" },
@@ -91,21 +104,39 @@ export default async function HomePage() {
       </section>
 
       {/* Why */}
-      <section className="container-page py-20">
-        <Reveal>
-          <p className="eyebrow">Why order with us</p>
-          <h2 className="section-title mt-3 max-w-xl">Built for retailers who order in bulk</h2>
-        </Reveal>
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {WHY.map((w, i) => (
-            <Reveal key={w.title} delay={i * 100}>
-              <div className="card card-hover h-full p-7">
-                <div className="grid size-12 place-items-center rounded-2xl bg-brand/10 text-xl font-bold text-brand">{w.icon}</div>
-                <h3 className="mt-5 text-lg font-bold">{w.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{w.body}</p>
-              </div>
-            </Reveal>
-          ))}
+      <section className="relative overflow-hidden py-24">
+        <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-[60rem] -translate-x-1/2 rounded-full bg-brand/5 blur-3xl" aria-hidden />
+        <div className="container-page relative">
+          <Reveal className="mx-auto max-w-2xl text-center">
+            <p className="eyebrow">Why order with us</p>
+            <h2 className="section-title mt-3">Built for retailers who order in bulk</h2>
+            <p className="mt-4 text-lg leading-relaxed text-muted">
+              A trusted trade network, clear case pricing and stock you can count on, all in one place.
+            </p>
+          </Reveal>
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {WHY.map((w, i) => (
+              <Reveal key={w.title} delay={i * 120}>
+                <div className="card card-hover value-card h-full overflow-hidden">
+                  <div className="relative aspect-[22/15] bg-gradient-to-b from-soft to-white px-6 pt-6">
+                    <div className="value-art h-full w-full">{w.art}</div>
+                  </div>
+                  <div className="p-7 pt-5">
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-7 place-items-center rounded-full bg-brand/10 text-xs font-extrabold text-brand">{i + 1}</span>
+                      <h3 className="text-lg font-bold">{w.title}</h3>
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-muted">{w.body}</p>
+                    <ul className="mt-4 space-y-1.5 text-sm">
+                      {w.points.map((pt) => (
+                        <li key={pt} className="flex gap-2"><span className="font-bold text-brand">✓</span><span>{pt}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -137,25 +168,31 @@ export default async function HomePage() {
           <Reveal className="flex items-end justify-between gap-4">
             <div>
               <p className="eyebrow">Shop the pantry</p>
-              <h2 className="section-title mt-3">Categories</h2>
+              <h2 className="section-title mt-3">Browse by category</h2>
             </div>
             <Link href="/categories" className="btn btn-sm">All categories →</Link>
           </Reveal>
-          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {facets.categories.slice(0, 8).map((c, i) => (
-              <Reveal key={c.name} delay={(i % 4) * 80}>
-                <Link href={`/products?category=${encodeURIComponent(c.name)}`} className="card card-hover relative block h-full p-6">
-                  {c.name === topCategory ? (
-                    <span className="absolute right-4 top-4 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-[#a15f06]">Popular</span>
-                  ) : null}
-                  <div className="grid size-11 place-items-center rounded-xl bg-soft text-lg font-extrabold text-brand">
-                    {c.name.slice(0, 1).toUpperCase()}
-                  </div>
-                  <div className="mt-4 font-bold">{c.name}</div>
-                  <div className="text-sm text-muted">{c.count} {c.count === 1 ? "product" : "products"}</div>
-                </Link>
-              </Reveal>
-            ))}
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+            {facets.categories.slice(0, 8).map((c, i) => {
+              const v = categoryVisual(c.name);
+              return (
+                <Reveal key={c.name} delay={(i % 4) * 80}>
+                  <Link
+                    href={`/products?category=${encodeURIComponent(c.name)}`}
+                    className="cat-card h-full"
+                    style={{ "--from": v.from, "--to": v.to } as React.CSSProperties}
+                  >
+                    <span className="cat-emoji" aria-hidden>{v.emoji}</span>
+                    {c.name === topCategory ? (
+                      <span className="mb-2 w-fit rounded-full bg-white/80 px-2.5 py-0.5 text-[11px] font-bold text-[#a15f06] backdrop-blur">★ Popular</span>
+                    ) : null}
+                    <div className="text-lg font-extrabold leading-tight tracking-tight">{c.name}</div>
+                    <div className="text-sm text-ink/60">{c.count} {c.count === 1 ? "product" : "products"}</div>
+                    <span className="cat-arrow" aria-hidden>→</span>
+                  </Link>
+                </Reveal>
+              );
+            })}
           </div>
         </section>
       ) : null}
@@ -168,26 +205,17 @@ export default async function HomePage() {
               <div>
                 <p className="eyebrow">Shop by brand</p>
                 <h2 className="section-title mt-3">Our brands</h2>
+                <p className="mt-2 text-muted">{facets.brands.length} {facets.brands.length === 1 ? "brand" : "brands"} you can order today. Hover to pause.</p>
               </div>
               <Link href="/brands" className="btn btn-sm">All brands →</Link>
             </Reveal>
-            <div className="mt-10 space-y-6">
-              {[...byLetter.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(0, 6).map(([letter, names]) => (
-                <Reveal key={letter}>
-                  <div className="grid gap-3 sm:grid-cols-[3rem_1fr]">
-                    <div className="text-2xl font-extrabold text-brand">{letter}</div>
-                    <div className="flex flex-wrap gap-2.5">
-                      {names.map((n) => (
-                        <Link key={n} href={`/products?brand=${encodeURIComponent(n)}`} className="chip">
-                          {n}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
           </div>
+          <Reveal className="mt-10 space-y-4">
+            <BrandMarquee brands={facets.brands} />
+            {facets.brands.length >= 8 ? (
+              <BrandMarquee brands={[...facets.brands].reverse()} reverse />
+            ) : null}
+          </Reveal>
         </section>
       ) : null}
 

@@ -147,8 +147,8 @@ function CalculatedPrices({
   // the one shared evaluateFormula call path (computeDisplayPrice). A
   // formula_type with no active row yet (never applied) renders its own
   // "No pricing formula set yet" line rather than a broken calculation.
-  const retail = computeDisplayPrice(variant.unitPrice, pricing.activeFormulas.retail, pricing.variables, productType);
-  const wholesale = computeDisplayPrice(variant.packPrice, pricing.activeFormulas.wholesale, pricing.variables, productType);
+  const retail = computeDisplayPrice(variant.unitPrice, pricing.activeFormulas.retail, pricing.variables, productType, pricing.shipmentCosts);
+  const wholesale = computeDisplayPrice(variant.packPrice, pricing.activeFormulas.wholesale, pricing.variables, productType, pricing.shipmentCosts);
 
   if (retail.kind === "not_set" && wholesale.kind === "not_set") {
     return (

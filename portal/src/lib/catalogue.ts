@@ -150,7 +150,8 @@ export async function loadCatalogue(
         r.pack_price === null ? null : Number(r.pack_price),
         pricing.activeFormulas.wholesale,
         pricing.variables,
-        product?.product_type ?? null
+        product?.product_type ?? null,
+        pricing.shipmentCosts
       );
       casePrice = price.kind === "computed" ? price.amount : null;
     }

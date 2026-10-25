@@ -1,5 +1,8 @@
 "use client";
 
+import { CurrencyPanel } from "@/components/settings/currency-panel";
+import { ShipmentCostPanel } from "@/components/settings/shipment-cost-panel";
+import type { ShipmentCosts } from "@/lib/price-formula";
 import { useRef, useState, type KeyboardEvent } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -130,7 +133,9 @@ export function PriceFormulaBuilder({
   wholesaleChain,
   activeRetailChain,
   activeWholesaleChain,
+  shipmentCosts,
 }: {
+  shipmentCosts: ShipmentCosts;
   variables: PriceVariable[];
   currency: Currency;
   retailChain: FormulaChain;
@@ -235,11 +240,23 @@ export function PriceFormulaBuilder({
             </div>
           </CardContent>
         </Card>
-        <Card className="lg:basis-[30%]">
-          <CardContent>
-            <PriceVariablesPanel variables={variables} currency={currency} />
-          </CardContent>
-        </Card>
+        <div className="flex flex-col gap-4 lg:basis-[30%]">
+          <Card>
+            <CardContent>
+              <CurrencyPanel currency={currency} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <ShipmentCostPanel costs={shipmentCosts} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <PriceVariablesPanel variables={variables} currency={currency} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ProductType } from "@/lib/product-type";
+import type { ShipmentCosts } from "@/lib/price-formula";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
@@ -106,8 +107,8 @@ function moneyCell(value: number | null | undefined, currency: string | undefine
  *  computeDisplayPrice, never a stale fallback. "No pricing formula set
  *  yet" (not an em dash, not $0) when no formula of this type has ever
  *  been applied for the organisation. */
-function formulaPriceCell(baseAmount: number | null, activeChain: FormulaChain | null, variables: PriceVariable[], currency: string | undefined, productType: ProductType | null) {
-  const computation = computeDisplayPrice(baseAmount, activeChain, variables, productType);
+function formulaPriceCell(baseAmount: number | null, activeChain: FormulaChain | null, variables: PriceVariable[], currency: string | undefined, productType: ProductType | null, shipmentCosts: ShipmentCosts) {
+  const computation = computeDisplayPrice(baseAmount, activeChain, variables, productType, shipmentCosts);
   if (computation.kind === "not_set") {
     return <span className="text-caption">No pricing formula set yet</span>;
   }
@@ -752,7 +753,8 @@ export function ProductsTable({
                       pricing.activeFormulas.retail,
                       pricing.variables,
                       variant?.currency,
-                      product.productType
+                      product.productType,
+                      pricing.shipmentCosts
                     )}
                   </td>
                   <td className="cell-number hidden py-3 pr-2 xl:table-cell">
@@ -761,7 +763,8 @@ export function ProductsTable({
                       pricing.activeFormulas.wholesale,
                       pricing.variables,
                       variant?.currency,
-                      product.productType
+                      product.productType,
+                      pricing.shipmentCosts
                     )}
                   </td>
                   <td className="cell-number py-3">

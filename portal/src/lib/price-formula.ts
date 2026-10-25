@@ -14,7 +14,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { PriceVariable } from "@/lib/price-variable-types";
+import type { PriceVariable, PriceVariableType } from "@/lib/price-variable-types";
 import type { ProductType, VariableScope } from "@/lib/product-type";
 
 export type FormulaType = "retail" | "wholesale";
@@ -175,9 +175,55 @@ type PriceVariableRow = {
   applies_to_type: VariableScope | null;
 };
 
+/** Shipment cost per product type — added to the computed retail/wholesale
+ *  price of a product of that type (Settings → Price Settings). */
+export type ShipmentCost = { value: number; valueType: PriceVariableType };
+export type ShipmentCosts = Partial<Record<ProductType, ShipmentCost>>;
+
+type ShipmentCostRow = {
+  product_type: ProductType;
+  value: number;
+  value_type: PriceVariableType;
+};
+
+export async function loadShipmentCosts(
+  supabase: SupabaseClient,
+  organisationId: string
+): Promise<ShipmentCosts> {
+  const { data, error } = await supabase
+    .from("shipment_costs")
+    .select("product_type, value, value_type")
+    .eq("organisation_id", organisationId)
+    .returns<ShipmentCostRow[]>();
+  if (error) {
+    throw error;
+  }
+  const costs: ShipmentCosts = {};
+  for (const row of data ?? []) {
+    costs[row.product_type] = { value: Number(row.value), valueType: row.value_type };
+  }
+  return costs;
+}
+
+/** Adds the product type's shipment cost to a computed price. A flat
+ *  ("number"/"currency") cost adds the amount; a percentage adds that
+ *  percent of the price so far. No type, or no cost set, changes nothing. */
+export function applyShipmentCost(
+  amount: number,
+  productType: ProductType | null,
+  costs: ShipmentCosts | null
+): number {
+  const cost = productType && costs ? costs[productType] : undefined;
+  if (!cost || !cost.value) return amount;
+  return cost.valueType === "percentage"
+    ? amount + amount * (cost.value / 100)
+    : amount + cost.value;
+}
+
 export type PricingContext = {
   variables: PriceVariable[];
   activeFormulas: ActivePriceFormulas;
+  shipmentCosts: ShipmentCosts;
 };
 
 /**
@@ -193,15 +239,16 @@ export async function loadPricingContext(
   organisationId: string | null
 ): Promise<PricingContext> {
   if (!organisationId) {
-    return { variables: [], activeFormulas: { retail: null, wholesale: null } };
+    return { variables: [], activeFormulas: { retail: null, wholesale: null }, shipmentCosts: {} };
   }
 
-  const [variablesRes, activeFormulas] = await Promise.all([
+  const [variablesRes, activeFormulas, shipmentCosts] = await Promise.all([
     supabase
       .from("price_variables")
       .select("id, name, value, value_type, applies_to_type")
       .returns<PriceVariableRow[]>(),
     loadActivePriceFormulas(supabase, organisationId),
+    loadShipmentCosts(supabase, organisationId),
   ]);
 
   if (variablesRes.error) {
@@ -216,7 +263,7 @@ export async function loadPricingContext(
     appliesTo: row.applies_to_type ?? "all",
   }));
 
-  return { variables, activeFormulas };
+  return { variables, activeFormulas, shipmentCosts };
 }
 
 export type PriceComputation =
@@ -254,13 +301,15 @@ export function computeDisplayPrice(
   baseAmount: number | null,
   activeChain: FormulaChain | null,
   variables: PriceVariable[],
-  productType: ProductType | null = null
+  productType: ProductType | null = null,
+  shipmentCosts: ShipmentCosts | null = null
 ): PriceComputation {
   if (baseAmount === null || activeChain === null) {
     return { kind: "not_set" };
   }
   const rawAmount = evaluateFormula(baseAmount, activeChain, variables, productType);
-  return { kind: "computed", amount: applyCharmPricing(rawAmount) };
+  const withShipment = applyShipmentCost(rawAmount, productType, shipmentCosts);
+  return { kind: "computed", amount: applyCharmPricing(withShipment) };
 }
 
 /**

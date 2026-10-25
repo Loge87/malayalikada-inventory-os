@@ -10,7 +10,11 @@ import {
 import { hasPermission } from "@/lib/permissions";
 import type { PriceVariable, PriceVariableType } from "@/lib/price-variable-types";
 import type { VariableScope } from "@/lib/product-type";
-import { loadActiveFormulaChain, loadPriceFormulaChain } from "@/lib/price-formula";
+import {
+  loadActiveFormulaChain,
+  loadPriceFormulaChain,
+  loadShipmentCosts,
+} from "@/lib/price-formula";
 import {
   SettingsTabs,
   type SettingsTab,
@@ -105,6 +109,8 @@ export default async function SettingsPage({
       loadActiveFormulaChain(supabase, organisationId, "wholesale"),
     ]);
 
+  const shipmentCosts = await loadShipmentCosts(supabase, organisationId);
+
   const [settingsRes, locationsRes, variantsRes] = await Promise.all([
     supabase
       .from("portal_settings")
@@ -155,7 +161,7 @@ export default async function SettingsPage({
 
       <SettingsTabs
         activeTab={activeTab}
-        generalContent={<GeneralSettingsForm currency={currency} />}
+        generalContent={<GeneralSettingsForm />}
         priceSettingsContent={
           <PriceFormulaBuilder
             variables={variables}
@@ -164,6 +170,7 @@ export default async function SettingsPage({
             wholesaleChain={wholesaleChain}
             activeRetailChain={activeRetailChain}
             activeWholesaleChain={activeWholesaleChain}
+            shipmentCosts={shipmentCosts}
           />
         }
         wholesaleContent={

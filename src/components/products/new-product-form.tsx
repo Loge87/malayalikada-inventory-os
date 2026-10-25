@@ -140,9 +140,6 @@ export function NewProductForm({
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldDescription>
-                  Frozen or dry — used when calculating the price.
-                </FieldDescription>
               </Field>
             </Field>
 

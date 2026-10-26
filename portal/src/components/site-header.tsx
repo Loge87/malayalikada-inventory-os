@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { logout } from "@/app/actions";
+import { ProfileMenu } from "@/components/profile-menu";
 import { cartCount } from "@/lib/cart";
 import { getCurrentRetailer, getCurrentUser, getPortalSettings } from "@/lib/portal";
 
@@ -8,6 +9,7 @@ const NAV = [
   { href: "/brands", label: "Brands" },
   { href: "/categories", label: "Categories" },
   { href: "/products", label: "Products" },
+  { href: "/bulk-order", label: "Bulk order" },
   { href: "/trade", label: "For trade" },
   { href: "/contact", label: "Contact" },
 ];
@@ -47,32 +49,6 @@ export async function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {user ? (
-            <>
-              <span className="hidden max-w-40 truncate text-sm text-muted xl:inline">
-                {retailer?.businessName ?? user.email}
-              </span>
-              {approved ? (
-                <Link href="/orders" className="nav-link hidden text-sm sm:inline">My orders</Link>
-              ) : null}
-              <form action={logout}>
-                <button className="btn btn-sm" type="submit">Sign out</button>
-              </form>
-            </>
-          ) : (
-            <Link href="/login" className="btn btn-sm hidden sm:inline-flex">Sign in</Link>
-          )}
-          {approved ? (
-            <Link href="/cart" className="btn btn-sm btn-primary relative" aria-label={`Cart, ${count} items`}>
-              Cart
-              {count > 0 ? (
-                <span className="ml-1.5 grid min-w-5 place-items-center rounded-full bg-white px-1.5 text-xs font-bold text-brand">{count}</span>
-              ) : null}
-            </Link>
-          ) : (
-            <Link href={orderHref} className="btn btn-sm btn-primary">Order now</Link>
-          )}
-
           <details className="relative lg:hidden">
             <summary className="btn btn-sm cursor-pointer list-none" aria-label="Menu">Menu</summary>
             <div className="menu-pop absolute right-0 mt-3 w-60 rounded-2xl border border-line bg-white p-2 shadow-[var(--shadow-lg)]">
@@ -81,9 +57,6 @@ export async function SiteHeader() {
                   {n.label}
                 </Link>
               ))}
-              {approved ? (
-                <Link href="/orders" className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-soft">My orders</Link>
-              ) : null}
               {!user ? (
                 <>
                   <Link href="/login" className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-soft">Sign in</Link>
@@ -92,6 +65,34 @@ export async function SiteHeader() {
               ) : null}
             </div>
           </details>
+
+          {approved ? (
+            <Link
+              href="/cart"
+              className="relative grid size-10 place-items-center rounded-full border border-line bg-white text-ink transition-colors hover:border-brand hover:text-brand"
+              aria-label={`Cart, ${count} ${count === 1 ? "item" : "items"}`}
+            >
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3 4h2l2.2 11h10.6L20 7.5H6.2" />
+                <circle cx="9" cy="19.5" r="1.4" />
+                <circle cx="17" cy="19.5" r="1.4" />
+              </svg>
+              {count > 0 ? (
+                <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-brand px-1 text-[11px] font-bold leading-5 text-white">{count}</span>
+              ) : null}
+            </Link>
+          ) : null}
+
+          {user ? (
+            <ProfileMenu
+              email={user.email ?? ""}
+              businessName={retailer?.businessName ?? null}
+              showOrders={approved}
+              logoutAction={logout}
+            />
+          ) : (
+            <Link href={orderHref} className="btn btn-sm btn-primary">Sign in</Link>
+          )}
         </div>
       </div>
 

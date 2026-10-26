@@ -337,4 +337,48 @@ export async function loadItemsByIds(
   return ids.map((id) => byId.get(id)).filter((i): i is CatalogueItem => Boolean(i));
 }
 
+/**
+ * Bulk-order look-up: finds portal-visible variants by SKU or barcode
+ * (case-insensitive) and returns them keyed by the lower-cased code.
+ */
+export async function loadItemsByCodes(
+  codes: string[],
+  settings: PortalSettings,
+  showPrices: boolean
+): Promise<Map<string, CatalogueItem>> {
+  const clean = [...new Set(codes.map((c) => c.trim().replace(/[,()"%*\\]/g, "")).filter(Boolean))];
+  const result = new Map<string, CatalogueItem>();
+  if (clean.length === 0) return result;
+
+  const candidates = [...new Set(clean.flatMap((c) => [c, c.toUpperCase(), c.toLowerCase()]))];
+  const admin = createAdminClient();
+  const organisationId = getOrganisationId();
+  const select = `${ITEM_SELECT}, barcode`;
+
+  const [bySku, byBarcode] = await Promise.all([
+    admin.from("product_variants").select(select).eq("organisation_id", organisationId).eq("portal_visible", true).in("sku", candidates),
+    admin.from("product_variants").select(select).eq("organisation_id", organisationId).eq("portal_visible", true).in("barcode", candidates),
+  ]);
+  if (bySku.error) throw bySku.error;
+  if (byBarcode.error) throw byBarcode.error;
+
+  type Row = ItemRow & { barcode: string | null };
+  const rows = new Map<string, Row>();
+  for (const r of [...(byBarcode.data ?? []), ...(bySku.data ?? [])] as unknown as Row[]) rows.set(r.id, r);
+
+  const locationIds = await loadFulfilmentLocationIds(settings);
+  const items = await buildItems([...rows.values()], locationIds, settings, showPrices);
+  const byId = new Map(items.map((i) => [i.id, i]));
+  // Barcodes first so a SKU match wins when both exist.
+  for (const r of rows.values()) {
+    const item = byId.get(r.id);
+    if (item && r.barcode) result.set(r.barcode.toLowerCase(), item);
+  }
+  for (const r of rows.values()) {
+    const item = byId.get(r.id);
+    if (item) result.set(r.sku.toLowerCase(), item);
+  }
+  return result;
+}
+
 export { formatMoney } from "@/lib/money";

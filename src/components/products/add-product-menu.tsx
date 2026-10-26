@@ -192,6 +192,14 @@ export function AddProductMenu() {
             <>
               <CameraViewfinder
                 videoRef={videoRef}
+                error={phase.kind === "error"}
+                hint={
+                  phase.kind === "error"
+                    ? phase.message
+                    : phase.kind === "requesting"
+                      ? "Starting camera…"
+                      : "Fit the barcode inside the frame"
+                }
                 controls={
                   torchSupported ? (
                     <Button
@@ -207,15 +215,6 @@ export function AddProductMenu() {
                   ) : null
                 }
               />
-              {phase.kind === "error" ? (
-                <p className="text-sm text-destructive">{phase.message}</p>
-              ) : (
-                <p className="text-muted-foreground text-sm">
-                  {phase.kind === "requesting"
-                    ? "Requesting camera…"
-                    : "Point the camera at a barcode."}
-                </p>
-              )}
               {/* A hardware scanner emulates a keyboard — it needs a focused
                   text input to type into, which the camera view alone
                   doesn't provide. Keeping this focused (matching /scan)

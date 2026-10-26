@@ -193,7 +193,7 @@ export function LocationsList({
           expiring-soon-table.tsx's own note for why. table-layout: fixed +
           a <colgroup> — this table now matches Clients/Team's shared
           fixed-column pattern (see theme.css's --location-col-* tokens). */}
-      <table className="table table-fixed">
+      <table className="table table-fixed table-cards table-cards-locations">
         <colgroup>
           <col style={{ width: "var(--location-col-name)" }} />
           <col style={{ width: "var(--location-col-type)" }} />

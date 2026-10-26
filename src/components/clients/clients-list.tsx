@@ -218,7 +218,7 @@ export function ClientsList({
           breakpoint its <th>/<td> already are (sm:table-column, mirroring
           their own sm:table-cell), so it doesn't reserve dead width on a
           narrow screen where no cell in that column actually renders. */}
-      <table className="table table-fixed">
+      <table className="table table-fixed table-cards table-cards-clients">
         <colgroup>
           <col style={{ width: "var(--client-col-name)" }} />
           <col style={{ width: "var(--client-col-contact)" }} />

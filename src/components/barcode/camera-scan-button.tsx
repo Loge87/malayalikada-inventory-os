@@ -53,6 +53,15 @@ export function CameraScanButton({
     >
       <CameraViewfinder
         videoRef={videoRef}
+        fullScreen
+        error={phase.kind === "error"}
+        hint={
+          phase.kind === "error"
+            ? phase.message
+            : phase.kind === "requesting"
+              ? "Starting camera…"
+              : "Fit the barcode inside the frame"
+        }
         controls={
           <>
             <Button
@@ -79,15 +88,6 @@ export function CameraScanButton({
           </>
         }
       />
-      {phase.kind === "error" ? (
-        <p className="text-sm text-destructive">{phase.message}</p>
-      ) : (
-        <p className="text-muted-foreground text-xs">
-          {phase.kind === "requesting"
-            ? "Requesting camera…"
-            : "Point the camera at a barcode."}
-        </p>
-      )}
     </div>
   );
 }

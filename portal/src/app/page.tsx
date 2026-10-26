@@ -103,7 +103,19 @@ export default async function HomePage() {
     { value: facets.total, label: "Products" },
     { value: facets.categories.length, label: "Categories" },
   ];
+  // Hero showcase: the newest products, but with any GoodnessMe product swapped
+  // for a Vishwas one (preferring products that have a photo).
   const collage = featured.slice(0, 4);
+  const vishwasBrand = facets.brands.find((b) => /vishwas/i.test(b.name))?.name;
+  if (vishwasBrand && collage.some((c) => /goodness\s*me/i.test(c.brand ?? ""))) {
+    const { items: vishwas } = await loadCatalogue({ brand: vishwasBrand, pageSize: 12, sort: "newest" }, settings, mode === "approved");
+    const pool = [...vishwas.filter((v) => v.imageUrl), ...vishwas.filter((v) => !v.imageUrl)].filter(
+      (v) => !collage.some((c) => c.id === v.id)
+    );
+    for (let i = 0; i < collage.length && pool.length > 0; i++) {
+      if (/goodness\s*me/i.test(collage[i].brand ?? "")) collage[i] = pool.shift()!;
+    }
+  }
 
   return (
     <>

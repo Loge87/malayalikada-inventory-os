@@ -188,7 +188,7 @@ export function LocationsList({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto py-1">
       {/* .table/.table-head — not raw markup — see
           expiring-soon-table.tsx's own note for why. table-layout: fixed +
           a <colgroup> — this table now matches Clients/Team's shared

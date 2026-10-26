@@ -765,6 +765,6 @@
    ui.css) because unlayered theme rules beat the components layer. */
 @media (max-width: 639.98px) {
   :root {
-    --space-table-row-height: 3.75rem;
+    --space-table-row-height: 4.75rem;
   }
 }

@@ -1202,7 +1202,7 @@
     align-items: center;
     gap: 0.5rem 0.75rem;
     height: auto !important;
-    padding: 1.25rem var(--space-table-cell-x);
+    padding: 1.5rem var(--space-table-cell-x);
   }
   .table-cards .table-row > td {
     display: block;

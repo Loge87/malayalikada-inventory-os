@@ -211,7 +211,7 @@ export function ClientsList({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto py-1">
       {/* .table/.table-head — not raw markup — see
           expiring-soon-table.tsx's own note for why. table-layout: fixed
           + a <colgroup> (item 8) — the Address <col> is hidden the same

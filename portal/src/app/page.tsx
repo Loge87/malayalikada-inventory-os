@@ -176,7 +176,10 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-            <div className="absolute -bottom-5 right-3 flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-3 shadow-[var(--shadow-lg)] ring-1 ring-line backdrop-blur-md sm:-right-2">
+            <Link
+              href={mode === "guest" ? "/login?next=/quick-order" : "/quick-order"}
+              className="absolute -bottom-5 right-3 flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-3 shadow-[var(--shadow-lg)] ring-1 ring-line backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] hover:ring-brand sm:-right-2"
+            >
               <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-[#0b3d22] text-white" aria-hidden>
                 <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h2l2.4 10h10l2-7H6.5" /><circle cx="9" cy="19" r="1.4" /><circle cx="17" cy="19" r="1.4" /></svg>
               </span>
@@ -184,7 +187,7 @@ export default async function HomePage() {
                 <div className="text-sm font-bold leading-tight">Quick order</div>
                 <div className="text-xs text-muted">Add cases in seconds</div>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </section>

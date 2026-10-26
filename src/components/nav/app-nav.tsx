@@ -201,7 +201,7 @@ function NavRow({
       >
         <Icon className="size-4 shrink-0" />
         {link.label}
-        <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground/70 uppercase">
+        <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
           Soon
         </span>
       </span>

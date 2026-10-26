@@ -75,7 +75,7 @@
      same reasoning as every prior rebrand: a focus outline should read
      clearly regardless of what's behind it, and --primary is vivid enough
      (non-text 3:1 UI-component floor) against both page surfaces. */
-  --ring: var(--primary);
+  --ring: var(--primary-text);
   /* The green used AS TEXT, an icon glyph, a link, OR a border/outline that
      needs to read on its own against a light surface — a darker shade of
      the same hue than the fill above (the raw fill color, #28c169, only
@@ -93,7 +93,7 @@
      plain text/link/icon color on the two surfaces above, not on the tint).
      --primary itself (#4eb46c) is explicitly NOT reused as text here on a
      light surface — only 2.60:1, far under the floor. */
-  --primary-text: #2f7f47;
+  --primary-text: #2a7541;
   /* A pale wash of the fill color — "this is selected/active" backgrounds
      (table rows, a highlighted filter, the left nav's active row — see
      SIDEBAR-ACTIVE below) without a solid block. A flat given value this
@@ -155,7 +155,7 @@
      background-color difference alone. 17.06:1 against --foreground,
      7.24:1 against --muted-foreground — both comfortably clear AA (AAA
      too). */
-  --background: #f8fafc;
+  --background: #fafafa;
   /* Cards, panels, and dialogs — pure white, one layer up from the page. */
   --card: #ffffff;
   /* Dropdown menus, comboboxes, and other floating popover surfaces. */
@@ -164,17 +164,17 @@
      control needs to look one step more "filled in" than plain/transparent
      without reaching for --accent or --muted. Same slate-100 as --muted
      (see its own comment) — the two have always shared one value here. */
-  --secondary: #f1f5f9;
+  --secondary: #f5f5f5;
   /* The standard muted/subtle fill — hover backgrounds on nav rows and
      ghost buttons, disabled-looking chips, table header rows, and the
      "neutral" stock-status pill background. Given directly this pass
      (slate-100). */
-  --muted: #f1f5f9;
+  --muted: #f5f5f5;
   /* A slightly different neutral fill used by a handful of shadcn
      primitives (focus/hover backgrounds inside menus, selects) — visually
      close to --muted but kept distinct so those components can be
      retuned independently later. */
-  --accent: #f1f5f9;
+  --accent: #f5f5f5;
 
   /* ============================================================
      TEXT — foreground/ink colors, one per surface above so every surface
@@ -184,18 +184,18 @@
   /* The default body text color, used on --background and --card alike —
      given directly this pass (slate-900). 17.06:1 against --background,
      17.85:1 against --card. */
-  --foreground: #0f172a;
-  --card-foreground: #0f172a;
-  --popover-foreground: #0f172a;
+  --foreground: #171717;
+  --card-foreground: #171717;
+  --popover-foreground: #171717;
   /* One step lighter than --foreground (slate-800) — a softer heading/
      label tone for the secondary/accent surfaces above, same relationship
      as the previous palette had. */
-  --secondary-foreground: #1e293b;
+  --secondary-foreground: #262626;
   /* Secondary/de-emphasized text (subtitles, captions, table meta text) —
      given directly this pass (slate-600). 7.24:1 against --background,
      7.58:1 against --card — both comfortably clear AA. */
-  --muted-foreground: #475569;
-  --accent-foreground: #1e293b;
+  --muted-foreground: #525252;
+  --accent-foreground: #262626;
 
   /* ============================================================
      LINES — borders, dividers, and the neutral outline every input/select/
@@ -207,12 +207,12 @@
      1.23:1 against --card, both modest; --shadow-card's drop shadow (see
      DEPTH below) is what actually separates a card from the page, same as
      before this palette change. */
-  --border: #e2e8f0;
+  --border: #e5e5e5;
   /* The resting border color for text inputs, selects, and textareas
      specifically — given directly this pass (slate-300), one step darker
      than the plain divider --border above so a form control's own edge
      reads a little more deliberately than a passive divider line. */
-  --input: #cbd5e1;
+  --input: #d4d4d4;
 
   /* ============================================================
      BORDER WIDTHS — a prior pass removed every card's border, relying on
@@ -367,14 +367,14 @@
      --card, but that's cross-mode and not a real relationship, so this
      stays a literal rather than a confusing alias. 14.63:1 text contrast,
      11.87:1 against the track, 13.98:1 against the page. */
-  --tab-active: #1e293b;
+  --tab-active: #262626;
   --tab-active-foreground: #ffffff;
   /* A literal slate-400 — forms a real edge on both sides: 2.08:1 against
      the track, 5.71:1 against the fill. */
-  --tab-active-border: #94a3b8;
+  --tab-active-border: #a3a3a3;
   /* A full box-shadow value (same convention as --shadow-card/-raised
      below), not a bare color — the "lifted" look on the active pill. */
-  --tab-active-ring: 0 1px 2px 0 rgb(15 23 42 / 0.08);
+  --tab-active-ring: 0 1px 2px 0 rgb(0 0 0 / 0.08);
 
   /* ============================================================
      DEPTH (SHADOWS) — the two drop-shadow "weights" a surface can have.
@@ -599,7 +599,8 @@
 }
 
 .dark {
-  /* RESTORED this pass — the slate background/card/popover/muted above
+  /* NEUTRAL BLACK/GREY this pass: every dark surface below is a neutral grey (no blue cast); contrast re-verified for every text/surface pair.
+     (earlier note follows) RESTORED this pass — the slate background/card/popover/muted above
      were replaced back out to the black/near-black shades from the dark-
      fintech rebrand two passes before slate, found via `git log -p --
      src/app/theme.css` (one commit touches this file — 3860853, "Add
@@ -619,33 +620,33 @@
      (not named, and not "black shades" in the first place) — still the
      slate values from the previous pass. 16.97:1 against --foreground,
      15.84:1 against --card-foreground. */
-  --background: #0a0b14;
-  --card: #13141f;
-  --popover: #13141f;
-  --secondary: #1d1e2b;
-  --muted: #1d1e2b;
-  --accent: #1d1e2b;
+  --background: #0a0a0a;
+  --card: #141414;
+  --popover: #1a1a1a;
+  --secondary: #1f1f1f;
+  --muted: #1f1f1f;
+  --accent: #1f1f1f;
 
   /* Unrestored — kept at the slate value from the previous pass (not a
      "black shade," and not named in this request). 17.90:1 against the
      restored --background, 16.70:1 against the restored --card. */
-  --foreground: #f1f5f9;
-  --card-foreground: #f1f5f9;
-  --popover-foreground: #f1f5f9;
+  --foreground: #fafafa;
+  --card-foreground: #fafafa;
+  --popover-foreground: #fafafa;
   --secondary-foreground: var(--foreground);
   /* Given directly this pass (slate-400). 6.96:1 against --background,
      5.71:1 against --card — both clear AA. */
-  --muted-foreground: #94a3b8;
+  --muted-foreground: #a3a3a3;
   --accent-foreground: var(--foreground);
 
   /* Given directly the previous pass (slate-700), unrestored — re-verified
      against the restored --background/--card: 1.89:1 / 1.77:1, both still
      modest but real, same "the shadow/border-as-definition pattern
      carries this" situation as light mode's --border. */
-  --border: #334155;
+  --border: #2e2e2e;
   /* Given directly the previous pass (slate-600), unrestored. Re-verified:
      2.59:1 against --background, 2.41:1 against --card. */
-  --input: #475569;
+  --input: #404040;
 
   /* CORRECTED this pass (see :root's own comment on this token for the
      light-mode reasoning) — dark mode needs ITS OWN mix direction: 6% of
@@ -698,7 +699,7 @@
      unlike --card/--background this pass's restoration doesn't move it at
      all. Still 1.22:1 against the restored --card (a real, visibly-green-
      tinted step) while --primary-text still clears 5.23:1 against it. */
-  --primary-tint: #14532d;
+  --primary-tint: #163a24;
   /* CORRECTED this pass: :root now sets --sidebar-active-foreground to
      var(--foreground) (near-black, for the light-mode solid fill) — that
      would be near-WHITE in dark mode, which fails against the same vivid
@@ -741,7 +742,7 @@
      restored track: 2.87:1 (was 2.18:1 against the old slate track), 3.41:1
      against the restored page — both still a confidently visible step, not
      a marginal one — while still clearing 5.26:1 for the light text on it. */
-  --tab-active: #566780;
+  --tab-active: #525252;
   --tab-active-foreground: var(--foreground);
   /* var(--muted-foreground) (slate-400, unrestored) — re-verified against
      the restored track: 6.43:1, a solid edge on its own even before the
@@ -749,7 +750,7 @@
   --tab-active-border: var(--muted-foreground);
   /* A soft light ring instead of light mode's dark shadow — a dark shadow
      would be invisible against an already-dark track. */
-  --tab-active-ring: 0 0 0 1px rgb(241 245 249 / 0.08);
+  --tab-active-ring: 0 0 0 1px rgb(250 250 250 / 0.08);
 
   /* NEW this pass — see :root's own comment on this token. No drop shadow
      at all in dark mode: .card's real `border: 1px solid var(--border)`

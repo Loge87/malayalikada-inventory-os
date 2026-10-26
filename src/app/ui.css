@@ -441,7 +441,7 @@
 }
 .input:focus-visible {
   border-color: var(--ring);
-  box-shadow: 0 3px 11px 0px color-mix(in oklab, #1d37ba66 79%, transparent);
+  box-shadow: 0 3px 11px 0px color-mix(in oklab, var(--ring) 28%, transparent);
 }
 .input:disabled {
   pointer-events: none;

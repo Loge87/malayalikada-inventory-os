@@ -8,9 +8,8 @@ import { Camera, ChevronDown, PencilLine, Upload } from "lucide-react";
 import { checkBarcodeExists } from "@/app/(app)/products/actions";
 import type { ExistingProductMatch } from "@/app/(app)/products/actions";
 import { BarcodeInput } from "@/components/barcode/barcode-input";
-import { CameraViewfinder } from "@/components/barcode/camera-viewfinder";
+import { CameraViewfinder, useIsPhone } from "@/components/barcode/camera-viewfinder";
 import { useCameraScan } from "@/components/barcode/use-camera-scan";
-import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -81,6 +80,53 @@ export function AddProductMenu() {
     start();
   }
 
+  // Same camera screen as Stock out: on a phone it covers the whole screen
+  // and is drawn outside the dialog (so the dialog's own focus handling
+  // can't swallow taps on Cancel / Light); on larger screens it sits inside
+  // the dialog as before.
+  const isPhone = useIsPhone();
+  const scanning = dialogOpen && !duplicate && !checking;
+  const phoneScan = isPhone && scanning;
+  const viewfinder = (
+    <CameraViewfinder
+          videoRef={videoRef}
+          fullScreen
+          error={phase.kind === "error"}
+          hint={
+            phase.kind === "error"
+              ? phase.message
+              : phase.kind === "requesting"
+                ? "Starting camera…"
+                : "Fit the barcode inside the frame"
+          }
+          controls={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="bg-black/50 text-white backdrop-blur hover:bg-black/70"
+                onClick={closeDialog}
+              >
+                Cancel
+              </Button>
+              {torchSupported ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="bg-black/50 text-white backdrop-blur hover:bg-black/70"
+                  aria-pressed={torchOn}
+                  onClick={toggleTorch}
+                >
+                  {torchOn ? "Light off" : "Light on"}
+                </Button>
+              ) : null}
+            </>
+          }
+        />
+  );
+
   function closeDialog() {
     setDuplicate(null);
     setDialogOpen(false);
@@ -122,22 +168,15 @@ export function AddProductMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {phoneScan ? viewfinder : null}
+
       <Dialog
-        open={dialogOpen}
+        open={dialogOpen && !phoneScan}
         onOpenChange={(open) => {
           if (!open) closeDialog();
         }}
       >
-        <DialogContent
-          className={cn(
-            "sm:max-w-md",
-            // On a phone the camera view takes most of the screen, so the
-            // dialog becomes a full-height sheet while scanning.
-            !duplicate && !checking &&
-              "max-sm:top-0 max-sm:left-0 max-sm:h-dvh max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-y-auto max-sm:rounded-none"
-          )}
-          initialFocus={barcodeInputRef}
-        >
+        <DialogContent className="sm:max-w-md" initialFocus={barcodeInputRef}>
           <DialogHeader>
             <DialogTitle>Scan barcode</DialogTitle>
           </DialogHeader>
@@ -190,31 +229,7 @@ export function AddProductMenu() {
             <p className="text-muted-foreground text-sm">Checking…</p>
           ) : (
             <>
-              <CameraViewfinder
-                videoRef={videoRef}
-                error={phase.kind === "error"}
-                hint={
-                  phase.kind === "error"
-                    ? phase.message
-                    : phase.kind === "requesting"
-                      ? "Starting camera…"
-                      : "Fit the barcode inside the frame"
-                }
-                controls={
-                  torchSupported ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="ml-auto bg-black/50 text-white backdrop-blur hover:bg-black/70"
-                      aria-pressed={torchOn}
-                      onClick={toggleTorch}
-                    >
-                      {torchOn ? "Light off" : "Light on"}
-                    </Button>
-                  ) : null
-                }
-              />
+              {viewfinder}
               {/* A hardware scanner emulates a keyboard — it needs a focused
                   text input to type into, which the camera view alone
                   doesn't provide. Keeping this focused (matching /scan)

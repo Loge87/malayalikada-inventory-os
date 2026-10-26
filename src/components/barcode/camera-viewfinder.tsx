@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import { useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,25 @@ import { cn } from "@/lib/utils";
  * surroundings, corner brackets and a scan line sweeping up and down.
  * Purely visual: decoding is still done by useCameraScan on the <video>.
  */
+const PHONE_QUERY = "(max-width: 639.98px)";
+
+function subscribePhone(callback: () => void) {
+  const mql = window.matchMedia(PHONE_QUERY);
+  mql.addEventListener("change", callback);
+  return () => mql.removeEventListener("change", callback);
+}
+
+/** True on a phone-sized screen. Read synchronously on the first client
+ *  render, so the <video> is created once in its final place (moving it
+ *  later would drop the camera stream attached to it). */
+export function useIsPhone() {
+  return useSyncExternalStore(
+    subscribePhone,
+    () => window.matchMedia(PHONE_QUERY).matches,
+    () => false
+  );
+}
+
 export function CameraViewfinder({
   videoRef,
   controls,
@@ -30,7 +50,8 @@ export function CameraViewfinder({
   fullScreen?: boolean;
   className?: string;
 }) {
-  return (
+  const isPhone = useIsPhone();
+  const picture = (
     <div
       className={cn(
         "scan-viewport relative w-full overflow-hidden rounded-md bg-black sm:h-auto sm:aspect-video",
@@ -60,4 +81,9 @@ export function CameraViewfinder({
       <p className="scan-hint" data-error={error || undefined}>{hint}</p>
     </div>
   );
+
+  // Full-screen on a phone: render straight into <body>, so it covers the
+  // whole screen even when opened from inside a dialog (a dialog's own
+  // transform would otherwise trap a fixed-position child).
+  return fullScreen && isPhone ? createPortal(picture, document.body) : picture;
 }

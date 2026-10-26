@@ -1196,13 +1196,18 @@
   .table-cards > thead {
     display: none;
   }
+  /* !important on display: Tailwind's own .table-row utility
+     (display: table-row) shares this class name and would otherwise win,
+     squeezing the card to its content width and ignoring its padding. */
   .table-cards .table-row {
-    display: grid;
+    display: grid !important;
+    width: 100%;
+    box-sizing: border-box;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.5rem 0.75rem;
     height: auto !important;
-    padding: 1.5rem var(--space-table-cell-x);
+    padding: 1.75rem var(--space-table-cell-x) !important;
   }
   .table-cards .table-row > td {
     display: block;
@@ -1212,7 +1217,7 @@
   /* Last cell in every card: the Edit / Delete buttons, full width, right-aligned. */
   .table-cards .table-row > td:last-child {
     grid-column: 1 / -1;
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
   }
   /* Locations: name | status, then type */
   .table-cards-locations .table-row > td:nth-child(1) { grid-column: 1; grid-row: 1; }

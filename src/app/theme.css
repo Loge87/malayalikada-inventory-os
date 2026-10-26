@@ -759,3 +759,12 @@
      instead. */
   --shadow-card: none;
 }
+
+/* Taller table rows on a phone, for every table that reads the shared row
+   height: more room between rows, and easier to tap. Lives here (not in
+   ui.css) because unlayered theme rules beat the components layer. */
+@media (max-width: 639.98px) {
+  :root {
+    --space-table-row-height: 3.75rem;
+  }
+}

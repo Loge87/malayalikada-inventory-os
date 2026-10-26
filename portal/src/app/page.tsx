@@ -1,7 +1,13 @@
 import Link from "next/link";
 
 import { BrandMarquee } from "@/components/brand-marquee";
-import { ApprovedStoreIllustration, CasePriceIllustration, LiveStockIllustration } from "@/components/illustrations";
+import {
+  CasePriceIllustration,
+  LiveStockIllustration,
+  OrderTrackingIllustration,
+  QuickOrderIllustration,
+  TONES,
+} from "@/components/illustrations";
 import { ProductCard, ProductImage } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 import { loadCatalogue, loadFacets } from "@/lib/catalogue";
@@ -11,22 +17,32 @@ import { SITE } from "@/lib/site";
 
 const WHY = [
   {
-    art: <ApprovedStoreIllustration />,
-    title: "Approved retailers only",
-    body: "Every retailer is reviewed by hand, so you trade with a known network.",
-    points: ["Manual account approval", "Prices shown only to approved retailers"],
-  },
-  {
     art: <CasePriceIllustration />,
-    title: "Priced by the case",
-    body: "See your trade price per case, with the case size on every product.",
-    points: ["Clear price per case", "Case size shown on every product"],
+    tone: TONES.green,
+    title: "Trade prices, by the case",
+    body: "Your wholesale price per case, with the case size on every product, so you can plan your margin at a glance.",
+    points: ["Prices shown to approved retailers only", "No guesswork on units per case"],
   },
   {
     art: <LiveStockIllustration />,
-    title: "Live stock",
-    body: "Stock is checked when you order, so you know what is available before you commit.",
-    points: ["See cases available", "Stock reserved when you order"],
+    tone: TONES.teal,
+    title: "Live stock you can trust",
+    body: "See exactly how many cases are available, and your order is reserved the moment you place it.",
+    points: ["Cases available shown on every product", "Stock held for you once ordered"],
+  },
+  {
+    art: <QuickOrderIllustration />,
+    tone: TONES.violet,
+    title: "Reorder in seconds",
+    body: "Upload your usual list as an Excel or CSV file and add the whole lot to your cart in one go.",
+    points: ["Spreadsheet quick order", "Stock status checked line by line"],
+  },
+  {
+    art: <OrderTrackingIllustration />,
+    tone: TONES.amber,
+    title: "Every order in one place",
+    body: "Follow each order from placed to ready, and cancel it before we confirm if your plans change.",
+    points: ["Full order history and status", "Cancel any time before it is confirmed"],
   },
 ];
 
@@ -111,25 +127,25 @@ export default async function HomePage() {
             <p className="eyebrow">Why order with us</p>
             <h2 className="section-title mt-3">Built for retailers who order in bulk</h2>
             <p className="mt-4 text-lg leading-relaxed text-muted">
-              A trusted trade network, clear case pricing and stock you can count on, all in one place.
+              A trusted trade network with clear case pricing, live stock, fast reordering and order tracking, all in one place.
             </p>
           </Reveal>
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {WHY.map((w, i) => (
               <Reveal key={w.title} delay={i * 120}>
                 <div className="card card-hover value-card h-full overflow-hidden">
-                  <div className="relative aspect-[22/15] bg-gradient-to-b from-soft to-white px-5 pt-5">
+                  <div className="relative aspect-[22/15] px-5 pt-5" style={{ background: `linear-gradient(160deg, ${w.tone.tint}, #fff 85%)` }}>
                     <div className="value-art h-full w-full">{w.art}</div>
                   </div>
                   <div className="p-7 pt-5">
                     <div className="flex items-center gap-2">
-                      <span className="grid size-7 place-items-center rounded-full bg-brand/10 text-xs font-extrabold text-brand">{i + 1}</span>
+                      <span className="grid size-7 place-items-center rounded-full text-xs font-extrabold text-white" style={{ background: `linear-gradient(135deg, ${w.tone.c1}, ${w.tone.c2})` }}>{i + 1}</span>
                       <h3 className="text-lg font-bold">{w.title}</h3>
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-muted">{w.body}</p>
                     <ul className="mt-4 space-y-1.5 text-sm">
                       {w.points.map((pt) => (
-                        <li key={pt} className="flex gap-2"><span className="font-bold text-brand">✓</span><span>{pt}</span></li>
+                        <li key={pt} className="flex gap-2"><span className="font-bold" style={{ color: w.tone.c2 }}>✓</span><span>{pt}</span></li>
                       ))}
                     </ul>
                   </div>

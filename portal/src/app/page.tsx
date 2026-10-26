@@ -135,31 +135,48 @@ export default async function HomePage() {
 
           {/* Product showcase built from real products */}
           <div className="anim-up relative mx-auto w-full max-w-xl [animation-delay:200ms]">
-            <div className="pointer-events-none absolute -right-3 -top-3 size-24 rounded-full bg-accent/90 blur-2xl" aria-hidden />
-            <div className="relative grid grid-cols-5 grid-rows-2 gap-3 p-4 sm:gap-4 sm:p-6">
-              {(collage.length > 0 ? collage : [null, null, null]).slice(0, 3).map((f, i) => (
-                <figure
-                  key={f?.id ?? i}
-                  className={`hero-tile group relative overflow-hidden rounded-3xl bg-white ring-1 ring-line shadow-[0_24px_48px_-20px_rgb(15_26_20/0.35)] ${
-                    i === 0 ? "col-span-3 row-span-2 aspect-[3/4]" : "col-span-2 aspect-square"
-                  } ${i === 0 ? "anim-float" : i === 1 ? "anim-float [animation-delay:-2s]" : "anim-float [animation-delay:-4s]"}`}
-                >
-                  <div className="product-media h-full w-full transition-transform duration-700 ease-out group-hover:scale-105">
-                    <ProductImage src={f?.imageUrl ?? null} alt="" />
-                  </div>
-                  {f ? (
-                    <figcaption className="absolute inset-x-2 bottom-2 rounded-2xl bg-white/80 px-3 py-2 backdrop-blur-md">
-                      {f.brand ? <div className="truncate text-[10px] font-bold uppercase tracking-widest text-brand">{f.brand}</div> : null}
-                      <div className="truncate text-xs font-semibold">{f.name}</div>
-                    </figcaption>
-                  ) : null}
-                  {i === 0 ? (
-                    <span className="absolute left-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur">New in</span>
-                  ) : null}
-                </figure>
+            <div className="pointer-events-none absolute inset-0 -z-0 rounded-[2.5rem] bg-gradient-to-br from-soft via-white to-soft ring-1 ring-line" aria-hidden />
+            <div className="relative grid grid-cols-2 gap-3 p-3 sm:gap-4 sm:p-5">
+              {[0, 1].map((col) => (
+                <div key={col} className={`flex flex-col gap-3 sm:gap-4 ${col === 1 ? "pt-8 sm:pt-12" : ""}`}>
+                  {(collage.length > 0 ? collage : [null, null, null, null])
+                    .slice(0, 4)
+                    .map((f, i) => ({ f, i }))
+                    .filter(({ i }) => i % 2 === col)
+                    .map(({ f, i }, k) => {
+                      const tone = [TONES.amber, TONES.teal, TONES.violet, TONES.green][i % 4];
+                      return (
+                        <figure
+                          key={f?.id ?? i}
+                          className={`hero-tile group relative overflow-hidden rounded-[1.75rem] ring-1 ring-black/5 shadow-[0_22px_44px_-24px_rgb(15_26_20/0.45)] transition-transform duration-500 hover:-translate-y-1 ${
+                            k === 0 ? "aspect-[4/5]" : "aspect-square"
+                          } ${i % 2 === 0 ? "anim-float" : "anim-float [animation-delay:-3s]"}`}
+                          style={{ background: `radial-gradient(120% 90% at 50% 25%, #fff 0%, ${tone.tint} 100%)` }}
+                        >
+                          <div className="h-full w-full pb-14 transition-transform duration-700 ease-out group-hover:scale-105 [&_img]:drop-shadow-[0_14px_16px_rgb(15_26_20/0.18)]">
+                            <ProductImage src={f?.imageUrl ?? null} alt="" />
+                          </div>
+                          {f ? (
+                            <figcaption className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-between gap-2 rounded-2xl bg-white/80 px-3 py-2 ring-1 ring-white/70 backdrop-blur-md">
+                              <div className="min-w-0">
+                                {f.brand ? <div className="truncate text-[10px] font-bold uppercase tracking-widest" style={{ color: tone.c2 }}>{f.brand}</div> : null}
+                                <div className="truncate text-xs font-semibold">{f.name}</div>
+                              </div>
+                              <span className="grid size-7 shrink-0 place-items-center rounded-full text-white" style={{ background: `linear-gradient(135deg, ${tone.c1}, ${tone.c2})` }} aria-hidden>
+                                <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M9 7h8v8" /></svg>
+                              </span>
+                            </figcaption>
+                          ) : null}
+                          {i === 0 ? (
+                            <span className="absolute left-3 top-3 rounded-full bg-ink/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur">New in</span>
+                          ) : null}
+                        </figure>
+                      );
+                    })}
+                </div>
               ))}
             </div>
-            <div className="absolute -bottom-5 right-2 flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-3 shadow-[var(--shadow-lg)] ring-1 ring-line backdrop-blur-md sm:-right-2">
+            <div className="absolute -bottom-5 right-3 flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-3 shadow-[var(--shadow-lg)] ring-1 ring-line backdrop-blur-md sm:-right-2">
               <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-[#0b3d22] text-white" aria-hidden>
                 <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h2l2.4 10h10l2-7H6.5" /><circle cx="9" cy="19" r="1.4" /><circle cx="17" cy="19" r="1.4" /></svg>
               </span>

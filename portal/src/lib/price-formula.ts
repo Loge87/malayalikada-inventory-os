@@ -283,7 +283,8 @@ export type PriceComputation =
  * NZ charm pricing, applied to the final computed price only — never to
  * unit_price, pack_price, or anything evaluateFormula itself touches. No
  * whole numbers ever: round to cents first, then push into .49 (decimal
- * .00–.50) or .99 (.51–.99). Cents are re-derived via a second Math.round
+ * .01–.50) or .99 (.51–.99); an exact whole number drops to the .99 below it
+ * (9.00 → 8.99). Cents are re-derived via a second Math.round
  * rather than read off the float subtraction directly, since
  * `rounded - wholeNumber` can land a hair off an exact cent value (e.g.
  * 0.49999999999998) due to binary floating-point — rounding that difference
@@ -294,6 +295,9 @@ export function applyCharmPricing(rawPrice: number): number {
   const rounded = Math.round(rawPrice * 100) / 100;
   const wholeNumber = Math.floor(rounded);
   const cents = Math.round((rounded - wholeNumber) * 100);
+  // An exact whole number steps down to the .99 below it (9.00 -> 8.99),
+  // except at zero, which has no price below it to step down to.
+  if (cents === 0 && wholeNumber >= 1) return Math.round((wholeNumber - 1 + 0.99) * 100) / 100;
   return cents <= 50 ? wholeNumber + 0.49 : wholeNumber + 0.99;
 }
 

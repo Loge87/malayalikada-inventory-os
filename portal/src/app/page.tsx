@@ -12,6 +12,7 @@ import { ProductCard, ProductImage } from "@/components/product-card";
 import { Reveal } from "@/components/reveal";
 import { loadCatalogue, loadFacets } from "@/lib/catalogue";
 import { categoryVisual } from "@/lib/category-visual";
+import { formatMoney } from "@/lib/money";
 import { getPortalSettings, getPriceMode } from "@/lib/portal";
 import { SITE } from "@/lib/site";
 
@@ -44,6 +45,42 @@ const WHY = [
     body: "Follow each order from placed to ready, and cancel it before we confirm if your plans change.",
     points: ["Full order history and status", "Cancel any time before it is confirmed"],
   },
+];
+
+const STEPS = [
+  {
+    tone: TONES.green,
+    title: "Apply",
+    body: "Create your free trade account with your business details.",
+    icon: <><path d="M4 20v-1a5 5 0 0 1 5-5h2" /><circle cx="10" cy="8" r="3.5" /><path d="M17 14v6M14 17h6" /></>,
+  },
+  {
+    tone: TONES.teal,
+    title: "Get approved",
+    body: "We review every account by hand so the network stays trusted.",
+    icon: <><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" /><path d="m9 12 2 2 4-4" /></>,
+  },
+  {
+    tone: TONES.violet,
+    title: "See trade prices",
+    body: "Prices per case unlock as soon as you are approved.",
+    icon: <><path d="M3 12.5V4h8.5L21 13.5 13.5 21z" /><circle cx="7.5" cy="8.5" r="1.3" /></>,
+  },
+  {
+    tone: TONES.amber,
+    title: "Order by the case",
+    body: "Add cases, or upload a list, and your stock is held at once.",
+    icon: <><path d="M3 4h2l2.4 10h10l2-7H6.5" /><circle cx="9" cy="19" r="1.4" /><circle cx="17" cy="19" r="1.4" /></>,
+  },
+];
+
+const FAQ = (min: number, currency: string) => [
+  { q: "Who can order?", a: "The portal is for trade customers only: retailers, grocers and food businesses. Apply for an account and we will approve it after a quick review." },
+  { q: "When do I see prices?", a: "Trade prices are shown once your account is approved. Until then you can browse the full range and see what is in stock." },
+  { q: "What is a case?", a: "Everything is ordered by the case. The case size is shown on each product, and one unit in your cart is one case." },
+  { q: "Is there a minimum order?", a: `Yes, the minimum order is ${formatMoney(min, currency)}. Your cart shows how far you are from it.` },
+  { q: "Is my stock held when I order?", a: "Yes. Your cases are reserved the moment you place the order, so they cannot be sold to someone else." },
+  { q: "Can I cancel an order?", a: "You can cancel from your order page while it is still waiting for confirmation, and the reserved stock is released." },
 ];
 
 export default async function HomePage() {
@@ -96,24 +133,41 @@ export default async function HomePage() {
             </dl>
           </div>
 
-          {/* Product collage built from real products */}
-          <div className="anim-up relative [animation-delay:200ms]" aria-hidden>
-            <div className="grid grid-cols-2 gap-4">
-              {(collage.length > 0 ? collage : [null, null, null, null]).map((f, i) => (
-                <div
+          {/* Product showcase built from real products */}
+          <div className="anim-up relative mx-auto w-full max-w-xl [animation-delay:200ms]">
+            <div className="pointer-events-none absolute inset-x-4 inset-y-6 -rotate-3 rounded-[2.5rem] bg-gradient-to-br from-brand via-brand to-[#0b3d22] opacity-95 shadow-[var(--shadow-lg)]" aria-hidden />
+            <div className="pointer-events-none absolute -right-3 -top-3 size-24 rounded-full bg-accent/90 blur-2xl" aria-hidden />
+            <div className="relative grid grid-cols-5 grid-rows-2 gap-3 p-4 sm:gap-4 sm:p-6">
+              {(collage.length > 0 ? collage : [null, null, null]).slice(0, 3).map((f, i) => (
+                <figure
                   key={f?.id ?? i}
-                  className={`card product-media aspect-square overflow-hidden shadow-[var(--shadow-md)] ${i % 2 === 1 ? "mt-8" : ""} ${i % 2 === 0 ? "anim-float" : "anim-float [animation-delay:-3s]"}`}
+                  className={`hero-tile group relative overflow-hidden rounded-3xl bg-white ring-1 ring-white/50 shadow-[0_20px_40px_-16px_rgb(0_0_0/0.45)] ${
+                    i === 0 ? "col-span-3 row-span-2 aspect-[3/4]" : "col-span-2 aspect-square"
+                  } ${i === 0 ? "anim-float" : i === 1 ? "anim-float [animation-delay:-2s]" : "anim-float [animation-delay:-4s]"}`}
                 >
-                  <ProductImage src={f?.imageUrl ?? null} alt="" />
-                </div>
+                  <div className="product-media h-full w-full transition-transform duration-700 ease-out group-hover:scale-105">
+                    <ProductImage src={f?.imageUrl ?? null} alt="" />
+                  </div>
+                  {f ? (
+                    <figcaption className="absolute inset-x-2 bottom-2 rounded-2xl bg-white/80 px-3 py-2 backdrop-blur-md">
+                      {f.brand ? <div className="truncate text-[10px] font-bold uppercase tracking-widest text-brand">{f.brand}</div> : null}
+                      <div className="truncate text-xs font-semibold">{f.name}</div>
+                    </figcaption>
+                  ) : null}
+                  {i === 0 ? (
+                    <span className="absolute left-3 top-3 rounded-full bg-ink/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur">New in</span>
+                  ) : null}
+                </figure>
               ))}
             </div>
-            <div className="card absolute -bottom-6 left-1/2 w-[85%] -translate-x-1/2 bg-white/95 p-4 shadow-[var(--shadow-lg)] backdrop-blur sm:left-4 sm:w-64 sm:translate-x-0">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold">Quick order</span>
-                <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand">By the case</span>
+            <div className="absolute -bottom-5 right-2 flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-3 shadow-[var(--shadow-lg)] ring-1 ring-line backdrop-blur-md sm:-right-2">
+              <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-[#0b3d22] text-white" aria-hidden>
+                <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h2l2.4 10h10l2-7H6.5" /><circle cx="9" cy="19" r="1.4" /><circle cx="17" cy="19" r="1.4" /></svg>
+              </span>
+              <div>
+                <div className="text-sm font-bold leading-tight">Quick order</div>
+                <div className="text-xs text-muted">Add cases in seconds</div>
               </div>
-              <div className="mt-2 text-xs text-muted">Add cases in seconds, see stock as you go.</div>
             </div>
           </div>
         </div>
@@ -154,6 +208,33 @@ export default async function HomePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* How it works */}
+      <section className="container-page pb-24">
+        <Reveal className="mx-auto max-w-2xl text-center">
+          <p className="eyebrow">How it works</p>
+          <h2 className="section-title mt-3">From sign-up to delivery in four steps</h2>
+        </Reveal>
+        <ol className="relative mt-14 grid gap-5 md:grid-cols-4">
+          <div className="pointer-events-none absolute left-[12.5%] right-[12.5%] top-8 hidden h-px bg-gradient-to-r from-transparent via-brand/30 to-transparent md:block" aria-hidden />
+          {STEPS.map((st, i) => (
+            <Reveal as="li" key={st.title} delay={i * 100} className="relative">
+              <div className="card h-full p-6 text-center">
+                <div
+                  className="mx-auto grid size-16 place-items-center rounded-2xl text-white shadow-[0_14px_28px_-10px_var(--shadow-c)]"
+                  style={{ background: `linear-gradient(135deg, ${st.tone.c1}, ${st.tone.c2})`, "--shadow-c": st.tone.c2 } as React.CSSProperties}
+                  aria-hidden
+                >
+                  <svg viewBox="0 0 24 24" className="size-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{st.icon}</svg>
+                </div>
+                <div className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: st.tone.c2 }}>Step {i + 1}</div>
+                <h3 className="mt-1 text-lg font-bold">{st.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{st.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </ol>
       </section>
 
       {/* Featured */}
@@ -235,6 +316,31 @@ export default async function HomePage() {
         </section>
       ) : null}
 
+      {/* FAQ */}
+      <section className="container-page py-20">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.6fr]">
+          <Reveal>
+            <p className="eyebrow">Good to know</p>
+            <h2 className="section-title mt-3">Questions, answered</h2>
+            <p className="mt-4 max-w-sm text-muted">The basics of trading with us. Anything else, get in touch and we will help.</p>
+            <Link href="/contact" className="btn btn-sm mt-6">Contact us →</Link>
+          </Reveal>
+          <Reveal delay={100} className="space-y-3">
+            {FAQ(settings.minOrderValue, settings.currency).map((q) => (
+              <details key={q.q} className="faq card group px-5 py-4 open:shadow-[var(--shadow-md)]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
+                  {q.q}
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/10 text-brand transition-transform duration-300 group-open:rotate-45" aria-hidden>
+                    <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-muted">{q.a}</p>
+              </details>
+            ))}
+          </Reveal>
+        </div>
+      </section>
+
       {/* Trade ordering */}
       <section className="container-page py-20">
         <Reveal>
@@ -263,22 +369,21 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[
-                  { icon: "💰", title: "Trade prices", body: "Per-case pricing once you are approved." },
-                  { icon: "📦", title: "Live stock", body: "Availability checked when you order." },
-                  { icon: "🔒", title: "Stock reserved", body: "Your cases are held the moment you order." },
-                  { icon: "🧾", title: "Order history", body: "Track and review every order." },
-                ].map((f, i) => (
-                  <div
-                    key={f.title}
-                    className={`rounded-3xl border border-white/20 bg-white/10 p-5 backdrop-blur transition-transform duration-300 hover:-translate-y-1 hover:bg-white/15 ${i % 2 === 1 ? "sm:translate-y-6" : ""}`}
-                  >
-                    <div className="grid size-11 place-items-center rounded-2xl bg-white/90 text-xl shadow-lg">{f.icon}</div>
-                    <div className="mt-4 font-bold">{f.title}</div>
-                    <div className="mt-1 text-sm opacity-85">{f.body}</div>
-                  </div>
-                ))}
+              <div className="rounded-3xl border border-white/20 bg-white/10 p-6 backdrop-blur sm:p-8">
+                <div className="text-xs font-bold uppercase tracking-[0.18em] opacity-80">Your trade terms</div>
+                <dl className="mt-5 divide-y divide-white/15">
+                  {[
+                    { k: "Minimum order", v: formatMoney(settings.minOrderValue, settings.currency) },
+                    { k: "Ordering unit", v: "1 case" },
+                    { k: "Stock", v: "Held on order" },
+                    { k: "Ordering", v: "Open 24/7" },
+                  ].map((t) => (
+                    <div key={t.k} className="flex items-baseline justify-between gap-4 py-3.5">
+                      <dt className="text-sm opacity-80">{t.k}</dt>
+                      <dd className="text-xl font-extrabold tracking-tight">{t.v}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
             </div>
           </div>

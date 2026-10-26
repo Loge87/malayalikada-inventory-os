@@ -118,7 +118,7 @@ export default async function HomePage() {
             {WHY.map((w, i) => (
               <Reveal key={w.title} delay={i * 120}>
                 <div className="card card-hover value-card h-full overflow-hidden">
-                  <div className="relative aspect-[22/15] bg-gradient-to-b from-soft to-white px-6 pt-6">
+                  <div className="relative aspect-[22/15] bg-gradient-to-b from-soft to-white px-5 pt-5">
                     <div className="value-art h-full w-full">{w.art}</div>
                   </div>
                   <div className="p-7 pt-5">

@@ -295,7 +295,9 @@ async function buildItems(
         r.pack_price === null ? null : Number(r.pack_price),
         pricing.activeFormulas.wholesale,
         pricing.variables,
-        (product?.product_type as ProductType | null) ?? null
+        (product?.product_type as ProductType | null) ?? null,
+        pricing.shipmentCosts,
+        "wholesale"
       );
       casePrice = price.kind === "computed" ? price.amount : null;
     }

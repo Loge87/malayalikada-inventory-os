@@ -177,44 +177,70 @@ type PriceVariableRow = {
 
 /** Shipment cost per product type — added to the computed retail/wholesale
  *  price of a product of that type (Settings → Price Settings). */
-export type ShipmentCost = { value: number; valueType: PriceVariableType };
+export type ShipmentCost = {
+  value: number;
+  valueType: PriceVariableType;
+  /** Whether this cost is added to the retail / wholesale price. On by default. */
+  retail: boolean;
+  wholesale: boolean;
+};
 export type ShipmentCosts = Partial<Record<ProductType, ShipmentCost>>;
 
 type ShipmentCostRow = {
   product_type: ProductType;
   value: number;
   value_type: PriceVariableType;
+  retail_enabled?: boolean | null;
+  wholesale_enabled?: boolean | null;
 };
 
 export async function loadShipmentCosts(
   supabase: SupabaseClient,
   organisationId: string
 ): Promise<ShipmentCosts> {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("shipment_costs")
-    .select("product_type, value, value_type")
+    .select("product_type, value, value_type, retail_enabled, wholesale_enabled")
     .eq("organisation_id", organisationId)
     .returns<ShipmentCostRow[]>();
+  if (error) {
+    // Migration 0036 (the on/off flags) may not have been run yet: fall back
+    // to the original columns so prices keep working.
+    const fallback = await supabase
+      .from("shipment_costs")
+      .select("product_type, value, value_type")
+      .eq("organisation_id", organisationId)
+      .returns<ShipmentCostRow[]>();
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) {
     throw error;
   }
   const costs: ShipmentCosts = {};
   for (const row of data ?? []) {
-    costs[row.product_type] = { value: Number(row.value), valueType: row.value_type };
+    costs[row.product_type] = {
+      value: Number(row.value),
+      valueType: row.value_type,
+      retail: row.retail_enabled !== false,
+      wholesale: row.wholesale_enabled !== false,
+    };
   }
   return costs;
 }
 
-/** Adds the product type's shipment cost to a computed price. A flat
+/** Adds the product type's shipment cost to a computed retail or wholesale
+ *  price (unless that formula has opted the cost out). A flat
  *  ("number"/"currency") cost adds the amount; a percentage adds that
  *  percent of the price so far. No type, or no cost set, changes nothing. */
 export function applyShipmentCost(
   amount: number,
   productType: ProductType | null,
-  costs: ShipmentCosts | null
+  costs: ShipmentCosts | null,
+  formulaType: FormulaType = "retail"
 ): number {
   const cost = productType && costs ? costs[productType] : undefined;
-  if (!cost || !cost.value) return amount;
+  if (!cost || !cost.value || !cost[formulaType]) return amount;
   return cost.valueType === "percentage"
     ? amount + amount * (cost.value / 100)
     : amount + cost.value;
@@ -306,13 +332,14 @@ export function computeDisplayPrice(
   activeChain: FormulaChain | null,
   variables: PriceVariable[],
   productType: ProductType | null = null,
-  shipmentCosts: ShipmentCosts | null = null
+  shipmentCosts: ShipmentCosts | null = null,
+  formulaType: FormulaType = "retail"
 ): PriceComputation {
   if (baseAmount === null || activeChain === null) {
     return { kind: "not_set" };
   }
   const rawAmount = evaluateFormula(baseAmount, activeChain, variables, productType);
-  const withShipment = applyShipmentCost(rawAmount, productType, shipmentCosts);
+  const withShipment = applyShipmentCost(rawAmount, productType, shipmentCosts, formulaType);
   return { kind: "computed", amount: applyCharmPricing(withShipment) };
 }
 

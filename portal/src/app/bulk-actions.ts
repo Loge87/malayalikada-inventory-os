@@ -32,7 +32,7 @@ const MAX_ROWS = 500;
 
 async function approvedRetailer(): Promise<{ error: string } | { retailer: Retailer }> {
   const retailer = await getCurrentRetailer();
-  if (!retailer) return { error: "Please sign in to place a bulk order." };
+  if (!retailer) return { error: "Please sign in to place a quick order." };
   if (retailer.status !== "approved") return { error: "Your account must be approved before you can order." };
   return { retailer };
 }

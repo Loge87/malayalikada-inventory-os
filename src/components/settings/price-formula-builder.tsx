@@ -202,6 +202,7 @@ export function PriceFormulaBuilder({
                 initialChain={retailChain}
                 variables={variables}
                 currency={currency}
+                shipmentCosts={shipmentCosts}
                 onChainChange={setLiveRetailChain}
               />
             </div>
@@ -211,6 +212,7 @@ export function PriceFormulaBuilder({
                 initialChain={wholesaleChain}
                 variables={variables}
                 currency={currency}
+                shipmentCosts={shipmentCosts}
                 onChainChange={setLiveWholesaleChain}
               />
             </div>

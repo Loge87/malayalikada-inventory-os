@@ -62,7 +62,7 @@ export function SettingsTabs({
       <TabsList>
         <TabsTab value="general">General</TabsTab>
         <TabsTab value="price-settings">Price Settings</TabsTab>
-        <TabsTab value="wholesale">Wholesale</TabsTab>
+        <TabsTab value="wholesale">Wholesale portal</TabsTab>
         <TabsTab value="notifications">Notifications</TabsTab>
         <TabsIndicator />
       </TabsList>

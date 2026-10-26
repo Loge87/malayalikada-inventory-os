@@ -19,6 +19,7 @@ import {
   type FormulaType,
   type GroupStep,
   type OperatorKind,
+  type ShipmentCosts,
 } from "@/lib/price-formula";
 import { cn } from "@/lib/utils";
 import {
@@ -47,6 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toastManager } from "@/components/ui/toast";
+import { ShipmentChainCards } from "@/components/settings/shipment-chain-cards";
 
 /** How long to wait, after the last change, before persisting — a short
  *  debounce collapses a burst of quick edits (e.g. picking a variable then
@@ -605,12 +607,14 @@ export function PriceFormulaChain({
   initialChain,
   variables,
   currency,
+  shipmentCosts,
   onChainChange,
 }: {
   formulaType: FormulaType;
   initialChain: FormulaChain;
   variables: PriceVariable[];
   currency: string;
+  shipmentCosts: ShipmentCosts;
   /** Mirrors this chain's live (draft, possibly-unsaved) state up to the
    *  parent — the parent needs it for the Retail/Wholesale selector cards'
    *  one-line preview and Applied/Draft changes/Not set status badge, which
@@ -700,6 +704,8 @@ export function PriceFormulaChain({
           startLabel={startLabel}
         />
       </div>
+
+      <ShipmentChainCards formulaType={formulaType} costs={shipmentCosts} />
     </div>
   );
 }

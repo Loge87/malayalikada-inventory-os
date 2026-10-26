@@ -44,8 +44,9 @@ export function ShipmentCostPanel({ costs }: { costs: ShipmentCosts }) {
       <div>
         <h2 className="text-section-title">Shipment cost</h2>
         <p className="text-caption">
-          Added to the retail price of every product of that type. A
-          percentage is taken from the price calculated so far.
+          Added to the retail and wholesale price of every product of that
+          type. A percentage is taken from the price calculated so far. You
+          can remove it from either formula using its card under the formula.
         </p>
       </div>
 

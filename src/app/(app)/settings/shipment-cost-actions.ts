@@ -58,3 +58,37 @@ export async function saveShipmentCosts(
   revalidatePath("/products");
   return { ok: true };
 }
+
+/** Adds or removes a product type's shipment cost from one formula
+ *  (retail or wholesale). The cost itself is kept; only this formula's use of it changes. */
+export async function setShipmentApplies(
+  formulaType: "retail" | "wholesale",
+  productType: string,
+  enabled: boolean
+): Promise<ShipmentCostFormState> {
+  if (formulaType !== "retail" && formulaType !== "wholesale") return { error: "Unknown formula." };
+  if (!(PRODUCT_TYPES as readonly string[]).includes(productType)) return { error: "Unknown product type." };
+
+  const supabase = await createClient();
+  const role = await getCurrentUserRole(supabase);
+  if (!hasPermission(role, "pricing:manage")) {
+    return { error: "Only an admin or owner can manage shipment costs." };
+  }
+  const organisationId = await getCurrentOrganisationId(supabase);
+  if (!organisationId) return { error: "Could not determine your organisation." };
+
+  const column = formulaType === "retail" ? "retail_enabled" : "wholesale_enabled";
+  const { error } = await supabase
+    .from("shipment_costs")
+    .upsert(
+      { organisation_id: organisationId, product_type: productType, [column]: enabled, updated_at: new Date().toISOString() },
+      { onConflict: "organisation_id,product_type" }
+    );
+  if (error) {
+    return { error: error.message.includes(column) ? "Run migration 0036 in Supabase first." : error.message };
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/products");
+  return { ok: true };
+}

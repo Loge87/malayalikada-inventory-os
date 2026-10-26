@@ -107,8 +107,8 @@ function moneyCell(value: number | null | undefined, currency: string | undefine
  *  computeDisplayPrice, never a stale fallback. "No pricing formula set
  *  yet" (not an em dash, not $0) when no formula of this type has ever
  *  been applied for the organisation. */
-function formulaPriceCell(baseAmount: number | null, activeChain: FormulaChain | null, variables: PriceVariable[], currency: string | undefined, productType: ProductType | null, shipmentCosts: ShipmentCosts) {
-  const computation = computeDisplayPrice(baseAmount, activeChain, variables, productType, shipmentCosts);
+function formulaPriceCell(baseAmount: number | null, activeChain: FormulaChain | null, variables: PriceVariable[], currency: string | undefined, productType: ProductType | null, shipmentCosts: ShipmentCosts, formulaType: "retail" | "wholesale" = "retail") {
+  const computation = computeDisplayPrice(baseAmount, activeChain, variables, productType, shipmentCosts, formulaType);
   if (computation.kind === "not_set") {
     return <span className="text-caption">No pricing formula set yet</span>;
   }
@@ -764,7 +764,8 @@ export function ProductsTable({
                       pricing.variables,
                       variant?.currency,
                       product.productType,
-                      {}
+                      pricing.shipmentCosts,
+                      "wholesale"
                     )}
                   </td>
                   <td className="cell-number py-3">

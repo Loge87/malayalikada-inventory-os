@@ -8,7 +8,9 @@ import { Camera, ChevronDown, PencilLine, Upload } from "lucide-react";
 import { checkBarcodeExists } from "@/app/(app)/products/actions";
 import type { ExistingProductMatch } from "@/app/(app)/products/actions";
 import { BarcodeInput } from "@/components/barcode/barcode-input";
+import { CameraViewfinder } from "@/components/barcode/camera-viewfinder";
 import { useCameraScan } from "@/components/barcode/use-camera-scan";
+import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -126,7 +128,16 @@ export function AddProductMenu() {
           if (!open) closeDialog();
         }}
       >
-        <DialogContent className="sm:max-w-md" initialFocus={barcodeInputRef}>
+        <DialogContent
+          className={cn(
+            "sm:max-w-md",
+            // On a phone the camera view takes most of the screen, so the
+            // dialog becomes a full-height sheet while scanning.
+            !duplicate && !checking &&
+              "max-sm:top-0 max-sm:left-0 max-sm:h-dvh max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-y-auto max-sm:rounded-none"
+          )}
+          initialFocus={barcodeInputRef}
+        >
           <DialogHeader>
             <DialogTitle>Scan barcode</DialogTitle>
           </DialogHeader>
@@ -179,25 +190,23 @@ export function AddProductMenu() {
             <p className="text-muted-foreground text-sm">Checking…</p>
           ) : (
             <>
-              <video
-                ref={videoRef}
-                className="aspect-video w-full rounded-md bg-black object-cover"
-                playsInline
-                muted
-                autoPlay
+              <CameraViewfinder
+                videoRef={videoRef}
+                controls={
+                  torchSupported ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto bg-black/50 text-white backdrop-blur hover:bg-black/70"
+                      aria-pressed={torchOn}
+                      onClick={toggleTorch}
+                    >
+                      {torchOn ? "Light off" : "Light on"}
+                    </Button>
+                  ) : null
+                }
               />
-              {torchSupported ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-fit"
-                  aria-pressed={torchOn}
-                  onClick={toggleTorch}
-                >
-                  {torchOn ? "Light off" : "Light on"}
-                </Button>
-              ) : null}
               {phase.kind === "error" ? (
                 <p className="text-sm text-destructive">{phase.message}</p>
               ) : (

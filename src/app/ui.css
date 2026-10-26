@@ -1105,3 +1105,73 @@
    that doesn't exist anywhere yet either. Add both together once a table
    actually adopts it, rather than shipping a rule with nothing to test
    it against. */
+
+/* ============================================================
+   BARCODE SCAN VIEWFINDER — the focus frame drawn over the live camera
+   picture (components/barcode/camera-viewfinder.tsx). The frame is a
+   wide, barcode-shaped window: everything outside it is dimmed, four
+   brackets mark its corners and a scan line sweeps across it.
+   ============================================================ */
+.scan-frame {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 84%;
+  height: 28%;
+  transform: translate(-50%, -50%);
+  border-radius: 0.75rem;
+  /* Dims the camera picture around the frame; the parent's overflow-hidden
+     clips this to the picture. */
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.55);
+  pointer-events: none;
+}
+@media (min-width: 640px) {
+  .scan-frame {
+    width: 56%;
+    height: 44%;
+  }
+}
+.scan-corner {
+  position: absolute;
+  width: 2rem;
+  height: 2rem;
+  border: 0 solid var(--primary);
+  animation: scan-pulse 1.8s ease-in-out infinite;
+}
+.scan-corner-tl { left: -2px; top: -2px; border-left-width: 4px; border-top-width: 4px; border-top-left-radius: 0.75rem; }
+.scan-corner-tr { right: -2px; top: -2px; border-right-width: 4px; border-top-width: 4px; border-top-right-radius: 0.75rem; }
+.scan-corner-bl { left: -2px; bottom: -2px; border-left-width: 4px; border-bottom-width: 4px; border-bottom-left-radius: 0.75rem; }
+.scan-corner-br { right: -2px; bottom: -2px; border-right-width: 4px; border-bottom-width: 4px; border-bottom-right-radius: 0.75rem; }
+.scan-line {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 8%;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--primary);
+  box-shadow: 0 0 10px 2px color-mix(in oklab, var(--primary) 70%, transparent);
+  animation: scan-sweep 1.6s ease-in-out infinite alternate;
+}
+.scan-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  max-width: 90%;
+  border-radius: 9999px;
+  background: rgb(0 0 0 / 0.65);
+  padding: 0.375rem 0.875rem;
+  color: #fff;
+  font-size: var(--text-xs);
+  text-align: center;
+  white-space: nowrap;
+}
+@keyframes scan-sweep {
+  from { top: 8%; }
+  to { top: calc(92% - 2px); }
+}
+@keyframes scan-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}

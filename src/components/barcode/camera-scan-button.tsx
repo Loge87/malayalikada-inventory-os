@@ -1,6 +1,7 @@
 "use client";
 
 import { useCameraScan } from "@/components/barcode/use-camera-scan";
+import { CameraViewfinder } from "@/components/barcode/camera-viewfinder";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ScanSource } from "@/components/barcode/types";
@@ -50,19 +51,33 @@ export function CameraScanButton({
         emphasized ? "gap-1.5 p-1.5" : "gap-2 p-2"
       )}
     >
-      <video
-        ref={videoRef}
-        className={cn(
-          "w-full rounded-md bg-black object-cover",
-          // Taller on /stock-out's mobile scan view specifically — more of
-          // the viewport is the actual scan target, less surrounding chrome
-          // — reverting to the original 16:9 preview from sm: up, where
-          // there's already plenty of room either way.
-          emphasized ? "aspect-[3/4] sm:aspect-video" : "aspect-video"
-        )}
-        playsInline
-        muted
-        autoPlay
+      <CameraViewfinder
+        videoRef={videoRef}
+        controls={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="bg-black/50 text-white backdrop-blur hover:bg-black/70"
+              onClick={close}
+            >
+              Cancel
+            </Button>
+            {torchSupported ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="bg-black/50 text-white backdrop-blur hover:bg-black/70"
+                aria-pressed={torchOn}
+                onClick={toggleTorch}
+              >
+                {torchOn ? "Light off" : "Light on"}
+              </Button>
+            ) : null}
+          </>
+        }
       />
       {phase.kind === "error" ? (
         <p className="text-sm text-destructive">{phase.message}</p>
@@ -73,29 +88,6 @@ export function CameraScanButton({
             : "Point the camera at a barcode."}
         </p>
       )}
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          onClick={close}
-        >
-          Cancel
-        </Button>
-        {torchSupported ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            aria-pressed={torchOn}
-            onClick={toggleTorch}
-          >
-            {torchOn ? "Light off" : "Light on"}
-          </Button>
-        ) : null}
-      </div>
     </div>
   );
 }

@@ -410,7 +410,7 @@ export function ProductsTable({
             resetPage();
           }}
           placeholder="Search name, SKU, barcode, category…"
-          className="max-w-xs"
+          className="w-full sm:max-w-xs"
         />
         <Select
           items={STATUS_ITEMS}
@@ -421,7 +421,7 @@ export function ProductsTable({
             resetPage();
           }}
         >
-          <SelectTrigger className="w-fit min-w-36">
+          <SelectTrigger className="min-w-0 flex-1 basis-[calc(50%-0.25rem)] sm:w-fit sm:min-w-36 sm:flex-none sm:basis-auto">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -442,7 +442,7 @@ export function ProductsTable({
               resetPage();
             }}
           >
-            <SelectTrigger className="w-fit min-w-36">
+            <SelectTrigger className="min-w-0 flex-1 basis-[calc(50%-0.25rem)] sm:w-fit sm:min-w-36 sm:flex-none sm:basis-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -463,7 +463,7 @@ export function ProductsTable({
               navigateToLocation(value === ALL_LOCATIONS ? null : value);
             }}
           >
-            <SelectTrigger className="w-fit min-w-36">
+            <SelectTrigger className="min-w-0 flex-1 basis-[calc(50%-0.25rem)] sm:w-fit sm:min-w-36 sm:flex-none sm:basis-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -775,7 +775,7 @@ export function ProductsTable({
                         event.stopPropagation();
                         openEdit(product.id);
                       }}
-                      className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
+                      className="rounded-md px-2 py-1 text-xs max-md:inline-flex max-md:min-h-9 max-md:items-center max-md:px-3 font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
                     >
                       Edit
                     </button>

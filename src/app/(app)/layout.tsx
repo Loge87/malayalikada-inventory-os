@@ -35,7 +35,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-full flex-col md:flex-row">
       <AppNav userEmail={user.email ?? ""} role={role} />
-      <main className="flex-1 pb-16 md:pb-0">
+      <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <RoleProvider role={role}>{children}</RoleProvider>
       </main>
     </div>

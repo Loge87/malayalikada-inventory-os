@@ -859,6 +859,11 @@
 .tabs {
   display: inline-flex;
   width: fit-content;
+  /* On a narrow screen a long row of tabs scrolls sideways inside its own
+     track instead of pushing the whole page wider. */
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
   align-items: center;
   gap: 0.25rem;
   border-radius: var(--radius-input);
@@ -870,6 +875,7 @@
 /* One tab, at rest — the sliding highlight behind the active one is its
    own element (TabsIndicator), not part of this class. */
 .tab {
+  flex-shrink: 0;
   display: flex;
   height: 2rem;
   align-items: center;

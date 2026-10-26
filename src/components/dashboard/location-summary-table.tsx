@@ -217,7 +217,7 @@ export function LocationSummaryTable({
                           <Link
                             href={`/products?location=${row.id}`}
                             onClick={(event) => event.stopPropagation()}
-                            className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
+                            className="rounded-md px-2 py-1 text-xs max-md:inline-flex max-md:min-h-9 max-md:items-center max-md:px-3 font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
                           >
                             View
                           </Link>

@@ -70,7 +70,7 @@ export function RecentActivityFeed({ rows }: { rows: ActivityRow[] }) {
                 className={
                   bucketFilter === "all"
                     ? "rounded-md bg-background px-3 py-1.5 font-medium text-foreground shadow-sm ring-1 ring-foreground/10"
-                    : "rounded-md px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground"
+                    : "rounded-md px-3 py-1.5 font-medium max-md:min-h-9 text-muted-foreground hover:text-foreground"
                 }
               >
                 All
@@ -87,7 +87,7 @@ export function RecentActivityFeed({ rows }: { rows: ActivityRow[] }) {
                   className={
                     bucketFilter === bucket
                       ? "rounded-md bg-background px-3 py-1.5 font-medium text-foreground shadow-sm ring-1 ring-foreground/10"
-                      : "rounded-md px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground"
+                      : "rounded-md px-3 py-1.5 font-medium max-md:min-h-9 text-muted-foreground hover:text-foreground"
                   }
                 >
                   {MOVEMENT_BUCKET_LABELS[bucket]}

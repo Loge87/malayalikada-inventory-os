@@ -140,7 +140,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
                     <Link
                       key={s.value}
                       href={link({ sort: s.value === "name" ? undefined : s.value })}
-                      className={`rounded-full px-3.5 py-1 text-sm font-semibold transition-all ${sort === s.value ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"}`}
+                      className={`rounded-full px-3.5 py-1.5 text-sm font-semibold max-md:py-2 transition-all ${sort === s.value ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"}`}
                     >
                       {s.label}
                     </Link>

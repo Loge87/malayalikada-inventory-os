@@ -19,7 +19,7 @@ export function InfoHint({ label, children }: { label: string; children: ReactNo
         delay={80}
         closeDelay={120}
         aria-label={label}
-        className="inline-flex size-5 shrink-0 cursor-help items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+        className="relative inline-flex size-5 shrink-0 after:absolute after:-inset-2 after:content-[''] cursor-help items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
       >
         <Info className="size-4" aria-hidden="true" />
       </PopoverTrigger>

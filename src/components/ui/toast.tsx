@@ -46,7 +46,7 @@ export function Toaster() {
 function ToastViewport() {
   return (
     <ToastPrimitive.Portal>
-      <ToastPrimitive.Viewport className="fixed inset-x-4 bottom-4 z-100 mx-auto flex w-full max-w-sm flex-col-reverse gap-2 outline-none sm:right-6 sm:bottom-6 sm:left-auto">
+      <ToastPrimitive.Viewport className="fixed inset-x-4 bottom-4 z-100 mx-auto flex max-w-sm flex-col-reverse gap-2 outline-none sm:w-full sm:right-6 sm:bottom-6 sm:left-auto">
         <ToastList />
       </ToastPrimitive.Viewport>
     </ToastPrimitive.Portal>

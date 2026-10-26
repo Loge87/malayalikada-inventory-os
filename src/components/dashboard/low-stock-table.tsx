@@ -89,7 +89,7 @@ export function LowStockTable({
                     className={
                       statusFilter === filter.value
                         ? "rounded-md bg-background px-3 py-1.5 font-medium text-foreground shadow-sm ring-1 ring-foreground/10"
-                        : "rounded-md px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground"
+                        : "rounded-md px-3 py-1.5 font-medium max-md:min-h-9 text-muted-foreground hover:text-foreground"
                     }
                   >
                     {filter.label}
@@ -166,7 +166,7 @@ export function LowStockTable({
                         <td className="cell-number py-3">
                           <Link
                             href={`/products/${row.productId}/edit`}
-                            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
+                            className="rounded-md px-2.5 py-1.5 text-xs max-md:min-h-9 font-medium text-muted-foreground ring-1 ring-foreground/10 hover:bg-muted hover:text-foreground"
                           >
                             Edit
                           </Link>

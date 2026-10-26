@@ -36,7 +36,7 @@ export function QtyControl({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(clamp(Number(e.target.value)))}
-        className="w-10 bg-transparent text-center text-sm font-bold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="h-9 w-10 bg-transparent text-center text-sm font-bold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         aria-label={label}
       />
       <button

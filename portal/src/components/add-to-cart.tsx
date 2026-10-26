@@ -30,13 +30,15 @@ export function AddToCart({ variantId, maxCases }: { variantId: string; maxCases
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col items-stretch gap-2">
+        <div className="flex justify-center">
         <QtyControl value={qty} onChange={setQty} max={Math.max(maxCases, 1)} disabled={pending} />
+        </div>
         <button
           type="button"
           onClick={add}
           disabled={pending}
-          className="btn btn-primary btn-sm flex-1 !px-3"
+          className="btn btn-primary btn-sm w-full !px-3"
         >
           {pending ? "Adding…" : added ? "✓ Added" : "Add to cart"}
         </button>

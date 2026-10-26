@@ -21,7 +21,7 @@ export function DayRangeToggle({
           onClick={() => onChange(range)}
           aria-pressed={value === range}
           className={cn(
-            "rounded-md px-3 py-1.5 font-medium transition-colors",
+            "rounded-md px-3 py-1.5 font-medium max-md:min-h-9 transition-colors",
             value === range
               ? "bg-background text-foreground shadow-sm ring-1 ring-foreground/10"
               : "text-muted-foreground hover:text-foreground"

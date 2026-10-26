@@ -37,7 +37,7 @@ export async function SiteFooter() {
             <ul className="mt-4 space-y-2.5">
               {c.links.map(([label, href]) => (
                 <li key={label}>
-                  <Link href={href} className="text-sm text-muted transition-colors hover:text-brand">{label}</Link>
+                  <Link href={href} className="inline-block py-1.5 text-sm text-muted transition-colors hover:text-brand">{label}</Link>
                 </li>
               ))}
             </ul>

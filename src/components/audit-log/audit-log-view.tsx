@@ -188,7 +188,7 @@ export function AuditLogView({
           className={
             tab === "movements"
               ? "rounded-md bg-background px-3 py-1.5 font-medium text-foreground shadow-sm ring-1 ring-foreground/10"
-              : "rounded-md px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground"
+              : "rounded-md px-3 py-1.5 font-medium max-md:min-h-9 text-muted-foreground hover:text-foreground"
           }
         >
           Inventory Movements
@@ -200,7 +200,7 @@ export function AuditLogView({
           className={
             tab === "integrations"
               ? "rounded-md bg-background px-3 py-1.5 font-medium text-foreground shadow-sm ring-1 ring-foreground/10"
-              : "rounded-md px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground"
+              : "rounded-md px-3 py-1.5 font-medium max-md:min-h-9 text-muted-foreground hover:text-foreground"
           }
         >
           Integration Events

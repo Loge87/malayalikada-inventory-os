@@ -135,13 +135,12 @@ export default async function HomePage() {
 
           {/* Product showcase built from real products */}
           <div className="anim-up relative mx-auto w-full max-w-xl [animation-delay:200ms]">
-            <div className="pointer-events-none absolute inset-x-4 inset-y-6 -rotate-3 rounded-[2.5rem] bg-gradient-to-br from-brand via-brand to-[#0b3d22] opacity-95 shadow-[var(--shadow-lg)]" aria-hidden />
             <div className="pointer-events-none absolute -right-3 -top-3 size-24 rounded-full bg-accent/90 blur-2xl" aria-hidden />
             <div className="relative grid grid-cols-5 grid-rows-2 gap-3 p-4 sm:gap-4 sm:p-6">
               {(collage.length > 0 ? collage : [null, null, null]).slice(0, 3).map((f, i) => (
                 <figure
                   key={f?.id ?? i}
-                  className={`hero-tile group relative overflow-hidden rounded-3xl bg-white ring-1 ring-white/50 shadow-[0_20px_40px_-16px_rgb(0_0_0/0.45)] ${
+                  className={`hero-tile group relative overflow-hidden rounded-3xl bg-white ring-1 ring-line shadow-[0_24px_48px_-20px_rgb(15_26_20/0.35)] ${
                     i === 0 ? "col-span-3 row-span-2 aspect-[3/4]" : "col-span-2 aspect-square"
                   } ${i === 0 ? "anim-float" : i === 1 ? "anim-float [animation-delay:-2s]" : "anim-float [animation-delay:-4s]"}`}
                 >

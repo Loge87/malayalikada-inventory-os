@@ -1,3 +1,4 @@
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import Link from "next/link";
 
 import { logout } from "@/app/actions";
@@ -97,9 +98,9 @@ export async function SiteHeader() {
       </div>
 
       {user && retailer?.status === "pending" ? (
-        <div className="bg-accent/15 px-4 py-2 text-center text-sm">
+        <DismissibleNotice id="pending-approval">
           Thanks for applying. We will approve your account shortly, and then you will see prices and can order.
-        </div>
+        </DismissibleNotice>
       ) : null}
       {user && retailer?.status === "suspended" ? (
         <div className="bg-danger/10 px-4 py-2 text-center text-sm">Your account is on hold. Please contact us.</div>
